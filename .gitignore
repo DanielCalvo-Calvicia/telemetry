@@ -1,0 +1,6 @@
+.env
+*.test
+coverage.out
+go.work
+go.work.sum
+BUILD_GUIDE.md

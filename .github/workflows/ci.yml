@@ -1,0 +1,23 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test ./... -coverpkg=./internal/... -coverprofile=coverage.out
+      - name: Coverage gate (>= 95%, excluding external/ folders)
+        run: |
+          grep -v '/external/' coverage.out > filtered.out
+          total=$(go tool cover -func=filtered.out | awk '/^total:/ {sub("%","",$3); print $3}')
+          echo "coverage: ${total}%"
+          awk -v t="$total" 'BEGIN { exit (t >= 95) ? 0 : 1 }'
