@@ -17,8 +17,9 @@ var (
 // LogSink
 // =============================================================================
 var (
-	ErrLogSinkDeliveryFailed  = errors.New("log sink: the entry could not be delivered")
-	ErrLogSinkEndpointMissing = errors.New("log sink: host, port and path of the log receiver are required")
+	ErrLogSinkDeliveryFailed   = errors.New("log sink: the entry could not be delivered")
+	ErrLogSinkEndpointMissing  = errors.New("log sink: host, port and path of the log receiver are required")
+	ErrLogSinkAWSTargetMissing = errors.New("log sink: the log group and the log stream of the AWS log receiver are required")
 )
 
 // =============================================================================
