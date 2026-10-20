@@ -21,6 +21,12 @@ func Test_telemetry_config_env_tags(t *testing.T) {
 		{"ConsoleEnabled", "LOGGER_CONSOLE_ENABLED,default=true"},
 		{"HTTPEnabled", "LOGGER_HTTP_ENABLED,default=false"},
 		{"MaskExtraPatterns", "LOGGER_MASK_EXTRA_PATTERNS, delimiter=;"},
+		{"AWSHTTPEnabled", "LOGGER_AWS_HTTP_ENABLED,default=false"},
+		{"AWSHTTPHost", "LOGGER_AWS_HTTP_HOST,default=http://localhost"},
+		{"AWSHTTPPort", "LOGGER_AWS_HTTP_PORT,default=8080"},
+		{"AWSHTTPPath", "LOGGER_AWS_HTTP_PATH,default=/api/v1/cloudwatch/logs/add"},
+		{"AWSHTTPLogGroup", "LOGGER_AWS_HTTP_LOG_GROUP"},
+		{"AWSHTTPLogStream", "LOGGER_AWS_HTTP_LOG_STREAM"},
 	}
 
 	config_type := reflect.TypeOf(config.TelemetryConfig{})

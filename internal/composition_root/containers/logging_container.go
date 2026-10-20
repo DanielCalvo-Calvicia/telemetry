@@ -24,7 +24,7 @@ type LoggingContainer struct {
 	shutdown func(ctx context.Context) error
 }
 
-// NewLoggingContainer builds the console sink and the HTTP sink the settings switch on, the console as the fallback
+// NewLoggingContainer builds the console sink, the HTTP sink and the AWS HTTP sink the settings switch on, the console as the fallback
 // that receives the report of a sink that failed, the minimum level of app_env and the masker with the extra
 // patterns of the settings.
 func NewLoggingContainer(_ context.Context, app_env string, logging_settings logging_config.TelemetryConfig) (*LoggingContainer, error) {
@@ -39,6 +39,14 @@ func NewLoggingContainer(_ context.Context, app_env string, logging_settings log
 			return nil, JoinErrors(err, ErrLoggerBuildFailed, ErrContainerBuildFailed)
 		}
 		log_sinks = append(log_sinks, http_sink)
+	}
+
+	if logging_settings.AWSHTTPEnabled {
+		aws_http_sink, err := dependencies.NewAWSHTTPLoggerDependency(logging_settings)
+		if err != nil {
+			return nil, JoinErrors(err, ErrLoggerBuildFailed, ErrContainerBuildFailed)
+		}
+		log_sinks = append(log_sinks, aws_http_sink)
 	}
 
 	minimum_level, err := logging_value_objects.NewLevel(logging_domain.MinimumLevelByEnvironment[app_env])
