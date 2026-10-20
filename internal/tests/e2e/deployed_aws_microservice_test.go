@@ -25,7 +25,7 @@ const (
 	deployed_path = "/api/v1/cloudwatch/logs/add"
 
 	// Where CloudWatch Logs stores the line; the endpoint creates them when they do not exist.
-	deployed_log_group  = "snowfactory/telemetry-e2e"
+	deployed_log_group  = "my-log-group"
 	deployed_log_stream = "telemetry"
 
 	// The line that is sent. The test appends the UTC time to the message so that each run is easy to find.
@@ -61,6 +61,7 @@ func Test_one_log_line_reaches_the_deployed_aws_microservice(t *testing.T) {
 	now := time.Now().UTC()
 	unique_text := fmt.Sprintf("%s %s", line_message, now.Format("2006-01-02T15:04:05.000Z"))
 	entry := dtos.LogEntryOutboundDTO{
+		ProducerID:    "Telemetry",
 		ApplicationID: "e2e",
 		ProcessID:     "e2e-" + now.Format("150405"),
 		Application:   line_application,
