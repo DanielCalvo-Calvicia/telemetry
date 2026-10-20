@@ -25,3 +25,17 @@ Status: v0.x, the API may change. Licensed under MIT.
   stream (`LOGGER_AWS_HTTP_*`, with `LOGGER_AWS_HTTP_LOG_GROUP` and `LOGGER_AWS_HTTP_LOG_STREAM` required).
 
 `examples/aws_http_smoke` sends one entry through the AWS HTTP sink to check a deployment.
+
+## Building the sinks yourself
+
+Instead of switching sinks on through `Config`, a consumer can build the ones it needs and pass them to the logger:
+
+```go
+aws_sink, err := logging.NewAWSHTTPSink("http://aws-microservice", "8080", "/api/v1/cloudwatch/logs/add", "my-group", "my-stream")
+if err != nil { /* handle */ }
+
+logger, shutdown, err := logging.NewWithSinks(ctx, "production", nil, logging.NewConsoleSink(), aws_sink)
+```
+
+`NewConsoleSink`, `NewHTTPSink` and `NewAWSHTTPSink` are the ready-made sinks; a consumer can also implement `logging.Sink`
+for a destination of its own.

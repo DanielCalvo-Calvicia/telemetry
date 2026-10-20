@@ -24,14 +24,13 @@ type LoggingContainer struct {
 	shutdown func(ctx context.Context) error
 }
 
-// NewLoggingContainer builds the console sink, the HTTP sink and the AWS HTTP sink the settings switch on, the console as the fallback
-// that receives the report of a sink that failed, the minimum level of app_env and the masker with the extra
-// patterns of the settings.
-func NewLoggingContainer(_ context.Context, app_env string, logging_settings logging_config.TelemetryConfig) (*LoggingContainer, error) {
+// NewLoggingContainer builds the console sink, the HTTP sink and the AWS HTTP sink the settings switch on, the console
+// as the fallback that receives the report of a sink that failed, the minimum level of app_env and the masker with the
+// extra patterns of the settings.
+func NewLoggingContainer(ctx context.Context, app_env string, logging_settings logging_config.TelemetryConfig) (*LoggingContainer, error) {
 	var log_sinks []logging_outbound.LogSinkPort
-	console_sink := dependencies.NewConsoleLoggerDependency()
 	if logging_settings.ConsoleEnabled {
-		log_sinks = append(log_sinks, console_sink)
+		log_sinks = append(log_sinks, dependencies.NewConsoleLoggerDependency())
 	}
 	if logging_settings.HTTPEnabled {
 		http_sink, err := dependencies.NewHTTPLoggerDependency(logging_settings)
@@ -40,7 +39,6 @@ func NewLoggingContainer(_ context.Context, app_env string, logging_settings log
 		}
 		log_sinks = append(log_sinks, http_sink)
 	}
-
 	if logging_settings.AWSHTTPEnabled {
 		aws_http_sink, err := dependencies.NewAWSHTTPLoggerDependency(logging_settings)
 		if err != nil {
@@ -49,16 +47,23 @@ func NewLoggingContainer(_ context.Context, app_env string, logging_settings log
 		log_sinks = append(log_sinks, aws_http_sink)
 	}
 
+	return NewLoggingContainerFromSinks(ctx, app_env, logging_settings.MaskExtraPatterns, log_sinks)
+}
+
+// NewLoggingContainerFromSinks builds the logger over the sinks the caller already built, with the console as the
+// fallback that receives the report of a sink that failed, the minimum level of app_env and the masker with the
+// extra patterns.
+func NewLoggingContainerFromSinks(_ context.Context, app_env string, mask_extra_patterns []string, log_sinks []logging_outbound.LogSinkPort) (*LoggingContainer, error) {
 	minimum_level, err := logging_value_objects.NewLevel(logging_domain.MinimumLevelByEnvironment[app_env])
 	if err != nil {
 		return nil, JoinErrors(err, ErrLoggerBuildFailed, ErrContainerBuildFailed)
 	}
-	sensitive_data_masker, err := logging_operations.NewSensitiveDataMasker(logging_settings.MaskExtraPatterns)
+	sensitive_data_masker, err := logging_operations.NewSensitiveDataMasker(mask_extra_patterns)
 	if err != nil {
 		return nil, JoinErrors(err, ErrLoggerBuildFailed, ErrContainerBuildFailed)
 	}
 
-	logger := logging_services.NewLoggerService(log_sinks, console_sink, dependencies.NewSystemClockDependency(), minimum_level, sensitive_data_masker)
+	logger := logging_services.NewLoggerService(log_sinks, dependencies.NewConsoleLoggerDependency(), dependencies.NewSystemClockDependency(), minimum_level, sensitive_data_masker)
 	return &LoggingContainer{Logger: logger, shutdown: func(context.Context) error { return nil }}, nil
 }
 
