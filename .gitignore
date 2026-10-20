@@ -4,3 +4,4 @@ coverage.out
 go.work
 go.work.sum
 BUILD_GUIDE.md
+__debug_bin*
