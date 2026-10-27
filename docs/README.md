@@ -12,6 +12,7 @@ State of the documents: 2026-10-27. Start with [architecture](architecture/archi
 | [security/security.md](security/security.md) | masking, what the library holds, the checklist before anything is pushed to the public repository |
 | [operations/monitoring.md](operations/monitoring.md) | what a consumer can observe, the failure report, timeouts, the manual end-to-end check |
 | [deployment/deployment.md](deployment/deployment.md) | there is no deployment: build, CI, releases by tag and how a consumer takes one |
+| [proposals/](proposals/) | the proposals that are not built yet |
 
 ## Decisions
 
@@ -28,6 +29,12 @@ State of the documents: 2026-10-27. Start with [architecture](architecture/archi
 | [ADR-009](decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink |
 | [ADR-010](decisions/ADR-010-no-deployment-release-by-tags.md) | no deployment; release by tags |
 
+## Proposals
+
+| Proposal | Status |
+|---|---|
+| [PR-001](proposals/PR-001-telemetry-standard-go-python.md) | the new telemetry standard (one contract for Go and Python, device and AI modules). Proposed, draft v0.1, nothing built |
+
 ## Not written
 
-The `setup/` intake forms and questionnaires of the Engram context (the numbered sub-forms and the Q&A with the maintainer) and the `tasks/` board and `proposals/` of dynamics_microservice have no equivalent here yet. They are tied to the Engram intake process and to a task plan this library does not have; they would be written when the library is enrolled in Engram Cloud.
+The `setup/` intake forms and questionnaires of the Engram context (the numbered sub-forms and the Q&A with the maintainer) and the `tasks/` board of dynamics_microservice have no equivalent here yet. They are tied to the Engram intake process and to a task plan this library does not have; they would be written when the library is enrolled in Engram Cloud.
