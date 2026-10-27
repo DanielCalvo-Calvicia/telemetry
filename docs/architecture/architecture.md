@@ -1,0 +1,121 @@
+# Architecture
+
+Status as of 2026-10-27. Everything described here exists in the repository unless it says **planned**.
+
+## 1. Purpose and responsibility
+
+`telemetry` is a public Go library (`github.com/DanielCalvo-Calvicia/telemetry`) that gives a Snow Factory service one logger with the same behaviour everywhere: structured entries, a minimum level that follows the environment, masking of sensitive data, and several sinks (console, a generic HTTP receiver, and the `add_log` endpoint of aws_microservice, which stores the entry in CloudWatch Logs).
+
+It is a library, not a service: there is no `cmd/`, no image and no manifest ([ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md)). A consumer imports `pkg/logging`, builds a logger and logs.
+
+The library does one thing: take an entry from the caller, make it safe, stamp it and hand it to every sink. It never decides where the logs go (the consumer does) and never reads the process environment ([ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md)).
+
+## 2. Structure (layers exist)
+
+One Go module, capabilities side by side under `internal/` ([ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md)). Logging is the only capability today; metrics is **planned** (it would be `internal/metrics` with the same three layers).
+
+```text
+telemetry/
+├── go.mod, go.sum, LICENSE, SECURITY.md, README.md, CLAUDE.md, .env.example, .gitignore
+├── .github/workflows/ci.yml
+├── docs/                          # this documentation
+├── pkg/logging/                   # the ONLY public API: logging.go, sinks.go, example_test.go, sinks_test.go
+├── examples/aws_http_smoke/       # a sample service that logs in production to the add_log endpoint (run by hand)
+└── internal/
+    ├── logging/
+    │   ├── domain/                # entities, value_objects, operations (masking), rules, errors
+    │   ├── application/           # call_depth, dtos, ports (inbound, outbound), services, errors
+    │   └── infrastructure/
+    │       ├── config/            # TelemetryConfig (the env tags; no loading)
+    │       └── outbound/          # console, http_sink, aws_http, systemclock, uuidgen
+    ├── composition_root/
+    │   ├── containers/            # logging_container.go (the only place that wires the logger)
+    │   └── dependencies/          # one file per outbound adapter
+    └── tests/                     # mirrors the code tree; black-box (package x_test)
+```
+
+The dependency rule is the standard one: domain imports nothing from the other layers; application imports domain and defines the ports; infrastructure implements the ports; only `internal/composition_root` imports the concrete outbound adapters; consumers import only `pkg/logging` ([ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md), [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md)).
+
+## 3. Current state (exists)
+
+| Layer | Package | What it holds |
+|---|---|---|
+| domain | `internal/logging/domain` | `rules.go` (levels, the minimum level by environment, the masking detectors as data) and `errors.go` |
+| domain | `.../domain/entities` | `LogEntry` (one finished line) |
+| domain | `.../domain/value_objects` | `Level`, `Message`, `Fields`, `Location`, `Indentation`, the identifiers |
+| domain | `.../domain/operations` | `SensitiveDataMasker` and its detectors (AWS access key, bearer credential, JWT, private key block, connection string password, credential pair) and `IsSensitiveFieldName`, `MaskValue` |
+| application | `.../application/services` | `LoggerService`: builds the entry, masks it, sends it to every sink, reports a failing sink to the fallback |
+| application | `.../application/call_depth` | `CallContext` carried in `context.Context` (application, instance, process id, indentation) |
+| application | `.../application/ports/inbound` | `LoggerPort`: one method per severity |
+| application | `.../application/ports/outbound` | `LogSinkPort`, `ClockPort`, `IDGeneratorPort` |
+| infrastructure | `.../outbound/console` | one JSON line per entry on the standard output |
+| infrastructure | `.../outbound/http_sink` | posts the flat JSON entry to a generic log receiver |
+| infrastructure | `.../outbound/aws_http` | adapts the entry to the `add_log` contract of aws_microservice and posts it ([ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md)) |
+| infrastructure | `.../outbound/systemclock`, `.../uuidgen` | the clock and the generator of process ids (random v4 UUIDs) |
+| composition | `internal/composition_root/containers` | `LoggingContainer`: `NewLoggingContainer` (from a `Config`) and `NewLoggingContainerFromSinks` (from sinks the caller built) |
+| composition | `internal/composition_root/dependencies` | one file per adapter: console, HTTP sink, AWS HTTP sink, clock, UUID generator |
+
+Every outbound adapter keeps its I/O in an `external/` folder, its error translation in `error/` and its pure helpers in `helpers/`; the adapter file itself only holds the client and implements the port.
+
+## 4. Data flow of one log call
+
+```text
+caller ──► LoggerPort.Info(ctx, Entry)
+             │ below the minimum level of APP_ENV? ──► dropped (nil)
+             ▼
+        take application, instance id, process id and indentation from the CallContext of ctx, when it carries one
+             ▼
+        build the LogEntry (validates the value objects; the only error the caller can get)
+             ▼
+        stamp it with ClockPort.Now, MASK it (SensitiveDataMasker)
+             ▼
+        for every sink: Send(ctx, LogEntryOutboundDTO)
+             │ a sink fails ──► the entry is dropped for THAT sink, an ERROR report goes to the fallback (console)
+             ▼
+        nil
+```
+
+A sink never fails the caller and never stops the other sinks ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). The entry is masked once, before any sink ([ADR-006](../decisions/ADR-006-masking-before-every-sink.md)). The minimum level follows the environment, not a variable ([ADR-007](../decisions/ADR-007-minimum-level-follows-the-environment.md)).
+
+## 5. The two ways to build a logger
+
+| Way | Function | Use it when |
+|---|---|---|
+| From settings | `logging.New(ctx, app_env, Config)` | the consumer loads `Config` from its environment and lets the settings switch the sinks on |
+| From sinks | `logging.NewWithSinks(ctx, app_env, mask_patterns, sinks...)` | the consumer builds the sinks itself with `NewConsoleSink`, `NewHTTPSink`, `NewAWSHTTPSink` (or its own `Sink`) ([ADR-009](../decisions/ADR-009-ready-made-sink-constructors.md)) |
+
+Both return the logger and a shutdown function to call on exit. Both use the console as the fallback sink.
+
+## 6. Decision records at a glance
+
+| ADR | Decision |
+|---|---|
+| [ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md) | follow the shared Go Clean/Hexagonal standard |
+| [ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md) | one module, capabilities side by side |
+| [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md) | the public surface is `pkg/logging`, by aliases |
+| [ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md) | the library never reads the environment |
+| [ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md) | a failing sink never fails the caller |
+| [ADR-006](../decisions/ADR-006-masking-before-every-sink.md) | masking happens before every sink |
+| [ADR-007](../decisions/ADR-007-minimum-level-follows-the-environment.md) | the minimum level follows `APP_ENV` |
+| [ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP sink adapts to the `add_log` contract |
+| [ADR-009](../decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink |
+| [ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md) | no deployment; release by tags |
+
+## 7. External services
+
+| Service | Direction | How |
+|---|---|---|
+| A generic log receiver | out (HTTP) | `http_sink`: `POST host:port/path` with the flat JSON entry, 3 s timeout, no retry |
+| aws_microservice (`add_log`) | out (HTTP) | `aws_http`: `POST host:port/path` (default `/api/v1/cloudwatch/logs/add`) with `log_group_name`, `log_stream_name`, `message`, `timestamp` (ms), 3 s timeout, no retry |
+
+The library holds no credential: the receiver is reached by address only. CloudWatch Logs is reached through aws_microservice, never directly.
+
+## 8. Persistence, errors, startup
+
+- **Persistence:** none. The library stores nothing; an entry that cannot be delivered is dropped.
+- **Errors:** sentinels in `application/errors.go` and `domain/errors.go`, composed with `errors.Join` so the root cause is kept (`errors.Is` works on both). The only error a log call can return is a failure to build the entry (`ErrLoggerEntryBuildFailed`).
+- **Startup:** `New` / `NewWithSinks` fail with the reason when a sink that is switched on lacks a required value, when `app_env` has no level, or when an extra mask pattern is not a regular expression.
+
+## 9. Discrepancies
+
+None known. Planned and not built: the `metrics` capability (`internal/metrics`, `pkg/metrics`).
