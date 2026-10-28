@@ -85,3 +85,5 @@ A runnable sample is in `examples/aws_http_smoke`; the test that sends one line 
 ```
 
 `message` is the entry encoded as the flat JSON payload (`ProducerID`, `ApplicationID`, `ProcessID`, `Application`, `Category`, `Function`, `Indentation`, `Depth`, `Level`, `Message`, `Fields`, `Timestamp`), so the level and the fields are kept in CloudWatch. `timestamp` is the entry's time in milliseconds. A status of 400 or above is a delivery failure; the answer body is not interpreted.
+
+> **Planned (T-02.1):** the public names of the new standard follow the rule in [contracts/conventions/naming.md](../../contracts/conventions/naming.md): Go `PascalCase`, Python `snake_case` functions and `PascalCase` classes, `snake_case` in JSON. This document describes the old `pkg/logging`, which does not change.

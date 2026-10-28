@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | todo |
+| Status | in-progress (T-02.1 done 2026-10-28) |
 | Kind | epic |
 | Parent | project |
 | Depends on | T-01 |
@@ -24,7 +24,7 @@ Write `contracts/`, the single source of truth between the two languages (JSON S
 
 | Order | Task | Status |
 |---|---|---|
-| 1 | [T-02.1 Layout of `contracts/`](T-02.1_layout-of-contracts.md) | todo |
+| 1 | [T-02.1 Layout of `contracts/`](T-02.1_layout-of-contracts.md) | done (2026-10-28) |
 | 2 | [T-02.2 Envelope schema](T-02.2_envelope-schema.md) | todo |
 | 3 | [T-02.3 Event types and error codes](T-02.3_event-types-and-error-codes.md) | todo |
 | 4 | [T-02.4 The generator](T-02.4_the-generator.md) | todo |

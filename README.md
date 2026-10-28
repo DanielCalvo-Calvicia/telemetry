@@ -88,7 +88,7 @@ examples/aws_http_smoke/    sample service
 docs/                       the documentation (index in docs/README.md)
 go/                         the Go core of the new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md)): a module of its own, only the empty layers so far
 go.work                     joins the root module and go/ for local work and CI
-contracts/                  the contract between Go and Python (planned, empty)
+contracts/                  the contract between Go and Python: the layout and the naming rule exist; no schema yet
 python/                     the Python implementation (only the skeleton: an installable package with the empty layers and one test)
 integration-tests/          the cross-language fixtures and tests (planned, empty)
 ```

@@ -55,6 +55,8 @@ Only the requirements whose state moved are listed; the full list is in [PR-001]
 | REQ-ARC-001, REQ-ARC-002 | Dependencies point inward; the domain imports no other layer and no I/O, database, backend or AI package. | Built for the empty layers (T-01.4, 2026-10-28): Go `Test_the_real_module_keeps_the_dependencies_pointing_inward`, Python `DependencyDirectionTest` |
 | REQ-ARC-003 | The wiring happens only in a composition root. | Built for the empty layers (T-01.4): Go `Test_the_real_module_wires_the_adapters_only_in_the_composition_root`, Python `CompositionRootTest` |
 | REQ-ARC-008 | Both implementations have architecture tests that verify the direction of dependencies. | Built (T-01.4); they run in the `go` and `python` jobs of CI (T-01.5) |
+| REQ-ARC-010 | Public names are equivalent between the languages by a mechanical rule. | Written (T-02.1, 2026-10-28): `contracts/conventions/naming.md`; the check is T-12.3 |
+| REQ-CNF-001 | `contracts/` is the single source of truth. | Started (T-02.1): the folders and their rules exist; no schema yet |
 | REQ-VER-001 | The library and the contract are versioned separately (Go core, each Go adapter, the Python package, `schema_version`); a contract change is implemented and released in both languages. | Written (T-01.6, 2026-10-28): the tag shapes and the release rule are in the deployment document; nothing is tagged |
 | REQ-DST-002 | Python is one package with optional extras, installed from the Git repository. | Started (T-01.3, 2026-10-28): the package `telemetry` installs; the extras are empty |
 | REQ-DST-003 | The library supports Go >= 1.25 and Python >= 3.10. | Started (T-01.2, T-01.3): both modules declare it |

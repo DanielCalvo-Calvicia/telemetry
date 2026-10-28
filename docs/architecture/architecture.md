@@ -14,13 +14,14 @@ The library does one thing: take an entry from the caller, make it safe, stamp i
 
 One Go module, capabilities side by side under `internal/` ([ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md)). Logging is the only capability today; metrics is **planned** (it would be `internal/metrics` with the same three layers).
 
-**Started (T-01.2, 2026-10-28):** beside this module there is a second Go module, `go/` (`github.com/DanielCalvo-Calvicia/telemetry/go`), for the new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). It has only the empty layers `domain/`, `application/`, `infrastructure/` and `composition_root/` and the folders of its tests; nothing of the new library is built. `go.work` at the root joins the two modules, and the old library stays untouched until T-04.7 removes it. The directories `contracts/` and `integration-tests/` exist with a README each and are empty (planned). `python/` holds the skeleton of the Python package (T-01.3, below). Checked on Go 1.25.5: a nested adapter module whose path is under `go/pkg/` can import the `internal/` packages of the core, and a module with an unrelated path cannot (the result is recorded in ADR-013).
+**Started (T-01.2, 2026-10-28):** beside this module there is a second Go module, `go/` (`github.com/DanielCalvo-Calvicia/telemetry/go`), for the new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). It has only the empty layers `domain/`, `application/`, `infrastructure/` and `composition_root/` and the folders of its tests; nothing of the new library is built. `go.work` at the root joins the two modules, and the old library stays untouched until T-04.7 removes it. `integration-tests/` exists with a README and is empty (planned); `contracts/` has its layout (2.3, T-02.1). `python/` holds the skeleton of the Python package (T-01.3, below). Checked on Go 1.25.5: a nested adapter module whose path is under `go/pkg/` can import the `internal/` packages of the core, and a module with an unrelated path cannot (the result is recorded in ADR-013).
 
 ```text
 telemetry/
 ├── go.mod, go.sum, go.work, LICENSE, SECURITY.md, README.md, CLAUDE.md, .env.example, .gitignore
 ├── go/                            # the new Go core: its own go.mod; internal/{domain,application,infrastructure,composition_root,tests} (empty layers)
-├── contracts/, python/, integration-tests/   # the new standard (planned; a README each)
+├── contracts/                     # the contract: schemas/, enums/, events/, errors/, config/, capabilities/, conventions/, storage/ (layout only)
+├── python/, integration-tests/    # the new standard (python/ is the skeleton; integration-tests/ is planned, a README)
 ├── .github/workflows/ci.yml
 ├── docs/                          # this documentation
 ├── pkg/logging/                   # the ONLY public API: logging.go, sinks.go, example_test.go, sinks_test.go
@@ -73,6 +74,23 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 - **Planted violations.** Each rule has a fixture tree that breaks it and a clean tree, in `go/internal/tests/fixtures/architecture/testdata/<case>/` (`testdata` is ignored by the Go tool, so the files are never compiled) and `python/internal/tests/fixtures/architecture/<case>/` (excluded from ruff). A test fails if the planted violation is not reported, and another if the clean tree is not accepted.
 - **A failure names the file and the import:** `domain-isolated: internal/domain/zz_planted.go imports "net/http"`.
 - **Not checked yet.** The adapter folders `outbound/<functionality>/<adapter>` do not exist, so the rules about adapters pass on the empty layers and are proved by the fixtures; they start to bite with T-04.
+
+### 2.3 The contract folder (started, T-02.1)
+
+`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Only its layout and the naming rule exist; it holds no schema yet.
+
+| Folder | What it will hold |
+|---|---|
+| `schemas/` (`device/`, `ai/`) | the JSON Schema of the envelope and of the `data` of each event type |
+| `enums/` (`device/`, `ai/`) | severity, execution states and transitions, the allowed values of the device and AI domains |
+| `events/` | the registry of event types (decided by the maintainer on 2026-10-28) |
+| `errors/` | the catalog of error codes, identical in both languages |
+| `config/` | the schema of the configuration: options, defaults, profiles |
+| `capabilities/registry.yaml` | the registry of capabilities and their conformance tests |
+| `conventions/naming.md` | the mechanical naming rule: Go `PascalCase` exported, Python `snake_case` functions and `PascalCase` classes, JSON `snake_case` |
+| `storage/` | the layouts of the files a reader opens (the SQLite destination, the spool) |
+
+A change is approved by the maintainer by pull request and a dated ADR note, and is implemented and released in both languages. The generated code arrives with T-02.4.
 
 ## 3. Current state (exists)
 

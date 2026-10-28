@@ -29,8 +29,8 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 5 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | Done | done (2026-10-28) | T-01.2, T-01.3 | 2026-10-28 |
 | 6 | [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | In progress | in-progress (written and checked locally on 2026-10-28; the run on GitHub needs a pull request) | T-01.2, T-01.3 | 2026-10-28 |
 | 7 | [T-01.6](T-01_repository-foundation/T-01.6_tags-and-the-release-rule.md) | Tags and the release rule | docs | Done | done (2026-10-28) | T-01.2 | 2026-10-28 |
-| 8 | [T-02](T-02_contract-and-generator/T-02_contract-and-generator.md) | The contract and the generator | epic | Todo | todo | T-01 | 2026-10-28 |
-| 9 | [T-02.1](T-02_contract-and-generator/T-02.1_layout-of-contracts.md) | Layout of `contracts/` | docs | Todo | todo | T-01.2 | 2026-10-28 |
+| 8 | [T-02](T-02_contract-and-generator/T-02_contract-and-generator.md) | The contract and the generator | epic | In progress | in-progress (T-02.1 done 2026-10-28) | T-01 | 2026-10-28 |
+| 9 | [T-02.1](T-02_contract-and-generator/T-02.1_layout-of-contracts.md) | Layout of `contracts/` | docs | Done | done (2026-10-28) | T-01.2 | 2026-10-28 |
 | 10 | [T-02.2](T-02_contract-and-generator/T-02.2_envelope-schema.md) | Envelope schema | code | Todo | todo | T-02.1 | 2026-10-28 |
 | 11 | [T-02.3](T-02_contract-and-generator/T-02.3_event-types-and-error-codes.md) | Event types and error codes | code | Todo | todo | T-02.2 | 2026-10-28 |
 | 12 | [T-02.4](T-02_contract-and-generator/T-02.4_the-generator.md) | The generator | code | Todo | todo | T-02.2, T-02.3 | 2026-10-28 |

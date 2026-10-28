@@ -1,0 +1,9 @@
+# The registry of capabilities (REQ-CNF-007, section 6 of PR-001).
+#
+# Each capability will be listed with: its identifier, public API, schemas, configuration, error semantics, ports and
+# adapters, its state in Go and in Python, its level (stable or beta) and its conformance tests. A capability is marked
+# supported only when both implementations pass its tests; an adapter of one language only (LangChain, LlamaIndex) is
+# "not applicable" in the other and does not block it (REQ-AI-011).
+#
+# The format of an entry is defined by T-02.7. Until then the list is empty.
+capabilities: []
