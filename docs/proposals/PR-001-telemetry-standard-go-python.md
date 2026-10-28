@@ -82,6 +82,7 @@ Other decisions:
 | Releases | One tag per language (`go/...` and `python-vX.Y.Z`); the contract is versioned by `schema_version` | Q06-8 |
 | Public names | The Go core is `go/pkg/telemetry`; Python is `telemetry.<functionality>.<adapter>`, installed as `telemetry` | T-01.1 |
 | Old library | The root `go.mod` of the old library stays beside `go/go.mod` until T-04.7 removes it; `go.work` joins them | T-01.1 |
+| Contract releases | Every contract change, even one that only adds an optional field, is implemented in both languages and released in both; one language never releases it alone | T-01.6 |
 | Contract changes | The maintainer decides, by pull request and a dated note in an ADR | Q01-4 |
 | Scope | All event types are in v1, built one at a time. This proposal stays the umbrella; one proposal per area is written when it is accepted | Q02-5, Q01-6 |
 | `1.0` | Only when every capability works. Until then the library is a beta (`0.x`); `schema_version` starts at `0.1` and reaches `1.0` with the library | Q09-6, Q02-6 |

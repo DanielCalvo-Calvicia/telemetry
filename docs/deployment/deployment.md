@@ -82,8 +82,9 @@ The rules:
 3. **A tag is permanent.** It is never moved or reused (the Go proxy caches a version forever). A bad release gets a `retract` line in the `go.mod` of its module and a new patch version.
 4. **`0.x` until everything works.** The library stays a `0.x` beta until every capability works; `1.0` is the maintainer's decision (T-13.5, Q09-6, REQ-CNF-008).
 5. **Before anything is pushed,** check the public audit list in [security.md](../security/security.md).
+6. **A contract change is released in both languages** (see below).
 
-**Open question for the maintainer (not decided):** does a contract change that only adds an optional field (a MINOR change of `schema_version`, REQ-VER-003) force a new release of both languages, or may one language release alone while the other still reads the contract? Until it is answered, treat a contract change as needing both.
+**Decided by the maintainer on 2026-10-28:** every contract change, even one that only adds an optional field (a MINOR change of `schema_version`, REQ-VER-003), is implemented in **both** languages and released in both. One language never releases a contract change alone.
 
 How a release is made today (the old library, and the same steps for the new tags):
 
