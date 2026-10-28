@@ -24,4 +24,4 @@ The single source of truth between Go and Python ([PR-001](../docs/proposals/PR-
 
 ## State
 
-Only the layout and the naming rule exist (T-02.1). No schema, enum, registry or generator exists yet.
+The layout and the naming rule (T-02.1) and the envelope schema with the severity and actor-kind enums (T-02.2) exist. No event-type schema, registry, catalog or generator exists yet.

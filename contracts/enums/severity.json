@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/severity.json",
+  "title": "Severity",
+  "description": "The severity of an event (section 5.3 of PR-001). The meaning of each value and its mapping to log/slog, Python logging and OpenTelemetry are in severity.md.",
+  "type": "string",
+  "enum": [
+    "TRACE",
+    "DEBUG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "CRITICAL"
+  ]
+}

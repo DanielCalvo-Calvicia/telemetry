@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/schemas/common/attributes.schema.json",
+  "title": "Attributes",
+  "description": "Key-value extensions of the consumer (REQ-CTR-010). Only scalars and lists of scalars are accepted. The limits are the defaults of the contract: 32 keys, a key of at most 64 characters and a string value of at most 256 characters; they are configurable, and the excess is truncated or dropped and counted by the library.",
+  "type": "object",
+  "maxProperties": 32,
+  "propertyNames": {
+    "minLength": 1,
+    "maxLength": 64
+  },
+  "additionalProperties": {
+    "anyOf": [
+      {
+        "$ref": "#/$defs/scalar"
+      },
+      {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/scalar"
+        }
+      }
+    ]
+  },
+  "$defs": {
+    "scalar": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 256
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    }
+  }
+}

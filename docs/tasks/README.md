@@ -98,9 +98,9 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | done (2026-10-28) |
 | [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | in-progress (written and checked locally on 2026-10-28; the run on GitHub needs a pull request) |
 | [T-01.6](T-01_repository-foundation/T-01.6_tags-and-the-release-rule.md) | Tags and the release rule | docs | done (2026-10-28) |
-| [T-02](T-02_contract-and-generator/T-02_contract-and-generator.md) | **The contract and the generator** | epic | in-progress (T-02.1 done 2026-10-28) |
+| [T-02](T-02_contract-and-generator/T-02_contract-and-generator.md) | **The contract and the generator** | epic | in-progress (T-02.1 and T-02.2 done 2026-10-28) |
 | [T-02.1](T-02_contract-and-generator/T-02.1_layout-of-contracts.md) | Layout of `contracts/` | docs | done (2026-10-28) |
-| [T-02.2](T-02_contract-and-generator/T-02.2_envelope-schema.md) | Envelope schema | code | todo |
+| [T-02.2](T-02_contract-and-generator/T-02.2_envelope-schema.md) | Envelope schema | code | done (2026-10-28) |
 | [T-02.3](T-02_contract-and-generator/T-02.3_event-types-and-error-codes.md) | Event types and error codes | code | todo |
 | [T-02.4](T-02_contract-and-generator/T-02.4_the-generator.md) | The generator | code | todo |
 | [T-02.5](T-02_contract-and-generator/T-02.5_canonical-json.md) | Canonical JSON | code | todo |

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/schemas/common/actor.schema.json",
+  "title": "Actor",
+  "description": "The concrete subject an event refers to, with one structure for sensors, actuators, agents and subsystems (section 5.2 of PR-001).",
+  "type": "object",
+  "required": [
+    "kind",
+    "id"
+  ],
+  "properties": {
+    "kind": {
+      "$ref": "https://telemetry.example/contracts/enums/actor_kind.json",
+      "description": "The class of subject."
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The identifier of the subject."
+    },
+    "type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The concrete type (a sensor model, a type of agent)."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The firmware, agent or model version."
+    }
+  },
+  "additionalProperties": false
+}

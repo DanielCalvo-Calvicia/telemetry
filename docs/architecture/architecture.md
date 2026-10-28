@@ -77,12 +77,12 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 
 ### 2.3 The contract folder (started, T-02.1)
 
-`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Only its layout and the naming rule exist; it holds no schema yet.
+`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Its layout, the naming rule and the envelope schema exist (T-02.1, T-02.2); there is no event-type schema, registry, catalog or generator yet.
 
 | Folder | What it will hold |
 |---|---|
-| `schemas/` (`device/`, `ai/`) | the JSON Schema of the envelope and of the `data` of each event type |
-| `enums/` (`device/`, `ai/`) | severity, execution states and transitions, the allowed values of the device and AI domains |
+| `schemas/` (`device/`, `ai/`) | the JSON Schema (draft 2020-12) of the envelope (**written**: `envelope.schema.json` and `common/` for `resource`, `actor`, `context` and `attributes`) and, later, of the `data` of each event type |
+| `enums/` (`device/`, `ai/`) | severity and the actor kinds (**written**), then the execution states and transitions and the allowed values of the device and AI domains |
 | `events/` | the registry of event types (decided by the maintainer on 2026-10-28) |
 | `errors/` | the catalog of error codes, identical in both languages |
 | `config/` | the schema of the configuration: options, defaults, profiles |

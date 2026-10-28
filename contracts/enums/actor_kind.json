@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/actor_kind.json",
+  "title": "Actor kind",
+  "description": "The class of subject an event refers to (section 5.2 of PR-001). These are the first values; adding one is a MINOR change of the contract (REQ-VER-003).",
+  "type": "string",
+  "enum": [
+    "device",
+    "agent",
+    "subsystem"
+  ]
+}

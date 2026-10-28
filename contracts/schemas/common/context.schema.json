@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/schemas/common/context.schema.json",
+  "title": "Context",
+  "description": "The correlation of an event: the W3C Trace Context identifiers and the ids of the execution and of the correlation. High-cardinality ids such as execution_id are never metric attributes (REQ-CTR-006).",
+  "type": "object",
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "W3C trace id: 32 lowercase hexadecimal digits."
+    },
+    "span_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "description": "W3C span id: 16 lowercase hexadecimal digits."
+    },
+    "execution_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The execution this event belongs to."
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A correlation id given by the consumer."
+    }
+  },
+  "additionalProperties": false
+}

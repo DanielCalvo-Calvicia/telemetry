@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/schemas/common/resource.schema.json",
+  "title": "Resource",
+  "description": "The identity of the emitting process (section 5.2 of PR-001). One field per concept. The identity of a process, of an actor, of an execution and of a correlation are separate concepts (REQ-CTR-005).",
+  "type": "object",
+  "required": [
+    "service_name",
+    "instance_id"
+  ],
+  "properties": {
+    "service_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Logical name of the application or service."
+    },
+    "instance_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of this running instance (process or pod). Generated at start if the consumer does not give it."
+    },
+    "environment": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The environment (prod, staging, ...)."
+    },
+    "service_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The version of the application."
+    },
+    "host": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The host name."
+    },
+    "time_zone": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$",
+      "description": "IANA time zone of the source (for example Europe/Madrid). It is only for display and is never used to compute a time (ADR-012)."
+    }
+  },
+  "additionalProperties": false
+}
