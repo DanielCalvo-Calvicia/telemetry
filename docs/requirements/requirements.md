@@ -52,6 +52,9 @@ Only the requirements whose state moved are listed; the full list is in [PR-001]
 |---|---|---|
 | REQ-DST-001 | Go is distributed as one core module and one module per adapter, joined by a committed `go.work` file. | Started (T-01.2, 2026-10-28): the core module `go/` and `go.work` exist; no adapter yet |
 | REQ-ARC-012 | The public packages follow `<functionality>/<adapter>`; the core is `go/pkg/telemetry`. | Planned (T-03.9) |
+| REQ-DST-002 | Python is one package with optional extras, installed from the Git repository. | Started (T-01.3, 2026-10-28): the package `telemetry` installs; the extras are empty |
+| REQ-DST-003 | The library supports Go >= 1.25 and Python >= 3.10. | Started (T-01.2, T-01.3): both modules declare it |
+| REQ-ARC-009 | Go and Python have the same layers, directory names and file names. | Started (T-01.3): the four layers and the test folders match; the rest arrives with the code |
 
 ## Out of scope
 

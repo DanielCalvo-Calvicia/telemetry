@@ -25,7 +25,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 1 | [T-01](T-01_repository-foundation/T-01_repository-foundation.md) | Repository foundation | epic | In progress | in-progress (T-01.1 and T-01.2 done 2026-10-28) | PR-001 version 0.2 accepted (done, T-01.1) | 2026-10-28 |
 | 2 | [T-01.1](T-01_repository-foundation/T-01.1_accept-pr-001-version-0-2.md) | Accept PR-001 version 0.2 | decision | Done | done (2026-10-28) | — | 2026-10-28 |
 | 3 | [T-01.2](T-01_repository-foundation/T-01.2_repository-layout.md) | Repository layout | code | Done | done (2026-10-28) | T-01.1 | 2026-10-28 |
-| 4 | [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | Todo | todo | T-01.2 | 2026-10-28 |
+| 4 | [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | In progress | in-progress (everything checked on 2026-10-28 except the install from the Git URL, which needs the branch pushed) | T-01.2 | 2026-10-28 |
 | 5 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | Todo | todo | T-01.2, T-01.3 | 2026-10-28 |
 | 6 | [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | Todo | todo | T-01.2, T-01.3 | 2026-10-28 |
 | 7 | [T-01.6](T-01_repository-foundation/T-01.6_tags-and-the-release-rule.md) | Tags and the release rule | docs | Todo | todo | T-01.2 | 2026-10-28 |

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telemetry"
+version = "0.1.0.dev0"
+description = "The telemetry standard of the Snow Factory projects: one contract for Go and Python."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+# The adapters arrive with their capabilities; the extras are empty until then (REQ-DST-002).
+[project.optional-dependencies]
+sqlite = []
+otel = []
+prometheus = []
+ai = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+telemetry = ["py.typed"]
+
+[tool.coverage.run]
+source = ["telemetry"]
+omit = ["*/external/*"]
+
+[tool.coverage.report]
+fail_under = 95
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N"]

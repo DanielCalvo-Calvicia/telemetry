@@ -14,7 +14,7 @@ The library does one thing: take an entry from the caller, make it safe, stamp i
 
 One Go module, capabilities side by side under `internal/` ([ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md)). Logging is the only capability today; metrics is **planned** (it would be `internal/metrics` with the same three layers).
 
-**Started (T-01.2, 2026-10-28):** beside this module there is a second Go module, `go/` (`github.com/DanielCalvo-Calvicia/telemetry/go`), for the new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). It has only the empty layers `domain/`, `application/`, `infrastructure/` and `composition_root/` and the folders of its tests; nothing of the new library is built. `go.work` at the root joins the two modules, and the old library stays untouched until T-04.7 removes it. The directories `contracts/`, `python/` and `integration-tests/` exist with a README each and are empty (planned). Checked on Go 1.25.5: a nested adapter module whose path is under `go/pkg/` can import the `internal/` packages of the core, and a module with an unrelated path cannot (the result is recorded in ADR-013).
+**Started (T-01.2, 2026-10-28):** beside this module there is a second Go module, `go/` (`github.com/DanielCalvo-Calvicia/telemetry/go`), for the new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). It has only the empty layers `domain/`, `application/`, `infrastructure/` and `composition_root/` and the folders of its tests; nothing of the new library is built. `go.work` at the root joins the two modules, and the old library stays untouched until T-04.7 removes it. The directories `contracts/` and `integration-tests/` exist with a README each and are empty (planned). `python/` holds the skeleton of the Python package (T-01.3, below). Checked on Go 1.25.5: a nested adapter module whose path is under `go/pkg/` can import the `internal/` packages of the core, and a module with an unrelated path cannot (the result is recorded in ADR-013).
 
 ```text
 telemetry/
@@ -39,6 +39,22 @@ telemetry/
 ```
 
 The dependency rule is the standard one: domain imports nothing from the other layers; application imports domain and defines the ports; infrastructure implements the ports; only `internal/composition_root` imports the concrete outbound adapters; consumers import only `pkg/logging` ([ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md), [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md)).
+
+### 2.1 The Python package (started, T-01.3)
+
+`python/` is an installable package `telemetry` (Python 3.10 or newer; the Raspberry Pi of the pilot runs 3.11.4) with the same layers and folder names as the Go core. Only the skeleton exists: nothing of the new library is built.
+
+```text
+python/
+├── pyproject.toml                     # setuptools; the extras sqlite, otel, prometheus, ai (empty for now); coverage and ruff settings
+├── src/telemetry/                     # the package, py.typed
+│   └── internal/{domain,application,infrastructure,composition_root}/
+└── internal/tests/                    # unittest tests mirroring the code; the same folders as go/internal/tests
+```
+
+- **Install:** from the Git repository, not from a package index (`pip install "telemetry[sqlite] @ git+https://github.com/DanielCalvo-Calvicia/telemetry@python-vX.Y.Z#subdirectory=python"`), as [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) and Q07-3 decided. The core has no third-party dependency (REQ-ARC-005).
+- **Rules until the Python standard of the organization can be read** (Q07-8): the layers and folder names of the Go core; PEP 8 names (`snake_case` for functions, variables, modules and arguments, `PascalCase` for classes); every public class and function has a docstring; tests are black-box and mirror the code tree.
+- **Tools chosen on 2026-10-28 (the maintainer), with the reason:** build backend **setuptools** (already installed with Python tooling, supports `[project]` and extras, no new tool to learn); tests with **unittest** from the standard library plus **coverage.py** for the 95% gate (the fewest dependencies; the coverage tool is the only one); lint and format with **ruff** (one development-only tool). T-01.5 runs them in CI.
 
 ## 3. Current state (exists)
 

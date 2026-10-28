@@ -94,7 +94,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-01](T-01_repository-foundation/T-01_repository-foundation.md) | **Repository foundation** | epic | in-progress (T-01.1 and T-01.2 done 2026-10-28) |
 | [T-01.1](T-01_repository-foundation/T-01.1_accept-pr-001-version-0-2.md) | Accept PR-001 version 0.2 | decision | done (2026-10-28) |
 | [T-01.2](T-01_repository-foundation/T-01.2_repository-layout.md) | Repository layout | code | done (2026-10-28) |
-| [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | todo |
+| [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | in-progress (everything checked on 2026-10-28 except the install from the Git URL, which needs the branch pushed) |
 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | todo |
 | [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | todo |
 | [T-01.6](T-01_repository-foundation/T-01.6_tags-and-the-release-rule.md) | Tags and the release rule | docs | todo |

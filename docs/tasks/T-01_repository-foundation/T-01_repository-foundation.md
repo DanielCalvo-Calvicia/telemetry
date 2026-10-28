@@ -25,7 +25,7 @@ Turn the repository into the layout of the standard: `contracts/`, `go/` (the co
 |---|---|---|
 | 1 | [T-01.1 Accept PR-001 version 0.2](T-01.1_accept-pr-001-version-0-2.md) | done (2026-10-28) |
 | 2 | [T-01.2 Repository layout](T-01.2_repository-layout.md) | done (2026-10-28) |
-| 3 | [T-01.3 Python project skeleton](T-01.3_python-project-skeleton.md) | todo |
+| 3 | [T-01.3 Python project skeleton](T-01.3_python-project-skeleton.md) | in-progress (the Git URL install waits for the push) |
 | 4 | [T-01.4 Architecture tests](T-01.4_architecture-tests.md) | todo |
 | 5 | [T-01.5 CI](T-01.5_ci.md) | todo |
 | 6 | [T-01.6 Tags and the release rule](T-01.6_tags-and-the-release-rule.md) | todo |

@@ -23,7 +23,18 @@ go test ./... -count=1
 go test ./... -coverpkg=./internal/... -coverprofile=coverage.out   # the coverage gate of CI
 ```
 
-These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). CI does not run the `go/` module yet: T-01.5 adds it.
+These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). CI does not run the `go/` module or the Python package yet: T-01.5 adds them.
+
+The Python package is checked in a virtual environment, from `python/`:
+
+```bash
+pip install .                                                    # the package, with no third-party dependency
+python -m unittest discover -s internal/tests -t .               # the tests
+coverage run -m unittest discover -s internal/tests -t . && coverage report   # at least 95%
+ruff check . && ruff format --check .                            # lint and format (development only)
+```
+
+A Python project installs the library from the Git repository: `pip install "telemetry[sqlite] @ git+https://github.com/DanielCalvo-Calvicia/telemetry@python-vX.Y.Z#subdirectory=python"` (no tag exists yet; the first one is T-13.4).
 
 The race detector (`-race`) needs cgo and a C compiler; it was not run on the maintainer's Windows machine (no `gcc`).
 
