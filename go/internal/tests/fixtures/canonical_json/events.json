@@ -1,0 +1,79 @@
+{
+  "description": "Envelope cases: input is the envelope as JSON (any key order); expected is the canonical text both languages must produce, byte for byte. Optional fields that are absent are omitted from the output.",
+  "cases": [
+    {
+      "name": "minimal",
+      "input": {
+        "severity": "INFO",
+        "schema_version": "0.1",
+        "resource": {
+          "service_name": "my-service",
+          "instance_id": "instance-1"
+        },
+        "recorded_at": "2026-10-28T10:00:00.000123Z",
+        "occurred_at": "2026-10-28T10:00:00.000000Z",
+        "event_type": "log.entry.recorded",
+        "event_id": "01926f3a-7b2c-7d4e-8a1b-3c5d7e9f0a2b",
+        "data": {
+          "message": "request received",
+          "category": "http"
+        }
+      },
+      "expected": "{\"data\":{\"category\":\"http\",\"message\":\"request received\"},\"event_id\":\"01926f3a-7b2c-7d4e-8a1b-3c5d7e9f0a2b\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.000000Z\",\"recorded_at\":\"2026-10-28T10:00:00.000123Z\",\"resource\":{\"instance_id\":\"instance-1\",\"service_name\":\"my-service\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+    },
+    {
+      "name": "fully_populated",
+      "input": {
+        "attributes": {
+          "zeta": [
+            1,
+            2.5,
+            "three",
+            true
+          ],
+          "retries": 3,
+          "ratio": 0.1,
+          "tiny": 1e-07,
+          "huge": 1e+21,
+          "negative_zero": -0.0,
+          "enabled": false,
+          "\ud83d\ude00": "emoji key",
+          "\ufb33": "dalet key",
+          "note": "caf\u00e9 \u20ac"
+        },
+        "context": {
+          "trace_id": "0af7651916cd43dd8448eb211c80319c",
+          "span_id": "b7ad6b7169203331",
+          "execution_id": "exec-1",
+          "correlation_id": "corr-1"
+        },
+        "actor": {
+          "version": "1.2.3",
+          "type": "sensor",
+          "kind": "device",
+          "id": "actor-1"
+        },
+        "severity": "WARN",
+        "schema_version": "0.1",
+        "resource": {
+          "time_zone": "Europe/Madrid",
+          "service_version": "2.0.0",
+          "service_name": "my-service",
+          "instance_id": "instance-1",
+          "host": "my-host",
+          "environment": "test"
+        },
+        "recorded_at": "2026-10-28T10:00:01.500000Z",
+        "occurred_at": "2026-10-28T10:00:00.100000Z",
+        "event_type": "log.entry.recorded",
+        "event_id": "01926f3a-7b2c-7d4e-8a1b-3c5d7e9f0a2b",
+        "data": {
+          "message": "line one\nline \"two\" \\ \t\u0001 \u20ac \ud83d\ude00",
+          "function": "handle_request",
+          "category": "http"
+        }
+      },
+      "expected": "{\"actor\":{\"id\":\"actor-1\",\"kind\":\"device\",\"type\":\"sensor\",\"version\":\"1.2.3\"},\"attributes\":{\"enabled\":false,\"huge\":1e+21,\"negative_zero\":0,\"note\":\"caf\u00e9 \u20ac\",\"ratio\":0.1,\"retries\":3,\"tiny\":1e-7,\"zeta\":[1,2.5,\"three\",true],\"\ud83d\ude00\":\"emoji key\",\"\ufb33\":\"dalet key\"},\"context\":{\"correlation_id\":\"corr-1\",\"execution_id\":\"exec-1\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"},\"data\":{\"category\":\"http\",\"function\":\"handle_request\",\"message\":\"line one\\nline \\\"two\\\" \\\\ \\t\\u0001 \u20ac \ud83d\ude00\"},\"event_id\":\"01926f3a-7b2c-7d4e-8a1b-3c5d7e9f0a2b\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.100000Z\",\"recorded_at\":\"2026-10-28T10:00:01.500000Z\",\"resource\":{\"environment\":\"test\",\"host\":\"my-host\",\"instance_id\":\"instance-1\",\"service_name\":\"my-service\",\"service_version\":\"2.0.0\",\"time_zone\":\"Europe/Madrid\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}"
+    }
+  ]
+}

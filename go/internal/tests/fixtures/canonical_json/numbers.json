@@ -1,0 +1,362 @@
+{
+  "description": "Number cases for the canonical JSON (RFC 8785). kind=bits: input is the IEEE-754 hex pattern of a double (Appendix B of RFC 8785). kind=integer: input is the decimal text of an integer. expected is the canonical text, or null with error_code when the value must be rejected.",
+  "cases": [
+    {
+      "name": "rfc_zero",
+      "kind": "bits",
+      "input": "0000000000000000",
+      "expected": "0",
+      "error_code": null
+    },
+    {
+      "name": "rfc_minus_zero",
+      "kind": "bits",
+      "input": "8000000000000000",
+      "expected": "0",
+      "error_code": null
+    },
+    {
+      "name": "rfc_min_positive",
+      "kind": "bits",
+      "input": "0000000000000001",
+      "expected": "5e-324",
+      "error_code": null
+    },
+    {
+      "name": "rfc_min_negative",
+      "kind": "bits",
+      "input": "8000000000000001",
+      "expected": "-5e-324",
+      "error_code": null
+    },
+    {
+      "name": "rfc_max_positive",
+      "kind": "bits",
+      "input": "7fefffffffffffff",
+      "expected": "1.7976931348623157e+308",
+      "error_code": null
+    },
+    {
+      "name": "rfc_max_negative",
+      "kind": "bits",
+      "input": "ffefffffffffffff",
+      "expected": "-1.7976931348623157e+308",
+      "error_code": null
+    },
+    {
+      "name": "rfc_2_pow_53",
+      "kind": "bits",
+      "input": "4340000000000000",
+      "expected": "9007199254740992",
+      "error_code": null
+    },
+    {
+      "name": "rfc_minus_2_pow_53",
+      "kind": "bits",
+      "input": "c340000000000000",
+      "expected": "-9007199254740992",
+      "error_code": null
+    },
+    {
+      "name": "rfc_295147905179352830000",
+      "kind": "bits",
+      "input": "4430000000000000",
+      "expected": "295147905179352830000",
+      "error_code": null
+    },
+    {
+      "name": "rfc_9_999999999999997e22",
+      "kind": "bits",
+      "input": "44b52d02c7e14af5",
+      "expected": "9.999999999999997e+22",
+      "error_code": null
+    },
+    {
+      "name": "rfc_1e23",
+      "kind": "bits",
+      "input": "44b52d02c7e14af6",
+      "expected": "1e+23",
+      "error_code": null
+    },
+    {
+      "name": "rfc_1_0000000000000001e23",
+      "kind": "bits",
+      "input": "44b52d02c7e14af7",
+      "expected": "1.0000000000000001e+23",
+      "error_code": null
+    },
+    {
+      "name": "rfc_999999999999999700000",
+      "kind": "bits",
+      "input": "444b1ae4d6e2ef4e",
+      "expected": "999999999999999700000",
+      "error_code": null
+    },
+    {
+      "name": "rfc_999999999999999900000",
+      "kind": "bits",
+      "input": "444b1ae4d6e2ef4f",
+      "expected": "999999999999999900000",
+      "error_code": null
+    },
+    {
+      "name": "rfc_1e21",
+      "kind": "bits",
+      "input": "444b1ae4d6e2ef50",
+      "expected": "1e+21",
+      "error_code": null
+    },
+    {
+      "name": "rfc_9_999999999999997e-7",
+      "kind": "bits",
+      "input": "3eb0c6f7a0b5ed8c",
+      "expected": "9.999999999999997e-7",
+      "error_code": null
+    },
+    {
+      "name": "rfc_0_000001",
+      "kind": "bits",
+      "input": "3eb0c6f7a0b5ed8d",
+      "expected": "0.000001",
+      "error_code": null
+    },
+    {
+      "name": "rfc_333333333_3333332",
+      "kind": "bits",
+      "input": "41b3de4355555553",
+      "expected": "333333333.3333332",
+      "error_code": null
+    },
+    {
+      "name": "rfc_333333333_33333325",
+      "kind": "bits",
+      "input": "41b3de4355555554",
+      "expected": "333333333.33333325",
+      "error_code": null
+    },
+    {
+      "name": "rfc_333333333_3333333",
+      "kind": "bits",
+      "input": "41b3de4355555555",
+      "expected": "333333333.3333333",
+      "error_code": null
+    },
+    {
+      "name": "rfc_333333333_3333334",
+      "kind": "bits",
+      "input": "41b3de4355555556",
+      "expected": "333333333.3333334",
+      "error_code": null
+    },
+    {
+      "name": "rfc_333333333_33333343",
+      "kind": "bits",
+      "input": "41b3de4355555557",
+      "expected": "333333333.33333343",
+      "error_code": null
+    },
+    {
+      "name": "rfc_minus_3_3333333333333333e-6",
+      "kind": "bits",
+      "input": "becbf647612f3696",
+      "expected": "-0.0000033333333333333333",
+      "error_code": null
+    },
+    {
+      "name": "rfc_1424953923781206_2",
+      "kind": "bits",
+      "input": "43143ff3c1cb0959",
+      "expected": "1424953923781206.2",
+      "error_code": null
+    },
+    {
+      "name": "rfc_nan",
+      "kind": "bits",
+      "input": "7fffffffffffffff",
+      "expected": null,
+      "error_code": "event_schema_invalid"
+    },
+    {
+      "name": "rfc_infinity",
+      "kind": "bits",
+      "input": "7ff0000000000000",
+      "expected": null,
+      "error_code": "event_schema_invalid"
+    },
+    {
+      "name": "minus_infinity",
+      "kind": "bits",
+      "input": "fff0000000000000",
+      "expected": null,
+      "error_code": "event_schema_invalid"
+    },
+    {
+      "name": "one",
+      "kind": "bits",
+      "input": "3ff0000000000000",
+      "expected": "1",
+      "error_code": null
+    },
+    {
+      "name": "minus_one",
+      "kind": "bits",
+      "input": "bff0000000000000",
+      "expected": "-1",
+      "error_code": null
+    },
+    {
+      "name": "half",
+      "kind": "bits",
+      "input": "3fe0000000000000",
+      "expected": "0.5",
+      "error_code": null
+    },
+    {
+      "name": "point_one",
+      "kind": "bits",
+      "input": "3fb999999999999a",
+      "expected": "0.1",
+      "error_code": null
+    },
+    {
+      "name": "one_e_minus_7",
+      "kind": "bits",
+      "input": "3e7ad7f29abcaf48",
+      "expected": "1e-7",
+      "error_code": null
+    },
+    {
+      "name": "1_5e_minus_7",
+      "kind": "bits",
+      "input": "3e8421f5f40d8376",
+      "expected": "1.5e-7",
+      "error_code": null
+    },
+    {
+      "name": "123456789",
+      "kind": "bits",
+      "input": "419d6f3454000000",
+      "expected": "123456789",
+      "error_code": null
+    },
+    {
+      "name": "1e20",
+      "kind": "bits",
+      "input": "4415af1d78b58c40",
+      "expected": "100000000000000000000",
+      "error_code": null
+    },
+    {
+      "name": "1_5e21",
+      "kind": "bits",
+      "input": "4454542ba12a337c",
+      "expected": "1.5e+21",
+      "error_code": null
+    },
+    {
+      "name": "1e300",
+      "kind": "bits",
+      "input": "7e37e43c8800759c",
+      "expected": "1e+300",
+      "error_code": null
+    },
+    {
+      "name": "max_safe_integer_float",
+      "kind": "bits",
+      "input": "433fffffffffffff",
+      "expected": "9007199254740991",
+      "error_code": null
+    },
+    {
+      "name": "pi",
+      "kind": "bits",
+      "input": "400921fb54442d18",
+      "expected": "3.141592653589793",
+      "error_code": null
+    },
+    {
+      "name": "point_one_plus_point_two",
+      "kind": "bits",
+      "input": "3fd3333333333334",
+      "expected": "0.30000000000000004",
+      "error_code": null
+    },
+    {
+      "name": "2_5",
+      "kind": "bits",
+      "input": "4004000000000000",
+      "expected": "2.5",
+      "error_code": null
+    },
+    {
+      "name": "zero",
+      "kind": "integer",
+      "input": "0",
+      "expected": "0",
+      "error_code": null
+    },
+    {
+      "name": "minus_zero",
+      "kind": "integer",
+      "input": "-0",
+      "expected": "0",
+      "error_code": null
+    },
+    {
+      "name": "one",
+      "kind": "integer",
+      "input": "1",
+      "expected": "1",
+      "error_code": null
+    },
+    {
+      "name": "minus_one",
+      "kind": "integer",
+      "input": "-1",
+      "expected": "-1",
+      "error_code": null
+    },
+    {
+      "name": "forty_two",
+      "kind": "integer",
+      "input": "42",
+      "expected": "42",
+      "error_code": null
+    },
+    {
+      "name": "max_safe_integer",
+      "kind": "integer",
+      "input": "9007199254740991",
+      "expected": "9007199254740991",
+      "error_code": null
+    },
+    {
+      "name": "min_safe_integer",
+      "kind": "integer",
+      "input": "-9007199254740991",
+      "expected": "-9007199254740991",
+      "error_code": null
+    },
+    {
+      "name": "beyond_max_safe_integer",
+      "kind": "integer",
+      "input": "9007199254740992",
+      "expected": null,
+      "error_code": "limit_exceeded"
+    },
+    {
+      "name": "beyond_min_safe_integer",
+      "kind": "integer",
+      "input": "-9007199254740992",
+      "expected": null,
+      "error_code": "limit_exceeded"
+    },
+    {
+      "name": "beyond_int64",
+      "kind": "integer",
+      "input": "12345678901234567890",
+      "expected": null,
+      "error_code": "limit_exceeded"
+    }
+  ]
+}

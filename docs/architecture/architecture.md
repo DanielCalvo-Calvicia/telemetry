@@ -105,6 +105,18 @@ A change is approved by the maintainer by pull request and a dated ADR note, and
 - **Names.** The words of a name are the same in both languages (`naming.md`): Go fields are `EventId`, `TraceId`, `InstanceId`, not the `ID` form of Go style, and an optional number, integer or boolean is a pointer in Go so `omitempty` does not drop a `false` or a `0`. Python dataclasses list the required fields first, then the optional ones.
 - **Not generated yet.** The configuration schema (T-03.6). The generator understands only the subset of JSON Schema the contract uses (see its README).
 
+### 2.5 Canonical JSON (built, T-02.5)
+
+The serialization that makes the same event give the same bytes in Go and Python (REQ-CNF-003, REQ-CTR-004) is a pure operation of the domain layer in each language, with the standard library only (REQ-ARC-005): Go `go/internal/domain/operations/canonical_json/` (`CanonicalJSON`, `FormatFloat`, `FormatInt`, `FormatUTCTime`) and Python `python/src/telemetry/internal/domain/operations/canonical_json/` (`canonical_json`, `format_float`, `format_int`, `format_utc_time`). It follows the JSON Canonicalization Scheme (RFC 8785):
+
+- keys are sorted by UTF-16 code units (so a character outside the BMP sorts by its surrogate pair), with no insignificant whitespace;
+- strings are escaped as the RFC says: only `"`, `\` and the control characters; nothing else, not `/`, not non-ASCII; the output is UTF-8; a lone surrogate or invalid UTF-8 is rejected;
+- numbers use the ECMAScript form (shortest round-trip digits, exponent form below `1e-6` and from `1e21`, `-0` prints `0`); NaN and the infinities are rejected;
+- **an integer beyond ±2^53-1 is rejected** (`limit_exceeded`): the maintainer was not asked, this is the plan's default and it is one constant per language (`MaxExactInteger`, `MAX_EXACT_INTEGER`);
+- `occurred_at` and `recorded_at` are formatted as `YYYY-MM-DDTHH:MM:SS.ffffffZ`: UTC only, exactly six decimals, truncation (not rounding) to microseconds; a non-UTC instant is rejected (`event_schema_invalid`), never converted.
+
+The Go function walks the value with `reflect` and honours the `json` tags (`-`, `omitempty`), so an int and a float stay different; the Python function accepts a dict or the generated dataclass (an optional field that is `None` is omitted). The errors are small classified errors that carry a code of the catalog (`domain/errors.go`, `domain/errors.py`); the full error model is T-03.7. The shared fixtures and the comparison script are in `integration-tests/` and `go/internal/tests/fixtures/canonical_json/`.
+
 ## 3. Current state (exists)
 
 | Layer | Package | What it holds |

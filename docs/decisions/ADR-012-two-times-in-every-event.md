@@ -22,3 +22,5 @@ Every event of every capability has two mandatory instants, both in UTC and in t
 - Negative: every event is a little bigger; every example and schema carries two times; both instants come from the same device clock, so they are both wrong when the clock is.
 
 > **Update 2026-10-28 (T-02.2):** the schema now exists: `occurred_at` and `recorded_at` are required in [contracts/schemas/envelope.schema.json](../../contracts/schemas/envelope.schema.json), both UTC with exactly six decimals and the zone `Z` (an offset or fewer decimals is rejected), and `resource` has the optional `time_zone`, a name that is only for display. The schema documents that only the library sets `recorded_at`; the code enforces it in T-03.3.
+
+> **Update 2026-10-28 (T-02.5):** the fixed time format is implemented in both languages: `FormatUTCTime` (Go) and `format_utc_time` (Python) write `YYYY-MM-DDTHH:MM:SS.ffffffZ`, UTC only, exactly six decimals, truncating (not rounding) to microseconds; an instant that is not UTC is rejected with `event_schema_invalid`, never converted.

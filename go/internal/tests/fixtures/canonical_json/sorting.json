@@ -1,0 +1,107 @@
+{
+  "description": "Sorting cases: input is any JSON value (the key order of the file does not matter); expected is the canonical text. Keys sort by UTF-16 code units (RFC 8785 section 3.2.3).",
+  "cases": [
+    {
+      "name": "rfc_3_2_3_example",
+      "input": {
+        "\u20ac": "Euro Sign",
+        "\r": "Carriage Return",
+        "\ufb33": "Hebrew Letter Dalet With Dagesh",
+        "1": "One",
+        "\ud83d\ude00": "Emoji: Grinning Face",
+        "\u0080": "Control",
+        "\u00f6": "Latin Small Letter O With Diaeresis"
+      },
+      "expected": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\u0080\":\"Control\",\"\u00f6\":\"Latin Small Letter O With Diaeresis\",\"\u20ac\":\"Euro Sign\",\"\ud83d\ude00\":\"Emoji: Grinning Face\",\"\ufb33\":\"Hebrew Letter Dalet With Dagesh\"}"
+    },
+    {
+      "name": "non_bmp_sorts_before_fb33_and_ffff",
+      "input": {
+        "\uffff": 1,
+        "\ud83d\ude00": 2,
+        "\ufb33": 3,
+        "\ud7ff": 4,
+        "\ud800\udc00": 5
+      },
+      "expected": "{\"\ud7ff\":4,\"\ud800\udc00\":5,\"\ud83d\ude00\":2,\"\ufb33\":3,\"\uffff\":1}"
+    },
+    {
+      "name": "prefix_shorter_first",
+      "input": {
+        "ab": 1,
+        "a": 2,
+        "abc": 3,
+        "": 4
+      },
+      "expected": "{\"\":4,\"a\":2,\"ab\":1,\"abc\":3}"
+    },
+    {
+      "name": "uppercase_before_lowercase_and_digits_as_text",
+      "input": {
+        "b": 1,
+        "B": 2,
+        "10": 3,
+        "9": 4,
+        "a": 5,
+        "A": 6
+      },
+      "expected": "{\"10\":3,\"9\":4,\"A\":6,\"B\":2,\"a\":5,\"b\":1}"
+    },
+    {
+      "name": "nested_objects_and_arrays_keep_order",
+      "input": {
+        "z": [
+          3,
+          {
+            "b": 1,
+            "a": 2
+          },
+          1
+        ],
+        "a": {
+          "y": null,
+          "x": [
+            true,
+            false
+          ]
+        },
+        "m": {}
+      },
+      "expected": "{\"a\":{\"x\":[true,false],\"y\":null},\"m\":{},\"z\":[3,{\"a\":2,\"b\":1},1]}"
+    },
+    {
+      "name": "no_whitespace_and_scalars",
+      "input": {
+        "s": "x y",
+        "n": -1.5,
+        "t": true,
+        "f": false,
+        "z": null,
+        "i": 7
+      },
+      "expected": "{\"f\":false,\"i\":7,\"n\":-1.5,\"s\":\"x y\",\"t\":true,\"z\":null}"
+    },
+    {
+      "name": "array_top_level",
+      "input": [
+        {
+          "b": 1,
+          "a": 2
+        },
+        [],
+        "s",
+        1e-06
+      ],
+      "expected": "[{\"a\":2,\"b\":1},[],\"s\",0.000001]"
+    },
+    {
+      "name": "keys_are_escaped",
+      "input": {
+        "a\"b": 1,
+        "a\\b": 2,
+        "a\nb": 3
+      },
+      "expected": "{\"a\\nb\":3,\"a\\\"b\":1,\"a\\\\b\":2}"
+    }
+  ]
+}

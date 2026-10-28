@@ -1,0 +1,125 @@
+{
+  "description": "String cases: input is the string value; expected is its canonical JSON text (RFC 8785 section 3.2.2.2: only quote, backslash and the control characters below U+0020 are escaped).",
+  "cases": [
+    {
+      "name": "rfc_example",
+      "input": "\u20ac$\u000f\nA'B\"\\\\\"/",
+      "expected": "\"\u20ac$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\""
+    },
+    {
+      "name": "empty",
+      "input": "",
+      "expected": "\"\""
+    },
+    {
+      "name": "quote",
+      "input": "\"",
+      "expected": "\"\\\"\""
+    },
+    {
+      "name": "backslash",
+      "input": "\\",
+      "expected": "\"\\\\\""
+    },
+    {
+      "name": "solidus_not_escaped",
+      "input": "/",
+      "expected": "\"/\""
+    },
+    {
+      "name": "control_00",
+      "input": "\u0000",
+      "expected": "\"\\u0000\""
+    },
+    {
+      "name": "control_01",
+      "input": "\u0001",
+      "expected": "\"\\u0001\""
+    },
+    {
+      "name": "control_07",
+      "input": "\u0007",
+      "expected": "\"\\u0007\""
+    },
+    {
+      "name": "control_08",
+      "input": "\b",
+      "expected": "\"\\b\""
+    },
+    {
+      "name": "control_09",
+      "input": "\t",
+      "expected": "\"\\t\""
+    },
+    {
+      "name": "control_0a",
+      "input": "\n",
+      "expected": "\"\\n\""
+    },
+    {
+      "name": "control_0b",
+      "input": "\u000b",
+      "expected": "\"\\u000b\""
+    },
+    {
+      "name": "control_0c",
+      "input": "\f",
+      "expected": "\"\\f\""
+    },
+    {
+      "name": "control_0d",
+      "input": "\r",
+      "expected": "\"\\r\""
+    },
+    {
+      "name": "control_0e",
+      "input": "\u000e",
+      "expected": "\"\\u000e\""
+    },
+    {
+      "name": "control_1b",
+      "input": "\u001b",
+      "expected": "\"\\u001b\""
+    },
+    {
+      "name": "control_1f",
+      "input": "\u001f",
+      "expected": "\"\\u001f\""
+    },
+    {
+      "name": "space_and_del_not_escaped",
+      "input": " \u007f",
+      "expected": "\" \u007f\""
+    },
+    {
+      "name": "latin",
+      "input": "caf\u00e9",
+      "expected": "\"caf\u00e9\""
+    },
+    {
+      "name": "euro",
+      "input": "\u20ac",
+      "expected": "\"\u20ac\""
+    },
+    {
+      "name": "c1_control_not_escaped",
+      "input": "\u0080",
+      "expected": "\"\u0080\""
+    },
+    {
+      "name": "line_separator_not_escaped",
+      "input": "\u2028\u2029",
+      "expected": "\"\u2028\u2029\""
+    },
+    {
+      "name": "non_bmp_emoji",
+      "input": "\ud83d\ude00",
+      "expected": "\"\ud83d\ude00\""
+    },
+    {
+      "name": "mixed",
+      "input": "a\tb\"c\\d\u00f6\ud83d\ude00\n",
+      "expected": "\"a\\tb\\\"c\\\\d\u00f6\ud83d\ude00\\n\""
+    }
+  ]
+}
