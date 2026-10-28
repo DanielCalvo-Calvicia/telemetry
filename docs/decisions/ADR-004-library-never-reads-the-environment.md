@@ -15,3 +15,5 @@ The library never calls `os.Getenv`, `envconfig.Process` or reads a `.env` file.
 
 - Positive: the consumer sees and controls every setting; the library is easy to test (a `Config` value is enough).
 - Negative: the consumer must embed `Config` and pass `app_env`; a consumer that forgets a variable gets the default of the tag.
+
+> **Update 2026-10-28:** confirmed for the new standard (Q06-3 of [PR-001](../proposals/PR-001-telemetry-standard-go-python.md)): the library reads no environment and no file; the consumer loads its configuration and passes it in. The shared model is a schema and the profiles are functions.

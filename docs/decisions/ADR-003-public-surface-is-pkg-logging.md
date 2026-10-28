@@ -15,3 +15,5 @@ Everything of the library is under `internal/`, so a consumer cannot import it. 
 
 - Positive: nothing speculative is public; the internal code can be reorganized without breaking consumers; the public API is one file to review (`pkg/logging/logging.go`, `sinks.go`).
 - Negative: an alias exposes the shape of the internal type, so a change to an internal DTO is a change of the public API.
+
+> **Update 2026-10-28:** [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) proposes that `pkg/logging` disappears and that the public packages are `go/pkg/<functionality>/<adapter>`. [ADR-013](ADR-013-go-modules-per-adapter-chosen-in-code.md) would replace this decision when it is built. Nothing changes today.
