@@ -951,7 +951,7 @@ A capability is complete when:
 
 This document defines only the **contract** of the library. The following are out of scope and are handled separately:
 
-- the task plan and the implementation phases;
+- the task plan and the implementation phases (they are in [docs/tasks/](../tasks/README.md));
 - the CI and publishing configuration;
 - the instructions for code assistants.
 

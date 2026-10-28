@@ -13,6 +13,7 @@ State of the documents: 2026-10-27. Start with [architecture](architecture/archi
 | [operations/monitoring.md](operations/monitoring.md) | what a consumer can observe, the failure report, timeouts, the manual end-to-end check |
 | [deployment/deployment.md](deployment/deployment.md) | there is no deployment: build, CI, releases by tag and how a consumer takes one |
 | [proposals/](proposals/) | the proposals that are not built yet |
+| [tasks/](tasks/README.md) | the task plan to build the new standard: 13 epics, 85 subtasks, the order and the board |
 | [setup/questionnaires/](setup/questionnaires/) | the questions to the maintainer that settle the open decisions of a proposal |
 
 ## Decisions
@@ -57,4 +58,4 @@ Q01 to Q09 were asked and answered on 2026-10-27 and 2026-10-28 about [PR-001](p
 
 ## Not written
 
-The `setup/` intake forms of the Engram context (the numbered sub-forms) and the `tasks/` board of dynamics_microservice have no equivalent here yet. They are tied to the Engram intake process and to a task plan this library does not have; they would be written when the library is enrolled in Engram Cloud.
+The `setup/` intake forms of the Engram context (the numbered sub-forms) have no equivalent here yet. They are tied to the Engram intake process and would be written when the library is enrolled in Engram Cloud. The task plan of the new standard is in [tasks/](tasks/README.md).
