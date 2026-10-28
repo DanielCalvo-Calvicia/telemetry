@@ -15,3 +15,5 @@ The repository has no `cmd/`, Dockerfile, Kubernetes manifest, docker-compose or
 
 - Positive: nothing to operate; the Go proxy and the checksum database protect the consumers.
 - Negative: everything pushed publicly is permanent (the proxy caches versions forever), so the audit of the public checklist (no secrets, no internal names or addresses, fake values only) must pass before a push.
+
+> **Update 2026-10-28 (T-01.6):** the new layout has more things that are tagged: `go/vX.Y.Z` for the Go core module, `go/pkg/<functionality>/<adapter>/vX.Y.Z` for each Go adapter module and `python-vX.Y.Z` for the Python package; the old library keeps `vX.Y.Z`. The core is released first, nothing is tagged unless the maintainer asks and a tag is still permanent. The rule is in the [deployment document](../deployment/deployment.md). No tag of the new layout exists yet.

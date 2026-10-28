@@ -40,6 +40,8 @@ Released as `v0.1.0` (2026-10-19) and `v0.2.0` (2026-10-20). The API may change 
 go get github.com/DanielCalvo-Calvicia/telemetry@v0.2.0
 ```
 
+This is the old library, the only one released. The new standard will be installed from `github.com/DanielCalvo-Calvicia/telemetry/go` (and Python from the Git repository): **planned, nothing is tagged yet**; see the tag rule in [docs/deployment/deployment.md](docs/deployment/deployment.md).
+
 ```go
 import "github.com/DanielCalvo-Calvicia/telemetry/pkg/logging"
 

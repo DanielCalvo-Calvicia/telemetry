@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | in-progress (T-01.1 to T-01.4 done 2026-10-28) |
+| Status | in-progress (T-01.1 to T-01.4 and T-01.6 done 2026-10-28; T-01.5 waits for a GitHub run) |
 | Kind | epic |
 | Parent | project |
 | Depends on | PR-001 version 0.2 accepted (done, T-01.1) |
@@ -28,7 +28,7 @@ Turn the repository into the layout of the standard: `contracts/`, `go/` (the co
 | 3 | [T-01.3 Python project skeleton](T-01.3_python-project-skeleton.md) | done (2026-10-28) |
 | 4 | [T-01.4 Architecture tests](T-01.4_architecture-tests.md) | done (2026-10-28) |
 | 5 | [T-01.5 CI](T-01.5_ci.md) | in-progress (the GitHub run waits for a pull request) |
-| 6 | [T-01.6 Tags and the release rule](T-01.6_tags-and-the-release-rule.md) | todo |
+| 6 | [T-01.6 Tags and the release rule](T-01.6_tags-and-the-release-rule.md) | done (2026-10-28) |
 
 Order: 1, 2, 3; then 4, 5 and 6 (4 and 5 need 2 and 3; 6 only needs 2, so it can run in parallel with 3). The old library keeps working throughout, so nobody is left without a logger while the new one is built. The e2e test of the deployed AWS microservice keeps its switch `run_against_deployed_service` set to `false` in everything that is committed.
 

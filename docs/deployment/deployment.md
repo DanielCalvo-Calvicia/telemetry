@@ -60,21 +60,48 @@ The job for generated code (it regenerates from `contracts/` and fails on a diff
 | `v0.1.0` | 2026-10-19 | logging: console and HTTP sinks, masking, call context, `pkg/logging` |
 | `v0.2.0` | 2026-10-20 | the AWS HTTP sink, the ready-made sink constructors and `NewWithSinks`, the end-to-end tests |
 
-How a release is made:
+These are the only tags that exist. They belong to the old library, whose module path is `github.com/DanielCalvo-Calvicia/telemetry`, and they are never moved.
+
+### The rule for the new layout (written in T-01.6, 2026-10-28; nothing is tagged yet)
+
+The new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)) has several things that are versioned on their own (REQ-VER-001). Each has its own tag shape. The examples are placeholders: **none of these tags exists**.
+
+| What is released | Tag shape | Example (not created) |
+|---|---|---|
+| The Go core module `github.com/DanielCalvo-Calvicia/telemetry/go` | `go/vX.Y.Z` | `go/v0.3.0` (the first one planned) |
+| A Go adapter module, one per adapter | `go/pkg/<functionality>/<adapter>/vX.Y.Z` | `go/pkg/spool/sqlite/v0.1.0` |
+| The Python package `telemetry` | `python-vX.Y.Z` | `python-v0.1.0` |
+| The old library `github.com/DanielCalvo-Calvicia/telemetry` | `vX.Y.Z` | `v0.1.0` and `v0.2.0` exist; no new one is planned |
+
+The contract is versioned on its own by `schema_version` (`MAJOR.MINOR`, REQ-VER-003): it starts at `0.1` and reaches `1.0` with the library.
+
+The rules:
+
+1. **Order.** The core is released first, then the adapters, then the Python package. Each Go adapter pins a minimum version of the core in its own `go.mod`. `go.work` is for local work and CI only: **a released adapter must build without it**.
+2. **Nothing is tagged unless the maintainer asks** (ADR-010). The flow is the one of `CLAUDE.md`: a `feature_*` branch, then `feature`, then `main`; the tag goes on `main`, **after the checks below pass**.
+3. **A tag is permanent.** It is never moved or reused (the Go proxy caches a version forever). A bad release gets a `retract` line in the `go.mod` of its module and a new patch version.
+4. **`0.x` until everything works.** The library stays a `0.x` beta until every capability works; `1.0` is the maintainer's decision (T-13.5, Q09-6, REQ-CNF-008).
+5. **Before anything is pushed,** check the public audit list in [security.md](../security/security.md).
+
+**Open question for the maintainer (not decided):** does a contract change that only adds an optional field (a MINOR change of `schema_version`, REQ-VER-003) force a new release of both languages, or may one language release alone while the other still reads the contract? Until it is answered, treat a contract change as needing both.
+
+How a release is made today (the old library, and the same steps for the new tags):
 
 1. Work on a `feature_*` branch; push it; open or merge into the branch `feature`.
 2. Merge `feature` into `main`.
-3. Run the checks above on `main`. **Only after they pass**, create an annotated tag on `main` (`git tag -a v0.x.y -m "..."`) and push it. A tag is never moved or reused.
+3. Run the checks above on `main`. **Only after they pass**, create an annotated tag on `main` (`git tag -a <tag> -m "..."`, with the tag shape of the table) and push it. A tag is never moved or reused.
 4. Before anything is pushed, check the public audit list in [security.md](../security/security.md).
 
 ## How a consumer takes a release
 
 ```bash
-go get github.com/DanielCalvo-Calvicia/telemetry@v0.2.0
+go get github.com/DanielCalvo-Calvicia/telemetry@v0.2.0     # the old library; the only tags that exist today
 go mod tidy
 ```
 
-Pin tagged versions only, commit `go.sum`, and use `GOFLAGS=-mod=readonly` in CI. Do **not** set `GOPRIVATE` for this module: the public proxy and the checksum database are the protection against tampering. To try an unreleased change before a tag, use a `go.work` file that points at a local clone; it is git-ignored and never committed.
+For the new layout, planned and **not released**: `go get github.com/DanielCalvo-Calvicia/telemetry/go@v0.3.0` for the core and `go get github.com/DanielCalvo-Calvicia/telemetry/go/pkg/<functionality>/<adapter>@v0.1.0` for an adapter (the `go/...` prefix of the tag is not written in the version). Python is installed from the Git repository, for example `pip install "telemetry @ git+https://github.com/DanielCalvo-Calvicia/telemetry@python-vX.Y.Z#subdirectory=python"`.
+
+Pin tagged versions only, commit `go.sum`, and use `GOFLAGS=-mod=readonly` in CI. Do **not** set `GOPRIVATE` for this module: the public proxy and the checksum database are the protection against tampering. To try an unreleased change before a tag, use a `go.work` file of your own that points at a local clone; it stays in your project and is never committed there. (This repository does commit its own `go.work`, for local work and CI.)
 
 ## Rollback
 
