@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Status | todo (T-01.1 awaits the maintainer) |
+| Status | in-progress (T-01.1 done 2026-10-28) |
 | Kind | epic |
 | Parent | project |
-| Depends on | PR-001 version 0.2 accepted (T-01.1) |
+| Depends on | PR-001 version 0.2 accepted (done, T-01.1) |
 | Blocks | T-02 to T-13 |
 
 > Created on 2026-10-28 from [PR-001](../../proposals/PR-001-telemetry-standard-go-python.md) version 0.2 and the answers of [Q01](../../setup/questionnaires/Q01_scope-repository-layout-and-rollout.md) (one repository), [Q06](../../setup/questionnaires/Q06_security-configuration-and-release.md) (CI, coverage and releases), [Q07](../../setup/questionnaires/Q07_open-points-after-the-answers.md) (where `go.mod` lives, the first version, how Python is installed) and [Q08](../../setup/questionnaires/Q08_last-points-before-rewriting-the-proposal.md) and [Q09](../../setup/questionnaires/Q09_adapters-modules-and-v1-meaning.md) (one module per adapter). Decision records: [ADR-011](../../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) and [ADR-013](../../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md).
@@ -23,7 +23,7 @@ Turn the repository into the layout of the standard: `contracts/`, `go/` (the co
 
 | Order | Task | Status |
 |---|---|---|
-| 1 | [T-01.1 Accept PR-001 version 0.2](T-01.1_accept-pr-001-version-0-2.md) | awaiting-user |
+| 1 | [T-01.1 Accept PR-001 version 0.2](T-01.1_accept-pr-001-version-0-2.md) | done (2026-10-28) |
 | 2 | [T-01.2 Repository layout](T-01.2_repository-layout.md) | todo |
 | 3 | [T-01.3 Python project skeleton](T-01.3_python-project-skeleton.md) | todo |
 | 4 | [T-01.4 Architecture tests](T-01.4_architecture-tests.md) | todo |

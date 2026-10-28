@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Status | **Draft v0.2 (2026-10-28).** The decisions of the questionnaires Q01 to Q09 are written into it (see "Decisions taken"). The maintainer has not yet accepted this version. Nothing in it is built: the library today is the Go logging library described in [README.md](../../README.md). |
+| Status | **Accepted by the maintainer on 2026-10-28 (version 0.2).** The decisions of the questionnaires Q01 to Q09 and the four answers of [T-01.1](../tasks/T-01_repository-foundation/T-01.1_accept-pr-001-version-0-2.md) are written into it. Nothing in it is built: the library today is the Go logging library described in [README.md](../../README.md). |
 | Layers | all (domain, application, infrastructure, composition root), plus a new `contracts/` directory and a Python implementation |
 | Languages | Go (>= 1.25) and Python (>= 3.10) |
 | Related | [ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md), [ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md), [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md), [ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md), [ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md), [ADR-006](../decisions/ADR-006-masking-before-every-sink.md), [architecture](../architecture/architecture.md), [requirements](../requirements/requirements.md) |
-| Replaces | when built, [ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md) and [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md), by [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md). The decisions are recorded in [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md), [ADR-012](../decisions/ADR-012-two-times-in-every-event.md) and ADR-013; they become Accepted with this proposal. |
+| Replaces | when built, [ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md) and [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md), by [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md). The decisions are recorded in [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md), [ADR-012](../decisions/ADR-012-two-times-in-every-event.md) and ADR-013; they were accepted with this proposal on 2026-10-28. |
 | Decided in | [Q01](../setup/questionnaires/Q01_scope-repository-layout-and-rollout.md) to [Q09](../setup/questionnaires/Q09_adapters-modules-and-v1-meaning.md) (2026-10-27 and 2026-10-28) |
 
 ## Why
@@ -80,6 +80,8 @@ Other decisions:
 | Audit | The contract is written; the adapter comes later | Q06-6 |
 | Tests | Python has the same 95% coverage gate; the cross tests run in CI | Q06-7 |
 | Releases | One tag per language (`go/...` and `python-vX.Y.Z`); the contract is versioned by `schema_version` | Q06-8 |
+| Public names | The Go core is `go/pkg/telemetry`; Python is `telemetry.<functionality>.<adapter>`, installed as `telemetry` | T-01.1 |
+| Old library | The root `go.mod` of the old library stays beside `go/go.mod` until T-04.7 removes it; `go.work` joins them | T-01.1 |
 | Contract changes | The maintainer decides, by pull request and a dated note in an ADR | Q01-4 |
 | Scope | All event types are in v1, built one at a time. This proposal stays the umbrella; one proposal per area is written when it is accepted | Q02-5, Q01-6 |
 | `1.0` | Only when every capability works. Until then the library is a beta (`0.x`); `schema_version` starts at `0.1` and reaches `1.0` with the library | Q09-6, Q02-6 |
@@ -94,8 +96,7 @@ Other decisions:
 
 ## Still to decide
 
-- Acceptance of this version by the maintainer.
-- The Python names. They are meant to mirror the Go ones (`telemetry.<functionality>.<adapter>`, installed as `telemetry`); this is a reading of the answer to Q08-2 that is to be confirmed.
+Nothing from the first questionnaires. The four points of T-01.1 were answered on 2026-10-28: the proposal is accepted as it is; the Python names are `telemetry.<functionality>.<adapter>`, installed as `telemetry`; the public package of the Go core is `go/pkg/telemetry` (the entry point `New`, `Shutdown` and the shared types); and the old root `go.mod` stays beside `go/go.mod` until T-04.7 removes the old library. The open points left are the questions written in the tasks themselves.
 
 ## Documentation to update when it is accepted
 
@@ -213,7 +214,7 @@ that exists in one language (REQ-AI-011).
 
 **REQ-ARC-012.** The public packages MUST follow `<functionality>/<adapter>` in both languages:
 `go/pkg/<functionality>/<adapter>` in Go and `telemetry.<functionality>.<adapter>` in Python. A project imports only the
-packages it needs.
+packages it needs. The public package of the core itself, with `New`, `Shutdown` and the shared types, is `go/pkg/telemetry`.
 
 **REQ-ARC-013.** The project MUST choose its adapters by importing them and passing them to the core in code (for
 example `telemetry.New(config, sqlite.NewDestination(...), http.NewDestination(...))`). The configuration carries only

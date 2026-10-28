@@ -22,8 +22,8 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 
 | # | Task | Name | Kind | State | Detail | Depends on | Last updated |
 |---|---|---|---|---|---|---|---|
-| 1 | [T-01](T-01_repository-foundation/T-01_repository-foundation.md) | Repository foundation | epic | Todo | todo (T-01.1 awaits the maintainer) | PR-001 version 0.2 accepted (T-01.1) | 2026-10-28 |
-| 2 | [T-01.1](T-01_repository-foundation/T-01.1_accept-pr-001-version-0-2.md) | Accept PR-001 version 0.2 | decision | Awaiting the maintainer | awaiting-user | — | 2026-10-28 |
+| 1 | [T-01](T-01_repository-foundation/T-01_repository-foundation.md) | Repository foundation | epic | In progress | in-progress (T-01.1 done 2026-10-28) | PR-001 version 0.2 accepted (done, T-01.1) | 2026-10-28 |
+| 2 | [T-01.1](T-01_repository-foundation/T-01.1_accept-pr-001-version-0-2.md) | Accept PR-001 version 0.2 | decision | Done | done (2026-10-28) | — | 2026-10-28 |
 | 3 | [T-01.2](T-01_repository-foundation/T-01.2_repository-layout.md) | Repository layout | code | Todo | todo | T-01.1 | 2026-10-28 |
 | 4 | [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | Todo | todo | T-01.2 | 2026-10-28 |
 | 5 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | Todo | todo | T-01.2, T-01.3 | 2026-10-28 |

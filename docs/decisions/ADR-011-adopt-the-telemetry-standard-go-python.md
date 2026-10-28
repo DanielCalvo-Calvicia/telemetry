@@ -1,6 +1,6 @@
 # ADR-011 — Adopt the telemetry standard: one contract for Go and Python
 
-**Status:** Proposed. Decided by the maintainer in the questionnaires Q01 to Q09 (2026-10-27 and 2026-10-28); it becomes Accepted with [PR-001](../proposals/PR-001-telemetry-standard-go-python.md). Nothing is built.
+**Status:** Accepted (2026-10-28, with [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) version 0.2; decided by the maintainer in the questionnaires Q01 to Q09). Nothing is built.
 **Related:** [PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-001](ADR-001-adopt-shared-go-standard.md), [ADR-004](ADR-004-library-never-reads-the-environment.md), [ADR-012](ADR-012-two-times-in-every-event.md), [ADR-013](ADR-013-go-modules-per-adapter-chosen-in-code.md)
 
 ## Context

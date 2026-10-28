@@ -30,15 +30,15 @@ State of the documents: 2026-10-27. Start with [architecture](architecture/archi
 | [ADR-008](decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP sink adapts the entry to the `add_log` contract |
 | [ADR-009](decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink |
 | [ADR-010](decisions/ADR-010-no-deployment-release-by-tags.md) | no deployment; release by tags |
-| [ADR-011](decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard, one contract for Go and Python (proposed) |
-| [ADR-012](decisions/ADR-012-two-times-in-every-event.md) | two times in every event, generated and recorded (proposed) |
-| [ADR-013](decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | one Go module per adapter, chosen in code (proposed) |
+| [ADR-011](decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard, one contract for Go and Python |
+| [ADR-012](decisions/ADR-012-two-times-in-every-event.md) | two times in every event, generated and recorded |
+| [ADR-013](decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | one Go module per adapter, chosen in code |
 
 ## Proposals
 
 | Proposal | Status |
 |---|---|
-| [PR-001](proposals/PR-001-telemetry-standard-go-python.md) | the new telemetry standard (one contract for Go and Python, device and AI modules). Draft v0.2 with the decisions of Q01-Q09, not accepted yet, nothing built |
+| [PR-001](proposals/PR-001-telemetry-standard-go-python.md) | the new telemetry standard (one contract for Go and Python, device and AI modules). Accepted on 2026-10-28 (version 0.2), nothing built |
 
 ## Questionnaires
 

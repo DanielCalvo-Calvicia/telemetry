@@ -100,9 +100,9 @@ Both return the logger and a shutdown function to call on exit. Both use the con
 | [ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP sink adapts to the `add_log` contract |
 | [ADR-009](../decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink |
 | [ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md) | no deployment; release by tags |
-| [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard (proposed, not built) |
-| [ADR-012](../decisions/ADR-012-two-times-in-every-event.md) | two times in every event (proposed, not built) |
-| [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | one Go module per adapter, chosen in code (proposed, not built) |
+| [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard (accepted, not built) |
+| [ADR-012](../decisions/ADR-012-two-times-in-every-event.md) | two times in every event (accepted, not built) |
+| [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | one Go module per adapter, chosen in code (accepted, not built) |
 
 ## 7. External services
 

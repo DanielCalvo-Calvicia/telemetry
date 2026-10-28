@@ -26,7 +26,7 @@ Released as `v0.1.0` (2026-10-19) and `v0.2.0` (2026-10-20). The API may change 
 | Runnable sample (`examples/aws_http_smoke`) and a test that sends one line to a deployed aws_microservice | Implemented |
 | CI (vet, tests, coverage gate of 95%) | Implemented; 98.4% measured locally on 2026-10-20 |
 | Metrics (`internal/metrics`, `pkg/metrics`) | Planned |
-| The new telemetry standard (one contract for Go and Python, device and AI modules, a queue and a spool): [PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md), [ADR-011](docs/decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) to [ADR-013](docs/decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | Proposed (draft v0.2), nothing built |
+| The new telemetry standard (one contract for Go and Python, device and AI modules, a queue and a spool): [PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md), [ADR-011](docs/decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) to [ADR-013](docs/decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | Accepted (2026-10-28), nothing built |
 | Deployment | None, by design: it is a library ([ADR-010](docs/decisions/ADR-010-no-deployment-release-by-tags.md)) |
 
 ## Requirements
@@ -97,4 +97,4 @@ go test ./... -count=1
 
 ## Documentation
 
-[docs/README.md](docs/README.md) is the index: architecture, API, configuration, decisions (ADR-001 to ADR-013, the last three are proposed), proposals, requirements, security, operations and deployment (releases).
+[docs/README.md](docs/README.md) is the index: architecture, API, configuration, decisions (ADR-001 to ADR-013; the last three are accepted and not built), proposals, requirements, security, operations and deployment (releases).

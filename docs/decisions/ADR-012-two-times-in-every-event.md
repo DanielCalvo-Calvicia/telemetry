@@ -1,6 +1,6 @@
 # ADR-012 — Two times in every event: when it was generated and when it was recorded
 
-**Status:** Proposed. Decided by the maintainer in Q08-1 and Q09-1 (2026-10-28); it becomes Accepted with [PR-001](../proposals/PR-001-telemetry-standard-go-python.md). Nothing is built.
+**Status:** Accepted (2026-10-28, with [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) version 0.2; decided by the maintainer in Q08-1 and Q09-1). Nothing is built.
 **Related:** [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) (5.1, 5.4, REQ-CTR-008), [ADR-011](ADR-011-adopt-the-telemetry-standard-go-python.md)
 
 ## Context
