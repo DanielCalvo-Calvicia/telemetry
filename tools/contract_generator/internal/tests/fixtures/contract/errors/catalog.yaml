@@ -1,0 +1,10 @@
+errors:
+  - code: demo_failed
+    category: validation
+    default_message: the demo failed
+    meaning: The demo failed.
+
+  - code: demo_message_is_very_long
+    category: configuration
+    default_message: this default message is deliberately long so that the generated Python line would go past the limit of one hundred and twenty characters
+    meaning: A long message, to test the wrapping.

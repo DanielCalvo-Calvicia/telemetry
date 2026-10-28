@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/schemas/demo/thing_happened.schema.json",
+  "title": "demo.thing.happened: data",
+  "type": "object",
+  "required": ["category"],
+  "properties": {
+    "category": { "type": "string" },
+    "note": { "type": "string" }
+  },
+  "additionalProperties": false
+}

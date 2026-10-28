@@ -22,3 +22,5 @@ The library becomes the telemetry standard of all the projects: logs, metrics, t
 
 - Positive: one contract and one UI for every project; a Python or Go project adopts only what it needs.
 - Negative: a very large scope; `1.0` is far away; the Go side is built without a Go pilot and tested with the cross tests and fakes; the receiver of the HTTP events is a separate project that does not exist yet.
+
+> **Update 2026-10-28 (T-02.4):** the generator is built. It is a Go module of its own, `tools/contract_generator`, so its libraries do not reach the core module, and its output goes to the domain layer of each language (`go/internal/domain/value_objects/*_generated.go` and `python/src/telemetry/internal/domain/value_objects/*_generated.py`) and is committed. CI fails when the committed code differs from the contract. See the [architecture document](../architecture/architecture.md), section 2.4.

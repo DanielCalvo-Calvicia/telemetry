@@ -42,16 +42,17 @@ The race detector (`-race`) needs cgo and a C compiler; it was not run on the ma
 
 ## Pipeline (`.github/workflows/ci.yml`)
 
-Runs on a push to `main` and on every pull request, with a read-only `GITHUB_TOKEN` (`permissions: contents: read`); every action is pinned by commit SHA (`actions/checkout` v4.2.2, `actions/setup-go` v5.5.0, `actions/setup-python` v5.6.0). A push to any other branch runs nothing until a pull request is opened. Four jobs (T-01.5, 2026-10-28; written and run locally, **not yet run on GitHub**):
+Runs on a push to `main` and on every pull request, with a read-only `GITHUB_TOKEN` (`permissions: contents: read`); every action is pinned by commit SHA (`actions/checkout` v4.2.2, `actions/setup-go` v5.5.0, `actions/setup-python` v5.6.0). A push to any other branch runs nothing until a pull request is opened. Five jobs (T-01.5 and T-02.4, 2026-10-28; written and run locally, **not yet run on GitHub**):
 
 | Job | What it does |
 |---|---|
-| `modules` | reads `go.work` (`go work edit -json`) and lists its modules: today `.` (the old library) and `./go` (the new core); a module added to `go.work` is checked without editing the file |
-| `go` (one per module) | in the module folder: `gofmt -l .` and `goimports -l .` (`golang.org/x/tools/cmd/goimports@v0.35.0`) print nothing; `go vet ./...`; `go build ./...`; `go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out`; the coverage gate: the total over `internal/`, **excluding the `external/` folders**, must be at least **95%** (measured locally on 2026-10-28: 98.6% for `go/`, 98.0% for the old module without its e2e package) |
+| `modules` | reads `go.work` (`go work edit -json`) and lists its modules: today `.` (the old library), `./go` (the new core) and `./tools/contract_generator`; a module added to `go.work` is checked without editing the file |
+| `go` (one per module) | in the module folder: `gofmt -l .` and `goimports -l .` (`golang.org/x/tools/cmd/goimports@v0.35.0`) print nothing; `go vet ./...`; `go build ./...`; `go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out`; the coverage gate: the total over `internal/`, **excluding the `external/` folders**, must be at least **95%** (measured locally on 2026-10-28: 98.7% for `go/`, 98.1% for the generator, 98.0% for the old module without its e2e package) |
 | `python` (3.10 and 3.11) | in `python/`: `pip install . coverage[toml]==7.17.0 ruff==0.17.3`; `ruff check .` and `ruff format --check .`; `coverage run -m unittest discover -s internal/tests -t .` and `coverage report`, whose gate is `fail_under = 95` with `omit */external/*` in `pyproject.toml`. 3.10 is the declared minimum and 3.11 is the version of the Raspberry Pi of the pilot |
+| `generated-code` | the generated code is committed (REQ-DST-005): it runs the generator on `contracts/` (`cd tools/contract_generator && go run . --contracts ../../contracts --go-out ../../go/internal/domain/value_objects --python-out ../../python/src/telemetry/internal/domain/value_objects`) and fails on `git diff --exit-code` or if `git status --porcelain` shows a new file, so a contract change without its generated code, or a hand edit of a generated file, cannot be merged |
 | `cross-tests` | passes while empty (it only prints a line); T-02.8 creates the first Go and Python fixtures and T-12 the runner (REQ-CNF-006) |
 
-The job for generated code (it regenerates from `contracts/` and fails on a difference) is added by T-02.4. The race detector is not run (it needs cgo). The e2e test of the deployed service is skipped in CI: its switch is `false` in what is committed. The old module keeps its job until T-04.7 removes it.
+To regenerate after a change of `contracts/`: `cd tools/contract_generator && go run . --contracts ../../contracts --go-out ../../go/internal/domain/value_objects --python-out ../../python/src/telemetry/internal/domain/value_objects`, then commit the generated files with the change. The race detector is not run (it needs cgo). The e2e test of the deployed service is skipped in CI: its switch is `false` in what is committed. The old module keeps its job until T-04.7 removes it.
 
 ## Releases
 

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/enums/severity.json",
+  "title": "Severity",
+  "type": "string",
+  "enum": ["INFO", "ERROR"]
+}

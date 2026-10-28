@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/schemas/common/attributes.schema.json",
+  "title": "Attributes",
+  "type": "object",
+  "additionalProperties": { "type": ["string", "number", "boolean"] }
+}

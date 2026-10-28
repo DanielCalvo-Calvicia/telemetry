@@ -1,0 +1,6 @@
+events:
+  - event_type: demo.thing.happened
+    schema: schemas/demo/thing_happened.schema.json
+    capability: demo
+    since_schema_version: "0.1"
+    description: "A thing happened."

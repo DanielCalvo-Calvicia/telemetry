@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/enums/failure_category.json",
+  "title": "Failure category",
+  "type": "string",
+  "enum": ["validation", "configuration"]
+}

@@ -21,6 +21,7 @@ telemetry/
 ├── go.mod, go.sum, go.work, LICENSE, SECURITY.md, README.md, CLAUDE.md, .env.example, .gitignore
 ├── go/                            # the new Go core: its own go.mod; internal/{domain,application,infrastructure,composition_root,tests} (empty layers)
 ├── contracts/                     # the contract: schemas/, enums/, events/, errors/, config/, capabilities/, conventions/, storage/ (layout only)
+├── tools/contract_generator/      # the generator of the code of both languages from contracts/ (its own module)
 ├── python/, integration-tests/    # the new standard (python/ is the skeleton; integration-tests/ is planned, a README)
 ├── .github/workflows/ci.yml
 ├── docs/                          # this documentation
@@ -77,7 +78,7 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 
 ### 2.3 The contract folder (started, T-02.1)
 
-`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Its layout, the naming rule, the envelope schema, the first event type (`log.entry.recorded`), the registry of event types and the catalog of error codes exist (T-02.1 to T-02.3); there is no generator yet (T-02.4).
+`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Its layout, the naming rule, the envelope schema, the first event type (`log.entry.recorded`), the registry of event types and the catalog of error codes exist (T-02.1 to T-02.3); the generator that turns them into code exists (2.4, T-02.4).
 
 | Folder | What it will hold |
 |---|---|
@@ -93,6 +94,16 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 A change is approved by the maintainer by pull request and a dated ADR note, and is implemented and released in both languages. The generated code arrives with T-02.4.
 
 **How an event type is registered.** An event type `<domain>.<entity>.<action>` has a schema for its `data` at `schemas/<domain>/<entity>_<action>.schema.json` and an entry in `events/registry.yaml` (type, schema, capability, the `schema_version` since which it exists). Each type is added with its capability, one at a time. T-02.4 will fail when a registered type has no schema or a schema is not registered. Error codes are in `errors/catalog.yaml`: a stable lowercase `snake_case` code with a category (`enums/failure_category.json`) and a default message; each capability adds its own.
+
+### 2.4 The contract generator (built, T-02.4)
+
+`tools/contract_generator/` is a Go module of its own (decided by the maintainer on 2026-10-28), joined to the others by `go.work`. Its two third-party libraries (`gopkg.in/yaml.v3` and `github.com/santhosh-tekuri/jsonschema/v6`) live only there, so the core module keeps its minimal dependency set (REQ-ARC-005). It follows the layers of the standard: `internal/domain` (the contract model, the naming and the rules of the check), `internal/application` (the ports and the use case: read, check, render, write), `internal/infrastructure` (the command line, the reader of the contract folder, the Go and Python renderers, the file writer; the I/O is in `external/` folders) and `internal/composition_root`; `main.go` only calls it.
+
+- **What it does.** It checks the contract (every file is valid, every registered event type has its schema and the other way round, the error codes and enum values are unique) and stops with an error that names the file; if the check passes it writes the enums, the event types, the error codes and the envelope types of both languages. It is deterministic.
+- **Where the output goes** (decided on 2026-10-28): the domain layer. Go: `go/internal/domain/value_objects/{enums,event_types,error_codes,envelope}_generated.go` (package `value_objects`); Python: `python/src/telemetry/internal/domain/value_objects/{enums,event_types,error_codes,envelope}_generated.py`, with a hand-written `__init__.py`. The output is **committed**, so a Python install never needs Go, and ruff does not lint the Python files.
+- **Regenerate:** `cd tools/contract_generator && go run . --contracts ../../contracts --go-out ../../go/internal/domain/value_objects --python-out ../../python/src/telemetry/internal/domain/value_objects`. The CI job `generated-code` runs it and fails if anything changed or appeared (see the deployment document).
+- **Names.** The words of a name are the same in both languages (`naming.md`): Go fields are `EventId`, `TraceId`, `InstanceId`, not the `ID` form of Go style, and an optional number, integer or boolean is a pointer in Go so `omitempty` does not drop a `false` or a `0`. Python dataclasses list the required fields first, then the optional ones.
+- **Not generated yet.** The configuration schema (T-03.6). The generator understands only the subset of JSON Schema the contract uses (see its README).
 
 ## 3. Current state (exists)
 

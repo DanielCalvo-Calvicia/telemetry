@@ -24,4 +24,4 @@ The single source of truth between Go and Python ([PR-001](../docs/proposals/PR-
 
 ## State
 
-The layout and the naming rule (T-02.1), the envelope schema with the severity and actor-kind enums (T-02.2), and the first event type (`log.entry.recorded`), the registry of event types, the catalog of validation and configuration error codes and the failure classification (T-02.3) exist. The generator that turns them into code, and the check that runs over them, do not exist yet (T-02.4).
+The layout and the naming rule (T-02.1), the envelope schema with the severity and actor-kind enums (T-02.2), and the first event type (`log.entry.recorded`), the registry of event types, the catalog of validation and configuration error codes and the failure classification (T-02.3) exist. The generator that checks them and turns them into the code of both languages exists (T-02.4): [tools/contract_generator](../tools/contract_generator/README.md). The generated code is committed.

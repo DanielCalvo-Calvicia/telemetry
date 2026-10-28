@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/schemas/common/resource.schema.json",
+  "title": "Resource",
+  "type": "object",
+  "required": ["service_name"],
+  "properties": {
+    "service_name": { "type": "string", "minLength": 1 },
+    "host": { "type": "string" }
+  },
+  "additionalProperties": false
+}

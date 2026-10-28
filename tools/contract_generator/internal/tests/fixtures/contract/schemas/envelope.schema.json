@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/schemas/envelope.schema.json",
+  "title": "Envelope",
+  "type": "object",
+  "required": ["event_id", "occurred_at", "severity", "resource", "data"],
+  "properties": {
+    "event_id": { "type": "string" },
+    "occurred_at": { "$ref": "#/$defs/utc_time" },
+    "severity": { "$ref": "https://telemetry.example/fixture/enums/severity.json" },
+    "resource": { "$ref": "https://telemetry.example/fixture/schemas/common/resource.schema.json" },
+    "context": { "$ref": "https://telemetry.example/fixture/schemas/common/context.schema.json" },
+    "attributes": { "$ref": "https://telemetry.example/fixture/schemas/common/attributes.schema.json" },
+    "data": { "type": "object" },
+    "count": { "type": "integer" },
+    "ratio": { "type": "number" },
+    "flag": { "type": "boolean" },
+    "extra": { "$ref": "common/context.schema.json" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "utc_time": { "type": "string", "pattern": "^[0-9]{4}-" }
+  }
+}

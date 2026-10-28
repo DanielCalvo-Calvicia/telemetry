@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/fixture/schemas/common/context.schema.json",
+  "title": "Context",
+  "type": "object",
+  "properties": {
+    "trace_id": { "type": "string" }
+  },
+  "additionalProperties": false
+}
