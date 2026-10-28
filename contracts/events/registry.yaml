@@ -1,0 +1,21 @@
+# The registry of event types (REQ-CTR-001, REQ-CTR-002).
+#
+# Each event type is `domain.entity.action` and has one schema for its `data`. The schema of
+# `<domain>.<entity>.<action>` is `schemas/<domain>/<entity>_<action>.schema.json`; the generator checks that every
+# registered type points to an existing schema and that every such schema is registered (T-02.4).
+#
+# An event type is added together with its capability, one at a time (Q02-5). Adding one is a MINOR change of the
+# contract (REQ-VER-003) and is implemented and released in both languages.
+#
+# Fields of an entry:
+#   event_type            the type, in the notation domain.entity.action
+#   schema                the path of its data schema, relative to contracts/
+#   capability            the capability it belongs to
+#   since_schema_version  the schema_version since which the type exists
+#   description           one sentence
+events:
+  - event_type: log.entry.recorded
+    schema: schemas/log/entry_recorded.schema.json
+    capability: logging
+    since_schema_version: "0.1"
+    description: "One log line: the category, the optional function and the message (REQ-LOG-007)."

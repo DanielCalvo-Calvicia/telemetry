@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/schemas/common/failure.schema.json",
+  "title": "Failure",
+  "description": "The classification of a failure (REQ-FLT-001): a code from the catalog in contracts/errors/, its category, its severity and whether it is recoverable. Its use in fault.* events belongs to T-07.3.",
+  "type": "object",
+  "required": [
+    "code",
+    "category",
+    "severity",
+    "recoverable"
+  ],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "A stable code of contracts/errors/catalog.yaml: lowercase snake_case."
+    },
+    "category": {
+      "$ref": "https://telemetry.example/contracts/enums/failure_category.json"
+    },
+    "severity": {
+      "$ref": "https://telemetry.example/contracts/enums/severity.json"
+    },
+    "recoverable": {
+      "type": "boolean",
+      "description": "True if the caller may retry or continue; false if the failure cannot be recovered from."
+    }
+  },
+  "additionalProperties": false
+}

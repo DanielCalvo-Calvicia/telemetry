@@ -77,20 +77,22 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 
 ### 2.3 The contract folder (started, T-02.1)
 
-`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Its layout, the naming rule and the envelope schema exist (T-02.1, T-02.2); there is no event-type schema, registry, catalog or generator yet.
+`contracts/` is the single source of truth between the two languages (REQ-CNF-001). Its layout, the naming rule, the envelope schema, the first event type (`log.entry.recorded`), the registry of event types and the catalog of error codes exist (T-02.1 to T-02.3); there is no generator yet (T-02.4).
 
 | Folder | What it will hold |
 |---|---|
 | `schemas/` (`device/`, `ai/`) | the JSON Schema (draft 2020-12) of the envelope (**written**: `envelope.schema.json` and `common/` for `resource`, `actor`, `context` and `attributes`) and, later, of the `data` of each event type |
 | `enums/` (`device/`, `ai/`) | severity and the actor kinds (**written**), then the execution states and transitions and the allowed values of the device and AI domains |
-| `events/` | the registry of event types (decided by the maintainer on 2026-10-28) |
-| `errors/` | the catalog of error codes, identical in both languages |
+| `events/` | the registry of event types (`registry.yaml`, **written** with `log.entry.recorded`) |
+| `errors/` | the catalog of error codes, identical in both languages (`catalog.yaml`, **written**: the validation and configuration codes) |
 | `config/` | the schema of the configuration: options, defaults, profiles |
 | `capabilities/registry.yaml` | the registry of capabilities and their conformance tests |
 | `conventions/naming.md` | the mechanical naming rule: Go `PascalCase` exported, Python `snake_case` functions and `PascalCase` classes, JSON `snake_case` |
 | `storage/` | the layouts of the files a reader opens (the SQLite destination, the spool) |
 
 A change is approved by the maintainer by pull request and a dated ADR note, and is implemented and released in both languages. The generated code arrives with T-02.4.
+
+**How an event type is registered.** An event type `<domain>.<entity>.<action>` has a schema for its `data` at `schemas/<domain>/<entity>_<action>.schema.json` and an entry in `events/registry.yaml` (type, schema, capability, the `schema_version` since which it exists). Each type is added with its capability, one at a time. T-02.4 will fail when a registered type has no schema or a schema is not registered. Error codes are in `errors/catalog.yaml`: a stable lowercase `snake_case` code with a category (`enums/failure_category.json`) and a default message; each capability adds its own.
 
 ## 3. Current state (exists)
 

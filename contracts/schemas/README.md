@@ -12,7 +12,12 @@ The JSON Schema (D-02, dialect draft 2020-12) of the event envelope and of the `
 | [common/context.schema.json](common/context.schema.json) | the correlation: `trace_id`, `span_id`, `execution_id`, `correlation_id` |
 | [common/attributes.schema.json](common/attributes.schema.json) | the consumer's extensions: scalars and lists of scalars, at most 32 keys, a key up to 64 and a string value up to 256 characters |
 
-`device/` and `ai/` will hold the `device.*` and `ai.*` schemas; they are separate domains and are never reused for each other (REQ-DEV-002, REQ-AI-001). The schema of each event type narrows the open `data` object of the envelope and arrives with T-02.3 and the capabilities.
+The schema of each event type narrows the open `data` object of the envelope. **Where it lives:** the schema of the event type `<domain>.<entity>.<action>` is `schemas/<domain>/<entity>_<action>.schema.json`, and the type is registered in [../events/registry.yaml](../events/registry.yaml). `device/` and `ai/` are the domains of `device.*` and `ai.*`; they are separate and never reused for each other (REQ-DEV-002, REQ-AI-001).
+
+| File | Event type or concept |
+|---|---|
+| [log/entry_recorded.schema.json](log/entry_recorded.schema.json) | the `data` of `log.entry.recorded`: `category`, optional `function`, `message` |
+| [common/failure.schema.json](common/failure.schema.json) | the classification of a failure (REQ-FLT-001): `code`, `category`, `severity`, `recoverable` |
 
 ## Rules of these files
 

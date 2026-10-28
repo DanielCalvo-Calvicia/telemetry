@@ -1,0 +1,40 @@
+# The catalog of error codes (REQ-CNF-004).
+#
+# The codes are identical in Go and Python; the text of a message may differ. A code is stable: it is never renamed or
+# reused. A code is lowercase snake_case (the pattern ^[a-z][a-z0-9_]*$), unique, and has a category from
+# enums/failure_category.json.
+#
+# This catalog holds the validation and configuration codes. Each capability adds its own codes as it is built (for
+# delivery: T-05; for devices and AI: T-08 and T-09), as it does for event types. Adding a code is a MINOR change of the
+# contract (REQ-VER-003) and is implemented and released in both languages.
+#
+# Fields of an entry:
+#   code             the stable code
+#   category         validation or configuration
+#   default_message  the message of the reference text; an implementation may translate or reword it
+#   meaning          when the code is used
+errors:
+  - code: event_schema_invalid
+    category: validation
+    default_message: the data of the event does not match the schema of its type
+    meaning: The data of an event does not validate against the schema of its event type. The event is rejected at the source (REQ-CTR-002).
+
+  - code: event_type_unknown
+    category: validation
+    default_message: the event type is not in the registry
+    meaning: An event names an event_type that is not registered in contracts/events/registry.yaml.
+
+  - code: limit_exceeded
+    category: validation
+    default_message: a limit of the contract was exceeded
+    meaning: A payload, an event or the attributes exceeded a configured limit (REQ-SEC-004, REQ-CTR-010).
+
+  - code: config_field_invalid
+    category: configuration
+    default_message: a configuration field is invalid
+    meaning: A field of the configuration is missing or has an invalid value. The error names the field and the reason (REQ-CFG-002).
+
+  - code: delivery_mode_unknown
+    category: configuration
+    default_message: the delivery mode is not best_effort, retry or durable
+    meaning: A destination is configured with a delivery mode that does not exist (section 10.1 of PR-001).

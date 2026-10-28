@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/schemas/log/entry_recorded.schema.json",
+  "title": "log.entry.recorded: data",
+  "description": "The data of the event log.entry.recorded: one log line (REQ-LOG-007, Q02-4). It keeps what the Entry of the old library carries: the category, the optional function and the message. The application is the service_name of the envelope resource, the call context is the envelope context, the severity is the envelope severity, and any extra field of the log call goes to the envelope attributes. The object is closed.",
+  "type": "object",
+  "required": [
+    "category",
+    "message"
+  ],
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "What the line is about (for example http). The old library always carries it, even when empty."
+    },
+    "function": {
+      "type": "string",
+      "description": "The function that logged the line. Optional."
+    },
+    "message": {
+      "type": "string",
+      "description": "The text of the line. Any text, including an empty one, as in the old library; the key must be present."
+    }
+  },
+  "additionalProperties": false
+}
