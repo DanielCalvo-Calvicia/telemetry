@@ -26,7 +26,7 @@ Everything pushed is permanent (the Go proxy caches versions forever). Before a 
 ## Supply chain
 
 - One third-party dependency: `github.com/google/uuid`.
-- The CI workflow pins every action by commit SHA and gives the `GITHUB_TOKEN` read-only permissions.
+- The CI workflow pins every action by commit SHA (checkout, setup-go and setup-python) and gives the `GITHUB_TOKEN` read-only permissions. The tools it installs are pinned by version (`goimports`, `ruff`, `coverage`); the workflow holds no secret, host or account id.
 - Consumers pin a tag, commit `go.sum` and use `GOFLAGS=-mod=readonly` in CI; a bad release is retracted, never moved ([ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md)).
 - `LICENSE` is MIT.
 

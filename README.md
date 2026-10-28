@@ -24,7 +24,7 @@ Released as `v0.1.0` (2026-10-19) and `v0.2.0` (2026-10-20). The API may change 
 | Ready-made constructors for each sink, the `Sink` interface and `NewWithSinks` | Implemented (v0.2.0) |
 | A failing sink never fails the caller; 3 s timeout, no retry | Implemented |
 | Runnable sample (`examples/aws_http_smoke`) and a test that sends one line to a deployed aws_microservice | Implemented |
-| CI (vet, tests, coverage gate of 95%) | Implemented; 98.4% measured locally on 2026-10-20 |
+| CI (format, vet, build, tests and a coverage gate of 95%, for every Go module and for Python 3.10 and 3.11) | Written on 2026-10-28 and checked locally (98.6% for `go/`, 98.0% for the old module); not yet run on GitHub, it needs a pull request |
 | Metrics (`internal/metrics`, `pkg/metrics`) | Planned |
 | The new telemetry standard (one contract for Go and Python, device and AI modules, a queue and a spool): [PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md), [ADR-011](docs/decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) to [ADR-013](docs/decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | Accepted (2026-10-28), nothing built |
 | Deployment | None, by design: it is a library ([ADR-010](docs/decisions/ADR-010-no-deployment-release-by-tags.md)) |

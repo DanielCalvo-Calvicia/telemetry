@@ -28,7 +28,7 @@ Status as of 2026-10-27. **Done** means implemented and verified in the reposito
 | ID | Requirement | Status | Record |
 |---|---|---|---|
 | FR-17 | The library is released by git tags on `main` (`v0.x.y`) and is public; there is no deployment. | Done (v0.1.0, v0.2.0) | ADR-010 |
-| FR-18 | CI runs vet, the tests and the coverage gate with a read-only token and actions pinned by SHA. | Done (passes locally; the GitHub run was not checked) | ADR-010 |
+| FR-18 | CI checks every Go module and the Python package (format, vet or lint, build, tests, a coverage gate of 95%) with a read-only token and actions pinned by SHA. | Done for the file and its commands (T-01.5, 2026-10-28; they pass locally); the GitHub run was not checked | ADR-010 |
 | FR-19 | A runnable sample (`examples/aws_http_smoke`) and a test that sends one line to a deployed aws_microservice (`internal/tests/e2e`). | Done | |
 | FR-20 | The documents of `docs/` describe what the code does; every change updates them (see `CLAUDE.md`). | Done | |
 
@@ -54,7 +54,7 @@ Only the requirements whose state moved are listed; the full list is in [PR-001]
 | REQ-ARC-012 | The public packages follow `<functionality>/<adapter>`; the core is `go/pkg/telemetry`. | Planned (T-03.9) |
 | REQ-ARC-001, REQ-ARC-002 | Dependencies point inward; the domain imports no other layer and no I/O, database, backend or AI package. | Built for the empty layers (T-01.4, 2026-10-28): Go `Test_the_real_module_keeps_the_dependencies_pointing_inward`, Python `DependencyDirectionTest` |
 | REQ-ARC-003 | The wiring happens only in a composition root. | Built for the empty layers (T-01.4): Go `Test_the_real_module_wires_the_adapters_only_in_the_composition_root`, Python `CompositionRootTest` |
-| REQ-ARC-008 | Both implementations have architecture tests that verify the direction of dependencies. | Built (T-01.4); the CI step is T-01.5 |
+| REQ-ARC-008 | Both implementations have architecture tests that verify the direction of dependencies. | Built (T-01.4); they run in the `go` and `python` jobs of CI (T-01.5) |
 | REQ-DST-002 | Python is one package with optional extras, installed from the Git repository. | Started (T-01.3, 2026-10-28): the package `telemetry` installs; the extras are empty |
 | REQ-DST-003 | The library supports Go >= 1.25 and Python >= 3.10. | Started (T-01.2, T-01.3): both modules declare it |
 | REQ-ARC-009 | Go and Python have the same layers, directory names and file names. | Started (T-01.3): the four layers and the test folders match; the rest arrives with the code |

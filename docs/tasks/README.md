@@ -96,7 +96,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-01.2](T-01_repository-foundation/T-01.2_repository-layout.md) | Repository layout | code | done (2026-10-28) |
 | [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | done (2026-10-28) |
 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | done (2026-10-28) |
-| [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | todo |
+| [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | in-progress (written and checked locally on 2026-10-28; the run on GitHub needs a pull request) |
 | [T-01.6](T-01_repository-foundation/T-01.6_tags-and-the-release-rule.md) | Tags and the release rule | docs | todo |
 | [T-02](T-02_contract-and-generator/T-02_contract-and-generator.md) | **The contract and the generator** | epic | todo |
 | [T-02.1](T-02_contract-and-generator/T-02.1_layout-of-contracts.md) | Layout of `contracts/` | docs | todo |

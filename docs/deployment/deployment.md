@@ -23,9 +23,9 @@ go test ./... -count=1
 go test ./... -coverpkg=./internal/... -coverprofile=coverage.out   # the coverage gate of CI
 ```
 
-These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). CI does not run the `go/` module or the Python package yet: T-01.5 adds them.
+These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). The pipeline runs both modules and the Python package (see "Pipeline" below).
 
-The architecture tests of the new core run with the others (`go test ./...` inside `go/`; `python -m unittest discover ...` in `python/`); T-01.5 makes them a CI step. They check the direction of the dependencies: see the architecture document, section 2.2.
+The architecture tests of the new core run with the others (`go test ./...` inside `go/`; `python -m unittest discover ...` in `python/`); they are part of the `go` and `python` jobs of the pipeline. They check the direction of the dependencies: see the architecture document, section 2.2.
 
 The Python package is checked in a virtual environment, from `python/`:
 
@@ -42,14 +42,16 @@ The race detector (`-race`) needs cgo and a C compiler; it was not run on the ma
 
 ## Pipeline (`.github/workflows/ci.yml`)
 
-Runs on a push to `main` and on every pull request, with a read-only `GITHUB_TOKEN`; the actions are pinned by commit SHA.
+Runs on a push to `main` and on every pull request, with a read-only `GITHUB_TOKEN` (`permissions: contents: read`); every action is pinned by commit SHA (`actions/checkout` v4.2.2, `actions/setup-go` v5.5.0, `actions/setup-python` v5.6.0). A push to any other branch runs nothing until a pull request is opened. Four jobs (T-01.5, 2026-10-28; written and run locally, **not yet run on GitHub**):
 
-| Step | What |
+| Job | What it does |
 |---|---|
-| checkout, setup-go | Go version from `go.mod` |
-| `go vet ./...` | static check |
-| `go test ./... -coverpkg=./internal/... -coverprofile=coverage.out` | all tests |
-| coverage gate | the total over `internal/`, **excluding the `external/` folders**, must be at least **95%**; measured 98.4% on 2026-10-20 |
+| `modules` | reads `go.work` (`go work edit -json`) and lists its modules: today `.` (the old library) and `./go` (the new core); a module added to `go.work` is checked without editing the file |
+| `go` (one per module) | in the module folder: `gofmt -l .` and `goimports -l .` (`golang.org/x/tools/cmd/goimports@v0.35.0`) print nothing; `go vet ./...`; `go build ./...`; `go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out`; the coverage gate: the total over `internal/`, **excluding the `external/` folders**, must be at least **95%** (measured locally on 2026-10-28: 98.6% for `go/`, 98.0% for the old module without its e2e package) |
+| `python` (3.10 and 3.11) | in `python/`: `pip install . coverage[toml]==7.17.0 ruff==0.17.3`; `ruff check .` and `ruff format --check .`; `coverage run -m unittest discover -s internal/tests -t .` and `coverage report`, whose gate is `fail_under = 95` with `omit */external/*` in `pyproject.toml`. 3.10 is the declared minimum and 3.11 is the version of the Raspberry Pi of the pilot |
+| `cross-tests` | passes while empty (it only prints a line); T-02.8 creates the first Go and Python fixtures and T-12 the runner (REQ-CNF-006) |
+
+The job for generated code (it regenerates from `contracts/` and fails on a difference) is added by T-02.4. The race detector is not run (it needs cgo). The e2e test of the deployed service is skipped in CI: its switch is `false` in what is committed. The old module keeps its job until T-04.7 removes it.
 
 ## Releases
 
