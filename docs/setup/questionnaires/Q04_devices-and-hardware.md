@@ -20,11 +20,13 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
 
 5. **Offline devices.** `offline_device` implies a spool that lasts hours or days. How long can a device stay offline, and how much disk does it have?
    A:It must stay as long as needed if the operator doesnt clean it up or the project that is using it doesnt call the function to clean it up its their problem. There is no specified disk usage, but i think 5GB is enough, this will be plenty.
+   > **Update 2026-10-28:** A quota stays (Q07-11): 256 MiB per destination by default, and a public cleanup function; the project cleans the rest.
 
 6. **D-03: SQL dialects.**
    Options: (a) no SQL adapter in v1; events go to HTTP or a file (my default); (b) PostgreSQL; (c) SQL Server; (d) write which.
    *Default: (a).*
    A:Lets start with sqlite, if there needs an extra one it will be added later
+   > **Update 2026-10-28:** Refined by Q07-12, Q08-5 and Q09-5: SQLite is a destination whose layout is part of `contracts/`; a reader only reads it.
 
 7. **Is the device module in v1?**
    Options: (a) yes, with the generic contracts first and only the source helpers of the pilot hardware (my default); (b) all the source helpers in v1; (c) after the core is released.

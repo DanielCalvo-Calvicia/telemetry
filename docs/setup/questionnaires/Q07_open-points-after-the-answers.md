@@ -75,11 +75,13 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
     Options: (a) SQLite for the spool only; there is no SQL destination in v1; (b) both: the spool, and an SQL destination that writes events to a local SQLite file a project can query on the device (my default, because you answered "SQLite" to a question about SQL destinations); (c) the SQL destination only.
     *Default: (b).*
     A:B, there will be different sqlites depending on the usage. Like one for spool and another for storage.
+    > **Update 2026-10-28:** Clarified by Q08-5: the storage SQLite is a destination, not a second file of the library. Q09-5 settles its layout.
 
 13. **Do devices without a real-time clock send wrong timestamps?** *(Q04-5, offline devices.)* A Raspberry Pi has no battery clock. After a boot without network its UTC time can be wrong until it syncs, and events are written with that time (REQ-CTR-008).
     Options: (a) the library records the clock source and a `clock_synced` flag as an attribute, and the receiver decides what to do with an unsynced time (my default); (b) the library never writes an event before the consumer says the clock is synced; (c) not a concern for your devices.
     *Default: (a).*
     A:Default, bot values must be stored, not only for devices, in all calls, because they can be on UTC or another timeframe.
+    > **Update 2026-10-28:** Superseded by Q08-1 and Q09-1: the two times are the generation time and the recording time, both in UTC. The local time and the offset are dropped; `time_zone` is only for display.
 
 ---
 

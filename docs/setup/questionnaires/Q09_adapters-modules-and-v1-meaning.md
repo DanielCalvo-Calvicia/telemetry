@@ -33,6 +33,7 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
    Also answer: which Go projects will import the SQLite adapters, and do they build for ARM or in minimal images?
    *Default: (a).*
    A:C
+   > **Update 2026-10-28:** With answer C (pure Go) the question about which Go projects import the SQLite adapters is not needed.
 
 5. **How is the SQLite destination file shared with a reader?** *(Q08-5: "internal, but some client may read it"; clarified by the maintainer on 2026-10-27: the client is a UI or another process, not the project that uses the telemetry library.)* So the file has two sides: the project that uses the library **writes** it, and a different program (a UI, a report tool, another service on the same machine) **reads** it. That reader was written by someone who does not see the library code. For the reader the layout is a contract: if it changes, the reader breaks. It also means the layout cannot be internal (option c of Q08-5), and the Go and Python adapters cannot write different layouts, or every reader would have to understand both.
    Reading a file that another process is writing needs a few rules, and I propose them with the layout:
@@ -71,3 +72,4 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
    Options: (a) PR-001 version 0.2 with every decision of Q01–Q09 marked as decided, and these ADRs: the adoption of the standard, the two times of every event, and the modules and the choice of adapters (which replace ADR-002 and ADR-003 by a dated note) (my default); (b) the same plus a task plan in `docs/tasks/` with the build order of Q07-16; (c) only PR-001 version 0.2.
    *Default: (a). Annex A of PR-001 says the task plan is handled separately, so it waits until you ask for it.*
    A:Before anything, do you thing there is any open decisions to be made, or confusing thing or anything it might get wrong?
+   > **Update 2026-10-28:** The answer repeated Q08-10, which was answered in the review. The default (a) was applied.

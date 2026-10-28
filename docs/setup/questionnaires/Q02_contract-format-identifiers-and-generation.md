@@ -30,6 +30,7 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
    Options: (a) `log.*`, `execution.*`, `fault.*` and `report.*` first, the rest in the order the pilot projects need them (my default); (b) all of them in v1, as the proposal says; (c) write which ones.
    *Default: (a).*
    A:B ,but it can be done one by one, when one is finished comes the next.
+   > **Update 2026-10-28:** The build order of the capabilities is in Q07-16.
 
 6. **`schema_version` and its first value.**
    Options: (a) start at `0.1` while the library is `v0.x` and move to `1.0` with the first stable release (my default); (b) start at `1.0` now.

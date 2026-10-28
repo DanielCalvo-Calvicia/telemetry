@@ -21,9 +21,9 @@ This proposal defines a single, versioned, language-independent **contract** (`c
 |---|---|
 | A passive library that centralizes logs, metrics, traces, executions, health, device data, AI agent data and generic reports | sections 1 and 6 |
 | Architecture: Clean + Hexagonal, identical layers, names and adapters in both languages | section 3 |
-| Distribution: Go core module plus optional submodules; Python package with extras | section 4 |
+| Distribution: Go core module plus one module per adapter, chosen in code; Python package with extras, installed from Git | section 4 |
 | The contract: event envelope, identity, severity, time and identifiers, attributes | section 5 |
-| Outbound adapters and the HTTP default destination | section 7 |
+| Outbound adapters, the SQLite destination and the HTTP default destination | section 7 |
 | Device and hardware module (`device.*`) | section 8 |
 | AI agent module (`ai.*`) | section 9 |
 | Delivery modes, queues, priorities, spool, shutdown and the failure matrix | section 10 |
@@ -171,7 +171,9 @@ Outbound adapters implement the outbound ports defined by the application layer.
 **REQ-ARC-002.** The domain MUST NOT depend on HTTP, databases, the file system, OpenTelemetry, drivers, AI frameworks
 or the environment.
 
-**REQ-ARC-003.** The wiring of dependencies MUST happen only in the composition root, with constructor injection.
+**REQ-ARC-003.** The wiring of dependencies MUST happen only in a composition root, with constructor injection: the one
+of the core for its own adapters (console, file, HTTP) and the consumer's own for the optional adapters it imports and
+passes in (REQ-ARC-013).
 
 **REQ-ARC-004.** Abstractions MUST represent capabilities of the platform, not replicate methods of third-party
 libraries.
@@ -192,15 +194,18 @@ Go and Python are two implementations of the **same** architecture. The internal
 practically a copy.
 
 **REQ-ARC-008.** Both implementations MUST have architecture tests that verify the direction of dependencies
-(REQ-ARC-001/002/003).
+(REQ-ARC-001/002/003), and both MUST keep a coverage of 95% or more, without the folders that do real I/O (`external/`),
+as a CI gate.
 
 **REQ-ARC-009.** Go and Python MUST have the same layers, the same directory and package names, and the same file
 names. Only the differences the language forces are allowed (`__init__.py`, the `_test.go` suffix, `pkg/` versus
 `src/`, the file extension).
 
 **REQ-ARC-010.** Public names (types, functions, methods, options) MUST be equivalent through a mechanical rule
-documented in `contracts/conventions/naming.md`: Go uses exported identifiers in `PascalCase`; Python uses
-`snake_case` for functions and `PascalCase` for classes. A concept MUST NOT be renamed in one language.
+documented in `contracts/conventions/naming.md`: Go uses exported identifiers in `PascalCase`; Python uses `snake_case`
+for functions and `PascalCase` for classes. A concept MUST NOT be renamed in one language. The JSON fields are
+`snake_case` in both languages (the Go struct tags do the mapping) and the Go code follows the Go standard of the
+organization.
 
 **REQ-ARC-011.** Each adapter MUST be a subdirectory with the same name in both languages (for example
 `outbound/ai_telemetry/langfuse/`, `outbound/ai_runtime/langchain/`). The only exception is an adapter for a framework
@@ -213,6 +218,11 @@ packages it needs.
 **REQ-ARC-013.** The project MUST choose its adapters by importing them and passing them to the core in code (for
 example `telemetry.New(config, sqlite.NewDestination(...), http.NewDestination(...))`). The configuration carries only
 the settings of each adapter, never an adapter name. Adapters MUST NOT register themselves on import.
+
+**REQ-ARC-014.** The adapters of the core (console, file, HTTP) live in the core module under
+`internal/infrastructure/outbound/<functionality>/<adapter>/`. Every optional adapter is a module of its own at
+`go/pkg/<functionality>/<adapter>/` and keeps the same folders inside (`external/`, `error/`, `helpers/`). In Python the
+same folders are under `python/src/telemetry/`.
 
 Reference internal structure (the root is `go/internal/` in Go and `python/src/telemetry/internal/` in Python):
 
@@ -274,9 +284,9 @@ publishing it to a package index is out of scope for now.
 **REQ-DST-003.** The library MUST support Go >= 1.25 and Python >= 3.10. Changing these minimums MUST be treated as a
 compatibility change (section 15).
 
-**REQ-DST-004.** The device and AI modules are part of the library and of every release. The third-party dependencies
-of their adapters (Langfuse SDK, AI frameworks) MUST be installed separately (a submodule in Go,
-an extra in Python), so that a project installs only the ones it uses.
+**REQ-DST-004.** The device and AI modules are part of the library and of every release. The third-party dependencies of
+their adapters (Langfuse SDK, AI frameworks) MUST be installed separately (an own module in Go, an extra in Python), so
+that a project installs only the ones it uses.
 
 **REQ-DST-005.** The code generated from `contracts/` for both languages MUST be committed, so that installing the
 Python package never needs Go. CI MUST fail when the generated code differs from the contract (REQ-CNF-002).
@@ -393,6 +403,9 @@ configuration, error semantics, ports and adapters, Go status, Python status and
 
 **REQ-LOG-006.** By default MUST NOT record request bodies or arbitrary payloads.
 
+**REQ-LOG-007.** A log call MUST produce a `log.entry.recorded` event whose `data` holds the category, the function and
+the message, and whose `resource.service_name` is the application. Extra fields go to `attributes`.
+
 #### 6.2 Metrics
 
 **REQ-MET-001.** MUST support counters, up/down counters, gauges, histograms and duration measurement.
@@ -457,7 +470,7 @@ choice belongs to the consumer.
 #### 7.1 Ports
 
 `LogSinkPort`, `MetricsSinkPort`, `TraceSinkPort`, `EventSinkPort`, `DeviceTelemetrySinkPort`, `AITelemetrySinkPort`,
-`LocalSpoolPort`, `ClockPort`, `IDGeneratorPort`, `ConfigurationPort`.
+`LocalSpoolPort`, `ClockPort`, `IDGeneratorPort`, `ConfigurationPort` (it hands the core the configuration the consumer passed in; it reads no file and no environment, REQ-ARC-007).
 
 **REQ-OUT-001.** Ports with identical semantics MAY share a generic abstraction. Payloads that are semantically
 different MUST NOT be forced into an untyped interface.
@@ -470,13 +483,14 @@ different MUST NOT be forced into an untyped interface.
 | Local file (JSON Lines) | yes | yes | - | - | Core. Configurable rotation and quota. |
 | HTTP (own schema) | yes | yes | - | - | Core. **Default destination.** |
 | AWS HTTP (`add_log` of aws_microservice) | yes | - | - | - | Optional, own module. Translates the `log.*` event to the `add_log` contract (ADR-008). |
-| OpenTelemetry (OTLP) | yes | - | yes | yes | Optional. |
-| Prometheus | - | - | yes | - | Optional. |
+| OpenTelemetry (OTLP) | yes | - | yes | yes | Optional, own module. Built when a project has a backend. |
+| Prometheus | - | - | yes | - | Optional, own module. Built when a project has a backend. |
 | SQL (SQLite first) | - | yes | - | - | Optional, own module. A destination like the AWS HTTP sink, but writing to a local SQLite file (REQ-OUT-009). Another dialect is added when a project needs it. |
 | Langfuse | - | yes (AI) | - | yes (AI) | Included in v1 (REQ-AI-009). |
 
-**REQ-OUT-002.** The default destination of all events MUST be HTTP. Any other destination is enabled by explicit
-configuration.
+**REQ-OUT-002.** HTTP is the default destination: it is in the core and the profiles use it. Any other destination is
+added by importing its adapter and passing it to the core (REQ-ARC-013); the HTTP destination always needs its URL in
+the configuration (REQ-OUT-005).
 
 **REQ-OUT-003.** Each capability MUST be routable to different destinations and to several destinations at once. Using
 the same destination for several capabilities MUST be an explicit configuration decision.
@@ -660,6 +674,8 @@ activation, have a size limit and go through redaction (REQ-SEC-001).
 
 **REQ-AI-008.** Telemetry MUST NOT grant permissions to run tools or to control devices.
 
+**REQ-AI-012.** The library reports usage as token counts only. It never calculates a cost: the receiver does.
+
 #### 9.4 AI adapters (v1)
 
 **REQ-AI-009.** v1 MUST include:
@@ -795,8 +811,9 @@ Defaults: one event up to 64 KiB and one HTTP batch up to 1 MiB.
 **REQ-SEC-006.** Audit events (`audit.*`) MUST be a type separate from diagnostic logs and MAY be routed to their own
 destination. The library MUST document that HTTP or file do not guarantee immutability or legal retention.
 
-**REQ-SEC-007.** Configuration secrets (credentials, tokens) MUST be injectable from the environment or a provider and
-MUST NOT appear in logs or diagnostics.
+**REQ-SEC-007.** Configuration secrets (credentials, tokens) are supplied by the consumer in the configuration it passes
+in, from its own environment or provider; the library never reads them by itself (REQ-ARC-007). They MUST NOT appear in
+logs or diagnostics.
 
 ---
 
@@ -824,7 +841,7 @@ mixed in one interface, so any difference, however small, produces display error
 
 - the envelope and all the event schemas;
 - the enums, the event types and the error codes;
-- the configuration model: option names, environment variables, defaults, profiles and validation errors;
+- the configuration model: option names, the env tags of the configuration (the consumer loads them), defaults, profiles and validation errors;
 - the execution transitions;
 - the layer structure, the package names and the adapter names (REQ-ARC-009..011);
 - the spool format;
@@ -891,8 +908,10 @@ and `worker`, and `durable` for `robotics` and `offline_device`.
 
 ### 15. Versioning and compatibility
 
-**REQ-VER-001.** The library and the contract follow semantic versioning and are versioned separately: version of the
-Go module, of the Python package and `schema_version`.
+**REQ-VER-001.** The library and the contract follow semantic versioning and are versioned separately: the version of
+the Go core module (tag `go/vX.Y.Z`), of every Go adapter module (tag `go/pkg/<functionality>/<adapter>/vX.Y.Z`), of the
+Python package (tag `python-vX.Y.Z`) and `schema_version`. `schema_version` starts at `0.1` and reaches `1.0` with the
+library.
 
 **REQ-VER-002.** Each package MUST declare which contract versions it supports.
 

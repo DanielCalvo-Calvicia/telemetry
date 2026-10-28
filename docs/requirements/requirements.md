@@ -20,8 +20,8 @@ Status as of 2026-10-27. **Done** means implemented and verified in the reposito
 | FR-12 | The library never reads the environment: `Config` carries the env tags and the consumer loads it. | Done | ADR-004 |
 | FR-13 | The public API is `pkg/logging` only (aliases and thin functions); a consumer never imports `internal/`. | Done | ADR-003 |
 | FR-14 | A ready-made constructor per sink (`NewConsoleSink`, `NewHTTPSink`, `NewAWSHTTPSink`), the `Sink` interface for sinks of the consumer, and `NewWithSinks` to build the logger over them. | Done | ADR-009 |
-| FR-15 | Metrics (counters, gauges, histograms) behind outbound ports, with one real adapter, in `internal/metrics` and `pkg/metrics`. | Planned | ADR-002 |
-| FR-16 | A queue or a disk buffer for entries that could not be delivered. | Planned (not decided) | ADR-005 |
+| FR-15 | Metrics (counters, gauges, histograms) behind outbound ports, with one real adapter, in `internal/metrics` and `pkg/metrics`. | Planned (the new standard, [PR-001](../proposals/PR-001-telemetry-standard-go-python.md), moves metrics to their own turn in the build order) | ADR-002 |
+| FR-16 | A queue or a disk buffer for entries that could not be delivered. | Planned: proposed in [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) (bounded queue, three delivery modes, SQLite spool); not accepted yet | ADR-005 |
 
 ## Functional: delivery and documentation
 

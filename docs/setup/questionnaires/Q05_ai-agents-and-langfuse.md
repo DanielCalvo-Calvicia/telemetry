@@ -13,6 +13,7 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
    Options: (a) generic callbacks and Langfuse, and LangChain or LlamaIndex only if a pilot project uses it (my default); (b) all three, as the proposal says; (c) write another list.
    *Default: (a).*
    A:B, in this case i prefer to have more and unused than left.
+   > **Update 2026-10-28:** Q07-14: LangChain and LlamaIndex are Python only; in Go they are "not applicable".
 
 3. **D-09: how to integrate Langfuse.**
    Options: (a) the Langfuse SDK in Python and its HTTP/OTLP API in Go, with the same observable behavior (my default, if Go has no official SDK; this must be checked); (b) the HTTP/OTLP API in both languages (one design, more code); (c) the SDK in both, if it exists.

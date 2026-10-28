@@ -10,6 +10,7 @@ A project must be able to select only the adapters it needs, so that the depende
 ## Decision
 
 - Go has one core module, `github.com/DanielCalvo-Calvicia/telemetry/go`, and one module per adapter, each with its own `go.mod` and its own tag (`go/vX.Y.Z` for the core, `go/pkg/<functionality>/<adapter>/vX.Y.Z` for an adapter). Each adapter pins a minimum core version; the core is released first. A `go.work` file is committed for local work and CI.
+- The adapters of the core (console, file, HTTP) live in the core module. Every other adapter is a module of its own at `go/pkg/<functionality>/<adapter>/`, with the same inner folders as the core (`external/`, `error/`, `helpers/`). The wiring of the optional adapters is done in the consumer's own composition root.
 - The public packages are `go/pkg/<functionality>/<adapter>` in Go and `telemetry.<functionality>.<adapter>` in Python (installed from the Git repository with extras).
 - The project chooses its adapters by importing them and passing them to the core in code. The configuration carries only each adapter's settings, never an adapter name, and an adapter never registers itself on import. This keeps no hidden global state and fits separate modules, because the core cannot import an adapter.
 - The SQLite adapters use a pure-Go driver (no cgo) in Go and the standard `sqlite3` in Python.

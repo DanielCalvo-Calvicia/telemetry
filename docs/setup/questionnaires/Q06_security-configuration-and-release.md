@@ -15,6 +15,7 @@ Write your answer after `A:`; `UNKNOWN`, `NOT APPLICABLE` and `LATER` are valid;
    Options: (a) 3.10 (my default, as the proposal says); (b) 3.11 or 3.12 (newer typing and `tomllib`; check what the projects run).
    *Default: (a), after you tell me the lowest version a project runs.*
    A:The python will be 3.1X.X, that is because some hardware may use old versions.
+   > **Update 2026-10-28:** Q07-6: the minimum is Python 3.10; the Raspberry Pi of the pilot runs 3.11.4.
 
 3. **The library and the environment.** ADR-004 says the library never reads the environment, and the consumer loads `Config`. The proposal (REQ-ARC-007, REQ-CFG-003) allows reading it in the configuration layer, and adds a file and profiles.
    Options: (a) keep ADR-004: the library never reads the environment or a file, the consumer loads the configuration and passes it; the shared model is a schema and the profiles are functions (my default); (b) change ADR-004: an optional loader in the configuration layer reads the file and the environment.

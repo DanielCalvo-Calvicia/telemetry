@@ -16,6 +16,7 @@ Note for Q07-8: the Python standard that exists but is not reachable now is welc
    What the library cannot give: the time the **receiver** stored the event. That is the receiver's own `received_at` and lives outside the envelope (the receiver is a separate project, Q07-9). The three times together tell the whole path: generated, recorded by the library, received by the backend.
    *Default: (a).*
    A:Both times are needed (generated and recorded), as explained above. The choice between (a), (b) and (c) is still to be confirmed.
+   > **Update 2026-10-28:** Settled by Q09-1: option (b), with `occurred_at`, `recorded_at` and an optional `time_zone` for display.
 
 ---
 
@@ -35,6 +36,7 @@ Note for Q07-8: the Python standard that exists but is not reachable now is welc
    Options: (a) pure Go, no cgo (my default); (b) the cgo driver; (c) the one you already use in another project (write which).
    *Default: (a).*
    A:B, in most cases i need speed so it must be very very fast.
+   > **Update 2026-10-28:** Superseded by Q09-4: pure Go, no cgo.
 
 5. **What does the SQLite destination write, and who may read it?** *(Q07-12, clarified by the maintainer on 2026-10-27.)* The "storage" SQLite is **a destination**, one more way to send the events, like the AWS HTTP sink but writing to a SQLite file instead of calling a service. It is the SQL adapter of 7.2, with SQLite as its first dialect (D-03). It is different from the spool: the spool is the internal queue that holds events until **any** destination confirms them, and only the library reads it. The SQLite destination is a place where events end.
    Because it is a destination, it is configured like the others: it can be one of several active destinations at once (REQ-OUT-003), it gets the same masking and the same limits, a failure in it never stops the other destinations (REQ-DLV-005), and a project that does not use it does not install the SQLite code (an optional module in Go, an extra in Python). Writing to a local file is already durable, so it does not need the spool in front of it.
@@ -42,6 +44,7 @@ Note for Q07-8: the Python standard that exists but is not reachable now is welc
    Options: (a) one `events` table: the whole envelope as JSON plus indexed columns (`occurred_at`, `recorded_at`, `event_type`, severity, actor id, `event_id`); the layout is part of `contracts/`, identical in Go and Python and versioned, so any tool can read the file; a retention setting deletes old rows (default: keep until the project cleans it, as you said for the spool) (my default); (b) one table per event family (`log`, `device`, `ai`, ...) with typed columns; easier to query, but a new event type means a new table and a contract change in both languages; (c) the layout is internal to the destination and may change in any release; nobody should read the file.
    *Default: (a).*
    A:C ,but some client may read it
+   > **Update 2026-10-28:** Superseded by Q09-5: the layout is a contract in `contracts/`, and the reader only reads.
 
 ---
 
@@ -79,4 +82,5 @@ Note for Q07-8: the Python standard that exists but is not reachable now is welc
     Options: (a) PR-001 version 0.2 with every decision of Q01–Q08 marked as decided, and a new ADR that records the adoption of the standard (my default: the proposal and the ADR must say the same thing, as `CLAUDE.md` asks); (b) the same plus a task plan in `docs/tasks/` with the order of question 16 of Q07; (c) only PR-001 version 0.2.
     *Default: (a). Annex A of PR-001 says the task plan is handled separately, so it waits until you ask for it.*
     A:Before anything, do you thing there is any open decisions to be made, or confusing thing or anything it might get wrong?
+    > **Update 2026-10-28:** Superseded by Q09-8. The default (a) was applied: PR-001 version 0.2 and ADR-011 to ADR-013.
    
