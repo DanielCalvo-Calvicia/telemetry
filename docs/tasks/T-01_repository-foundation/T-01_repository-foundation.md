@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | in-progress (T-01.1 done 2026-10-28) |
+| Status | in-progress (T-01.1 and T-01.2 done 2026-10-28) |
 | Kind | epic |
 | Parent | project |
 | Depends on | PR-001 version 0.2 accepted (done, T-01.1) |
@@ -24,7 +24,7 @@ Turn the repository into the layout of the standard: `contracts/`, `go/` (the co
 | Order | Task | Status |
 |---|---|---|
 | 1 | [T-01.1 Accept PR-001 version 0.2](T-01.1_accept-pr-001-version-0-2.md) | done (2026-10-28) |
-| 2 | [T-01.2 Repository layout](T-01.2_repository-layout.md) | todo |
+| 2 | [T-01.2 Repository layout](T-01.2_repository-layout.md) | done (2026-10-28) |
 | 3 | [T-01.3 Python project skeleton](T-01.3_python-project-skeleton.md) | todo |
 | 4 | [T-01.4 Architecture tests](T-01.4_architecture-tests.md) | todo |
 | 5 | [T-01.5 CI](T-01.5_ci.md) | todo |

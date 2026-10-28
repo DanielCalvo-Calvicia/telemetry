@@ -1,6 +1,6 @@
 # Tasks
 
-Hierarchical task plan used to build the whole telemetry standard of [PR-001](../proposals/PR-001-telemetry-standard-go-python.md): **T-01 repository foundation, T-02 the contract and the generator, T-03 core domain and application, T-04 logging and the core adapters, T-05 delivery, T-06 the spool and the SQLite destination, T-07 executions, faults, reports and health, T-08 devices, T-09 AI agents, T-10 metrics and traces, T-11 audit, T-12 cross-language conformance, T-13 documentation, examples and release**. Nothing of it is built: T-01.1 (the acceptance of PR-001) is done and every other task is `todo`; two pilot runs and a few decisions wait for the maintainer.
+Hierarchical task plan used to build the whole telemetry standard of [PR-001](../proposals/PR-001-telemetry-standard-go-python.md): **T-01 repository foundation, T-02 the contract and the generator, T-03 core domain and application, T-04 logging and the core adapters, T-05 delivery, T-06 the spool and the SQLite destination, T-07 executions, faults, reports and health, T-08 devices, T-09 AI agents, T-10 metrics and traces, T-11 audit, T-12 cross-language conformance, T-13 documentation, examples and release**. Nothing of it is built: T-01.1 (the acceptance of PR-001) and T-01.2 (the repository layout) are done and every other task is `todo`; two pilot runs and a few decisions wait for the maintainer.
 
 The status of every task is on the board in section 5 (and in [ORDER.md](ORDER.md)).
 
@@ -91,9 +91,9 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 
 | ID | Task | Kind | Status |
 |---|---|---|---|
-| [T-01](T-01_repository-foundation/T-01_repository-foundation.md) | **Repository foundation** | epic | in-progress (T-01.1 done 2026-10-28) |
+| [T-01](T-01_repository-foundation/T-01_repository-foundation.md) | **Repository foundation** | epic | in-progress (T-01.1 and T-01.2 done 2026-10-28) |
 | [T-01.1](T-01_repository-foundation/T-01.1_accept-pr-001-version-0-2.md) | Accept PR-001 version 0.2 | decision | done (2026-10-28) |
-| [T-01.2](T-01_repository-foundation/T-01.2_repository-layout.md) | Repository layout | code | todo |
+| [T-01.2](T-01_repository-foundation/T-01.2_repository-layout.md) | Repository layout | code | done (2026-10-28) |
 | [T-01.3](T-01_repository-foundation/T-01.3_python-project-skeleton.md) | Python project skeleton | code | todo |
 | [T-01.4](T-01_repository-foundation/T-01.4_architecture-tests.md) | Architecture tests | test | todo |
 | [T-01.5](T-01_repository-foundation/T-01.5_ci.md) | CI | code | todo |

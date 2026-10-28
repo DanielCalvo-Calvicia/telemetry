@@ -44,6 +44,15 @@ Status as of 2026-10-27. **Done** means implemented and verified in the reposito
 | NFR-6 | No secret, internal address or customer name in the repository; placeholders only. | Done (checklist in security.md) |
 | NFR-7 | Code, comments and documents are in English. | Done |
 
+## The new standard (PR-001, accepted, not built)
+
+Only the requirements whose state moved are listed; the full list is in [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) and the tasks in [docs/tasks](../tasks/README.md).
+
+| ID | Requirement | Status |
+|---|---|---|
+| REQ-DST-001 | Go is distributed as one core module and one module per adapter, joined by a committed `go.work` file. | Started (T-01.2, 2026-10-28): the core module `go/` and `go.work` exist; no adapter yet |
+| REQ-ARC-012 | The public packages follow `<functionality>/<adapter>`; the core is `go/pkg/telemetry`. | Planned (T-03.9) |
+
 ## Out of scope
 
 Deployment of any kind; reading environment variables or files; sending entries to AWS directly (CloudWatch is reached through aws_microservice); log rotation and retention (CloudWatch's concern).

@@ -78,12 +78,17 @@ go run ./examples/aws_http_smoke
 ## Layout
 
 ```text
-pkg/logging/                public API
+pkg/logging/                public API (the old library; T-04.7 of the new standard removes it)
 internal/logging/           domain / application / infrastructure (the standard Go layers)
 internal/composition_root/  containers/ and dependencies/ (the only place that wires adapters)
 internal/tests/             mirrors the code tree; black-box tests; e2e/
 examples/aws_http_smoke/    sample service
 docs/                       the documentation (index in docs/README.md)
+go/                         the Go core of the new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md)): a module of its own, only the empty layers so far
+go.work                     joins the root module and go/ for local work and CI
+contracts/                  the contract between Go and Python (planned, empty)
+python/                     the Python implementation (planned, empty)
+integration-tests/          the cross-language fixtures and tests (planned, empty)
 ```
 
 ## Checks

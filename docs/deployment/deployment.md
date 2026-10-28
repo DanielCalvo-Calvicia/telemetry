@@ -23,6 +23,8 @@ go test ./... -count=1
 go test ./... -coverpkg=./internal/... -coverprofile=coverage.out   # the coverage gate of CI
 ```
 
+These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). CI does not run the `go/` module yet: T-01.5 adds it.
+
 The race detector (`-race`) needs cgo and a C compiler; it was not run on the maintainer's Windows machine (no `gcc`).
 
 ## Pipeline (`.github/workflows/ci.yml`)

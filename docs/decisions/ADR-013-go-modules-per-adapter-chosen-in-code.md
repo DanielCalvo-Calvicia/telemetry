@@ -20,3 +20,5 @@ A project must be able to select only the adapters it needs, so that the depende
 
 - Positive: a project downloads and builds only what it imports; the choice of adapters is visible in its own code.
 - Negative: many `go.mod` files and tags, slower releases, and an adapter cannot be switched on by an environment variable alone. The rule that `internal/` packages of the core are importable from a nested module (the Go rule is by path) is to be verified when this is built.
+
+> **Update 2026-10-28 (T-01.2):** the rule that was to be verified holds. A throwaway module with the path `github.com/DanielCalvo-Calvicia/telemetry/go/pkg/throwaway`, joined to the core by a `go.work` file, imported `github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain` and built; a module with an unrelated path (`example.invalid/outsider`) importing the same package failed with "use of internal package ... not allowed". The Go rule is by import path, so an adapter module at `go/pkg/<functionality>/<adapter>/` may import the `internal/` packages of the core. Go 1.25.5.

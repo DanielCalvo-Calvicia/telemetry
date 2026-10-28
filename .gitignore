@@ -1,7 +1,15 @@
 .env
 *.test
 coverage.out
-go.work
-go.work.sum
 BUILD_GUIDE.md
 __debug_bin*
+
+# Python (python/)
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+dist/
+build/
