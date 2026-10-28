@@ -56,6 +56,24 @@ python/
 - **Rules until the Python standard of the organization can be read** (Q07-8): the layers and folder names of the Go core; PEP 8 names (`snake_case` for functions, variables, modules and arguments, `PascalCase` for classes); every public class and function has a docstring; tests are black-box and mirror the code tree.
 - **Tools chosen on 2026-10-28 (the maintainer), with the reason:** build backend **setuptools** (already installed with Python tooling, supports `[project]` and extras, no new tool to learn); tests with **unittest** from the standard library plus **coverage.py** for the 95% gate (the fewest dependencies; the coverage tool is the only one); lint and format with **ruff** (one development-only tool). T-01.5 runs them in CI.
 
+### 2.2 The architecture tests (built, T-01.4)
+
+The direction of the dependencies is a test in both languages (REQ-ARC-008), so a wrong import fails before review. They run on the new core (`go/`, `python/`), not on the old library of the root module.
+
+| Rule | What it forbids |
+|---|---|
+| `domain-isolated` | the domain importing the application, the infrastructure, the composition root, or an I/O, database, telemetry-backend or AI-framework package (REQ-ARC-001, REQ-ARC-002) |
+| `application-imports-only-domain` | the application importing anything but the standard library, the domain and itself |
+| `infrastructure-not-composition-root` | the infrastructure importing the composition root |
+| `adapters-wired-only-by-the-composition-root` | any package outside a composition root importing a concrete outbound adapter (REQ-ARC-003) |
+| `io-only-in-external` | a file of an adapter outside its `external/` folder importing an I/O package (network, files, processes, databases) |
+| `consumer-never-imports-internal` | a consumer (`examples/`) importing an `internal/` package |
+
+- **Where they live.** Go: `go/internal/tests/architecture/` (`dependency_direction_test.go`, `composition_root_test.go`, `internal_visibility_test.go`, `helpers_test.go`) over the rule engine in `go/internal/tests/architecture/checker/`, which reads the imports with `go/parser` of the standard library. Python: `python/internal/tests/architecture/` (`test_dependency_direction.py`, `test_composition_root.py`, `test_internal_visibility.py`, `helpers.py`) over `checker.py`, which reads the imports with the standard `ast` module. Neither adds a dependency.
+- **Planted violations.** Each rule has a fixture tree that breaks it and a clean tree, in `go/internal/tests/fixtures/architecture/testdata/<case>/` (`testdata` is ignored by the Go tool, so the files are never compiled) and `python/internal/tests/fixtures/architecture/<case>/` (excluded from ruff). A test fails if the planted violation is not reported, and another if the clean tree is not accepted.
+- **A failure names the file and the import:** `domain-isolated: internal/domain/zz_planted.go imports "net/http"`.
+- **Not checked yet.** The adapter folders `outbound/<functionality>/<adapter>` do not exist, so the rules about adapters pass on the empty layers and are proved by the fixtures; they start to bite with T-04.
+
 ## 3. Current state (exists)
 
 | Layer | Package | What it holds |

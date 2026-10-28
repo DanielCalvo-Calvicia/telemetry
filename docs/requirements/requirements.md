@@ -52,6 +52,9 @@ Only the requirements whose state moved are listed; the full list is in [PR-001]
 |---|---|---|
 | REQ-DST-001 | Go is distributed as one core module and one module per adapter, joined by a committed `go.work` file. | Started (T-01.2, 2026-10-28): the core module `go/` and `go.work` exist; no adapter yet |
 | REQ-ARC-012 | The public packages follow `<functionality>/<adapter>`; the core is `go/pkg/telemetry`. | Planned (T-03.9) |
+| REQ-ARC-001, REQ-ARC-002 | Dependencies point inward; the domain imports no other layer and no I/O, database, backend or AI package. | Built for the empty layers (T-01.4, 2026-10-28): Go `Test_the_real_module_keeps_the_dependencies_pointing_inward`, Python `DependencyDirectionTest` |
+| REQ-ARC-003 | The wiring happens only in a composition root. | Built for the empty layers (T-01.4): Go `Test_the_real_module_wires_the_adapters_only_in_the_composition_root`, Python `CompositionRootTest` |
+| REQ-ARC-008 | Both implementations have architecture tests that verify the direction of dependencies. | Built (T-01.4); the CI step is T-01.5 |
 | REQ-DST-002 | Python is one package with optional extras, installed from the Git repository. | Started (T-01.3, 2026-10-28): the package `telemetry` installs; the extras are empty |
 | REQ-DST-003 | The library supports Go >= 1.25 and Python >= 3.10. | Started (T-01.2, T-01.3): both modules declare it |
 | REQ-ARC-009 | Go and Python have the same layers, directory names and file names. | Started (T-01.3): the four layers and the test folders match; the rest arrives with the code |

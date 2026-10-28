@@ -25,6 +25,8 @@ go test ./... -coverpkg=./internal/... -coverprofile=coverage.out   # the covera
 
 These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). CI does not run the `go/` module or the Python package yet: T-01.5 adds them.
 
+The architecture tests of the new core run with the others (`go test ./...` inside `go/`; `python -m unittest discover ...` in `python/`); T-01.5 makes them a CI step. They check the direction of the dependencies: see the architecture document, section 2.2.
+
 The Python package is checked in a virtual environment, from `python/`:
 
 ```bash
