@@ -16,6 +16,6 @@ Each capability adds its own codes as it is built (delivery, devices, AI), as it
 | `config_field_invalid` | configuration | a configuration field is missing or invalid |
 | `delivery_mode_unknown` | configuration | the delivery mode is not `best_effort`, `retry` or `durable` |
 
-## Open question for the maintainer
+## Decided by the maintainer (2026-10-28)
 
-Does this catalog also hold the **delivery** failure codes now, or does each capability add its own as it is built (the plan says the latter for event types)? **Not answered; the default was used:** each capability adds its own. Delivery codes arrive with T-05, device codes with T-08 and AI codes with T-09.
+Each capability adds its own error codes as it is built, as it does for event types; the catalog does not list the delivery codes in advance. Delivery codes arrive with T-05, device codes with T-08 and AI codes with T-09. A code is permanent, so none is written before the code that raises it exists.
