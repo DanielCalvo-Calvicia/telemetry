@@ -77,7 +77,11 @@ capabilities:
         pending: T-10.1
       # REQ-CTR-007: The clock and the identifier generator MUST sit behind ports (ClockPor...
       - id: REQ-CTR-007
-        pending: T-03.2
+        # the ports and the fakes of T-03.2; the adapters of the clock and of the generator are T-03.9
+        tests:
+          - { language: go, path: go/internal/tests/application/ports/ports_test.go }
+          - { language: python, path: python/internal/tests/application/ports/test_port_shapes.py }
+          - { language: python, path: python/internal/tests/application/ports/test_fakes.py }
       # REQ-CTR-008: Every event MUST carry two instants, both in UTC and in the fixed form...
       - id: REQ-CTR-008
         pending: T-03.3
@@ -460,7 +464,11 @@ capabilities:
     requirements:
       # REQ-OUT-001: Ports with identical semantics MAY share a generic abstraction. Payloa...
       - id: REQ-OUT-001
-        pending: T-03.2
+        # the six sink ports share one method shape and stay separate interfaces (T-03.2)
+        tests:
+          - { language: go, path: go/internal/tests/application/ports/ports_test.go }
+          - { language: python, path: python/internal/tests/application/ports/test_port_shapes.py }
+          - { language: python, path: python/internal/tests/application/ports/test_fakes.py }
       # REQ-OUT-002: HTTP is the default destination: it is in the core and the profiles us...
       - id: REQ-OUT-002
         pending: T-04.5

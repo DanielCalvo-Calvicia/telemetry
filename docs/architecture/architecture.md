@@ -135,7 +135,7 @@ An event whose `data` does not match the schema of its `event_type` is rejected 
 - **The source of the requirement ids is the specification** (PR-001, the bold `**REQ-XXX-nnn.**` definitions: 130 ids in 20 areas), through the flag `--spec`. The plan's default, the requirements document, lists only the requirements whose state moved, so it cannot be the source.
 - **What it fails on:** a requirement of the specification that no capability lists; an id that is not in the specification; a requirement with neither tests nor a pending task; a listed test file that does not exist; a pending task that does not exist in `docs/tasks`; a capability marked `supported` while a language is not `passing` (or `not_applicable` without a reason) or while a requirement is only pending; an invalid level, status or state; a duplicated id (a requirement belongs to one capability only). A misspelled key fails too (strict YAML).
 - **What it reports.** The uncovered requirements, one per line with their area and the task they wait for (`REQ-ARC-014 (ARC): pending T-03.9`), a separate list of those that **no task mentions yet** (`pending: unassigned`: allowed, never counted as covered), the counts, and the library maturity as the least complete capability (REQ-CNF-008). A pending item never counts as covered.
-- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **13 covered by real tests** (the architecture, canonical JSON, event validation, generator, shared-fixture and value-object requirements), **109 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
+- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **15 covered by real tests** (the architecture, canonical JSON, event validation, generator, shared-fixture, value-object and port requirements), **107 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
 
 ### 2.8 The shared fixtures (built, T-02.8)
 
@@ -151,6 +151,24 @@ The immutable types of the envelope, validated at construction, in both language
 - **Absent is not empty.** An optional field that is present but empty is invalid (the schema says `minLength` 1). Go models it with functional options and `(value, ok)` accessors (`WithEnvironment("")` makes the field present, and the constructor then rejects it); Python uses `None` for absent.
 - **Immutable.** Go: unexported fields, constructors and getters, no setter; `EventAttributes` copies the map and the lists on the way in and on the way out. Python: frozen dataclasses with slots; `EventAttributes` keeps a read-only mapping.
 - **Errors are provisional.** Go sentinels live in `domain/errors.go` (the base ones in `base_value_objects/errors.go`), aliased in each file and returned unwrapped by the scalar objects; Python has an exception per rule (`InvalidValueError` family, with the default code `event_schema_invalid`). Their mapping to the codes of the catalog is T-03.7.
+
+### 2.10 The outbound ports (built, T-03.2)
+
+`application/ports/outbound/` holds one port per file in both languages with the same names (Go `PascalCase` methods are `snake_case` in Python; Python has no `context` argument and the API is synchronous). The application imports only the domain: no port mentions HTTP, SQLite or a vendor type. The DTOs the ports use are in `application/dtos/`.
+
+| Port | Methods | Notes |
+|---|---|---|
+| `ClockPort` | `Now`, `MonotonicNanoseconds`, `ClockInfo` | the wall time as a `UTCInstant`; a monotonic reading that never goes back (the elapsed time of REQ-CTR-008 is the difference of two readings); `ClockInfo` says the source and whether it is synced, each possibly unknown (the keys are absent when unknown, never `false`) |
+| `IDGeneratorPort` | `NewEventID`, `NewInstanceID` | a UUIDv7; the instance id of a resource when the consumer gives none |
+| `ConfigurationPort` | `Configuration` | hands the core what the consumer passed in; it reads no file and no environment (REQ-ARC-007, ADR-004); `Configuration` holds the resource only, T-03.6 completes it |
+| `LogSinkPort`, `EventSinkPort`, `MetricsSinkPort`, `TraceSinkPort`, `DeviceTelemetrySinkPort`, `AITelemetrySinkPort` | `Send(events)` returning a `SendResult` | receive events already validated and masked; **never fail the caller**: the failure is in the result (accepted, dropped, failed, reason; ADR-005) |
+| `LocalSpoolPort` | `Append`, `ReadBatch`, `Acknowledge`, `Usage`, `Cleanup` | only the contract; the SQLite adapter is T-06 |
+
+- **Decision, with a default (the maintainer was not asked).** The six sink ports have the **same method shape** (REQ-OUT-001: identical semantics may share an abstraction) but stay **six separate interfaces**, so an adapter declares which capability it serves and each can grow its own typed methods when T-10 gives metrics and traces their own payloads. No `Flush` or `Close` yet: the delivery tasks (T-05) add them.
+- **Fakes live with the tests**, not in the library: `go/internal/tests/fakes/` and `python/internal/tests/fakes/`. Each records what it received (as a copy), returns a settable result, can be told to fail or to delay.
+- **A test keeps the two languages equal**: each language compares the method names of every port with a table, so a port cannot change in one language only.
+- **DTO files are named after the concept**, not `<dto>_inbound/outbound` as the organization's Go standard says, because this library has no `pkg/dtos` wire package to alias.
+- **No adapter exists yet**: the adapters of the clock and of the generator are written in T-03.9, the sinks in T-04 and later.
 
 ## 3. Current state (exists)
 
