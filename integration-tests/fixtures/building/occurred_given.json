@@ -1,0 +1,22 @@
+{
+  "description": "A given occurred_at is kept; recorded_at is only the clock (ADR-012).",
+  "kind": "build",
+  "setup": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    }
+  },
+  "input": {
+    "event_type": "log.entry.recorded",
+    "severity": "INFO",
+    "data": {
+      "category": "http",
+      "message": "started"
+    },
+    "occurred_at": "2026-10-28T09:59:59.5+00:00"
+  },
+  "expected": "{\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T09:59:59.500000Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

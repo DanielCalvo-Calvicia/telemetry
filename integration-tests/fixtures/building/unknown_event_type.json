@@ -1,0 +1,18 @@
+{
+  "description": "An event type that is not in the registry is rejected with event_type_unknown.",
+  "kind": "build",
+  "setup": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    }
+  },
+  "input": {
+    "event_type": "nothing.here.recorded",
+    "severity": "INFO",
+    "data": {}
+  },
+  "error_code": "event_type_unknown"
+}

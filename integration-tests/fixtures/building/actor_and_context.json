@@ -1,0 +1,37 @@
+{
+  "description": "Severity, actor, context and a full resource are copied to the envelope.",
+  "kind": "build",
+  "setup": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01",
+      "environment": "staging",
+      "service_version": "1.2.3",
+      "host": "host-a",
+      "time_zone": "Europe/Madrid"
+    }
+  },
+  "input": {
+    "event_type": "log.entry.recorded",
+    "severity": "ERROR",
+    "data": {
+      "category": "http",
+      "message": "started"
+    },
+    "actor": {
+      "kind": "device",
+      "id": "sensor-1",
+      "type": "thermometer",
+      "version": "2"
+    },
+    "context": {
+      "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "span_id": "b7ad6b7169203331",
+      "execution_id": "run-7",
+      "correlation_id": "order-9"
+    }
+  },
+  "expected": "{\"actor\":{\"id\":\"sensor-1\",\"kind\":\"device\",\"type\":\"thermometer\",\"version\":\"2\"},\"context\":{\"correlation_id\":\"order-9\",\"execution_id\":\"run-7\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"},\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"environment\":\"staging\",\"host\":\"host-a\",\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\",\"service_version\":\"1.2.3\",\"time_zone\":\"Europe/Madrid\"},\"schema_version\":\"0.1\",\"severity\":\"ERROR\"}"
+}

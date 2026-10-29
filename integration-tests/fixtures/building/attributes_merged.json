@@ -1,0 +1,33 @@
+{
+  "description": "The attributes of the caller are kept and merged with the clock ones; when a key is both, the value of the clock wins.",
+  "kind": "build",
+  "setup": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "clock_info": {
+      "source": "ntp",
+      "synced": false
+    }
+  },
+  "input": {
+    "event_type": "log.entry.recorded",
+    "severity": "INFO",
+    "data": {
+      "category": "http",
+      "message": "started"
+    },
+    "attributes": {
+      "order": 7,
+      "clock_source": "caller",
+      "tags": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  "expected": "{\"attributes\":{\"clock_source\":\"ntp\",\"clock_synced\":false,\"order\":7,\"tags\":[\"a\",\"b\"]},\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

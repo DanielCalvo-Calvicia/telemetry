@@ -41,6 +41,10 @@ class NonUtcTimeError(ClassifiedError):
     """An instant is not in UTC, or has no zone, or is outside the years 0001 to 9999."""
 
 
+class InstantFormatInvalidError(NonUtcTimeError):
+    """A text is not an instant in the fixed contract format YYYY-MM-DDTHH:MM:SS.ffffffZ."""
+
+
 class EventSchemaInvalidError(ClassifiedError):
     """The data of an event does not match the schema of its event type (code ``event_schema_invalid``)."""
 

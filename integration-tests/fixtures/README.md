@@ -26,6 +26,7 @@ One JSON file is one case:
 |---|---|
 | [canonical_json/](canonical_json) | the number, string, sorting and event tables of the canonical JSON (the RFC 8785 vectors), read by the canonical JSON tests of both languages and by [compare_canonical_json.py](../compare_canonical_json.py) |
 | [value_objects/](value_objects) | one table per value object of the domain (severity, actor kind, event id, UTC instant, identifier, hex digits, resource, actor, context, attributes): `{ description, cases: [ { description, input, valid } ] }`; both languages accept exactly the cases with `valid: true` and reject the others (T-03.1) |
+| [building/](building) | one case per file of the event builder (T-03.3): `{ description, kind: "build", setup, input, expected \| error_code }`; the setup gives the fixed clock, the event id and the resource, the input is what a capability gives the builder, and `expected` is the exact canonical JSON of the envelope (bytes, computed with Node.js) or the error code; both languages must give the same bytes |
 | [event_validation/](event_validation) | the valid and invalid cases of the validation at the source, and the tables of the constructs the generated validators support |
 
 ## Adding or changing a case

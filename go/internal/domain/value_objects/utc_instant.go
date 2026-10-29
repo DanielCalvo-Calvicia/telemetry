@@ -20,6 +20,8 @@ type UTCInstant struct {
 var (
 	// ErrNonUTCTime is domain.ErrNonUTCTime, so a caller of this package can use it without importing domain.
 	ErrNonUTCTime = domain.ErrNonUTCTime
+	// ErrUTCInstantTextInvalid is domain.ErrUTCInstantTextInvalid.
+	ErrUTCInstantTextInvalid = domain.ErrUTCInstantTextInvalid
 )
 
 // ----- CONSTANTS ------------------------------------------------------------
@@ -40,6 +42,21 @@ func NewUTCInstant(instant time.Time) (UTCInstant, error) {
 		return UTCInstant{}, validation_error
 	}
 	return UTCInstant{instant: instant.UTC().Truncate(time.Microsecond)}, nil
+}
+
+// ParseUTCInstant returns the UTCInstant of a text in exactly the format of String: YYYY-MM-DDTHH:MM:SS.ffffffZ, six
+// decimals and the letter Z. Any other text, an offset instead of the Z and a text with another number of decimals
+// included, returns ErrUTCInstantTextInvalid. The text is never part of the error.
+func ParseUTCInstant(text string) (UTCInstant, error) {
+	parsed_time, parse_error := time.Parse(utc_instant_layout, text)
+	if parse_error != nil {
+		return UTCInstant{}, ErrUTCInstantTextInvalid
+	}
+	utc_instant, instant_error := NewUTCInstant(parsed_time)
+	if instant_error != nil || utc_instant.String() != text {
+		return UTCInstant{}, ErrUTCInstantTextInvalid
+	}
+	return utc_instant, nil
 }
 
 // ----- METHODS --------------------------------------------------------------

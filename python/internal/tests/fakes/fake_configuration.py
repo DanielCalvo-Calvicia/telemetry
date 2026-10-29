@@ -14,7 +14,13 @@ class FakeConfiguration:
         self._lock = threading.Lock()
         default = Configuration(resource=ResourceIdentity(service_name="fake-service", instance_id="fake-instance"))
         self._configuration = configuration if configuration is not None else default
+        self._failure: Optional[Exception] = None
         self.calls = 0
+
+    def fail_with(self, error: Optional[Exception]) -> None:
+        """Make configuration() raise this error; None clears it."""
+        with self._lock:
+            self._failure = error
 
     def set_configuration(self, configuration: Configuration) -> None:
         """Set what configuration() returns."""
@@ -25,4 +31,6 @@ class FakeConfiguration:
         """Return the settable configuration."""
         with self._lock:
             self.calls += 1
+            if self._failure is not None:
+                raise self._failure
             return self._configuration

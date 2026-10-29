@@ -18,8 +18,14 @@ class FakeIdGenerator:
         self._queue = deque(event_ids or ())
         self._counter = 0
         self._instance_id = instance_id
+        self._failure: Optional[Exception] = None
         self.event_id_calls = 0
         self.instance_id_calls = 0
+
+    def fail_with(self, error: Optional[Exception]) -> None:
+        """Make new_event_id raise this error; None clears it."""
+        with self._lock:
+            self._failure = error
 
     def queue_event_id(self, event_id: EventId) -> None:
         """Add an id to return before the generated ones."""
@@ -30,6 +36,8 @@ class FakeIdGenerator:
         """Return the next queued id or a valid UUIDv7 from the counter."""
         with self._lock:
             self.event_id_calls += 1
+            if self._failure is not None:
+                raise self._failure
             if self._queue:
                 return self._queue.popleft()
             self._counter += 1

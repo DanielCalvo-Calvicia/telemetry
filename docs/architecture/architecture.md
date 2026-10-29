@@ -135,7 +135,7 @@ An event whose `data` does not match the schema of its `event_type` is rejected 
 - **The source of the requirement ids is the specification** (PR-001, the bold `**REQ-XXX-nnn.**` definitions: 130 ids in 20 areas), through the flag `--spec`. The plan's default, the requirements document, lists only the requirements whose state moved, so it cannot be the source.
 - **What it fails on:** a requirement of the specification that no capability lists; an id that is not in the specification; a requirement with neither tests nor a pending task; a listed test file that does not exist; a pending task that does not exist in `docs/tasks`; a capability marked `supported` while a language is not `passing` (or `not_applicable` without a reason) or while a requirement is only pending; an invalid level, status or state; a duplicated id (a requirement belongs to one capability only). A misspelled key fails too (strict YAML).
 - **What it reports.** The uncovered requirements, one per line with their area and the task they wait for (`REQ-ARC-014 (ARC): pending T-03.9`), a separate list of those that **no task mentions yet** (`pending: unassigned`: allowed, never counted as covered), the counts, and the library maturity as the least complete capability (REQ-CNF-008). A pending item never counts as covered.
-- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **15 covered by real tests** (the architecture, canonical JSON, event validation, generator, shared-fixture, value-object and port requirements), **107 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
+- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **17 covered by real tests** (the architecture, canonical JSON, event validation, generator, shared-fixture, value-object, port and event-building requirements), **105 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
 
 ### 2.8 The shared fixtures (built, T-02.8)
 
@@ -169,6 +169,24 @@ The immutable types of the envelope, validated at construction, in both language
 - **A test keeps the two languages equal**: each language compares the method names of every port with a table, so a port cannot change in one language only.
 - **DTO files are named after the concept**, not `<dto>_inbound/outbound` as the organization's Go standard says, because this library has no `pkg/dtos` wire package to alias.
 - **No adapter exists yet**: the adapters of the clock and of the generator are written in T-03.9, the sinks in T-04 and later.
+
+### 2.11 Building an event (built, T-03.3)
+
+`EventBuilderService` (`application/services/`, Go and Python) turns what a capability gives it (`NewEventInput`: event type, severity, data, optionally `occurred_at`, actor, context and attributes) into a complete envelope. It is injected with the clock, the id generator and the configuration ports and a function that validates the data (the composition root of T-03.9 passes `ValidateEvent`). The mappers of `application/mappers/` turn the validated value objects into the generated wire types.
+
+**The order of the steps** (fixed, documented in `Build` / `build`):
+
+1. **One read of the clock.** `recorded_at` is that reading, always: only the library sets it, and `NewEventInput` has **no field** for it, so a caller cannot supply one (REQ-CTR-008, ADR-012). `occurred_at` is the one the caller gave, otherwise the same reading. When `data` has `observed_at` (a UTC time of the contract format), `occurred_at` equals it and overrides a given one; an `observed_at` in another format is rejected with `event_schema_invalid` before any other port is called, and the message never holds the value.
+2. **The event id** from `IDGeneratorPort` and **the resource** from `ConfigurationPort`.
+3. **The clock attributes.** `clock_source` and `clock_synced` are added to `attributes` only when the clock reports them; an unknown flag is absent, never `false`. When the caller already gave one of these keys the clock value wins.
+4. **The envelope** is assembled: `schema_version` is the constant `0.1` of the domain rules (hand-written for now: the generator does not emit it, see the task notes).
+5. **The data is validated** against the schema of its type (T-02.6), last. An unknown type gives `event_type_unknown`, a data that does not match gives `event_schema_invalid`.
+
+Masking (T-03.4) and the limits (T-03.5) come after, and T-03.9 wires the chain: **the envelope this service returns is not masked and must not reach a sink as it is** (ADR-006).
+
+**Null versus empty** (decided here for both languages): `data` is never null (a nil input becomes `{}` and a copy of the caller's map is stored); `attributes` is omitted when empty; `actor` and `context` are omitted when absent, and a context with no field counts as absent.
+
+**It never raises or panics** (ADR-005, REQ-DLV-002): a failure of a port, of the validator or any panic becomes a result. Go returns `(Envelope, error)`; Python returns a `BuildResult` holding the envelope or the error (it never raises). A failing port gives `EventBuildFailedError` / `ErrEventBuildFailed`, which has no catalog code yet (T-03.7 decides); a validation failure is a classified error with its code. **An event type that is not in the registry is rejected**: a consumer extension type is not allowed in version 0.1.
 
 ## 3. Current state (exists)
 

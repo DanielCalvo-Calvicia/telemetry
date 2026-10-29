@@ -28,6 +28,14 @@ var (
 // mapping to the codes of the catalog (ClassifiedError) is T-03.7. A constructor returns the sentinel itself, so
 // errors.Is finds it; a composite object joins the sentinel of the field with the cause of the base value object.
 
+// === UTCInstant ===
+
+var (
+	// ErrUTCInstantTextInvalid is returned for a text that is not an instant in the exact format of the contract:
+	// YYYY-MM-DDTHH:MM:SS.ffffffZ, with six decimals and the letter Z.
+	ErrUTCInstantTextInvalid = errors.New("the text is not an instant in the format YYYY-MM-DDTHH:MM:SS.ffffffZ")
+)
+
 // === Severity ===
 
 var (

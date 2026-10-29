@@ -43,3 +43,14 @@ const (
 	// SpanIDWidth is the number of hexadecimal digits of a W3C span id.
 	SpanIDWidth = 16
 )
+
+// #### ENVELOPE RULES
+
+// The raw values of the rules of the envelope. They are untyped.
+
+// === SchemaVersion ===
+
+const (
+	// SchemaVersion is the version of the contract that every envelope carries in schema_version: major.minor.
+	SchemaVersion = "0.1"
+)

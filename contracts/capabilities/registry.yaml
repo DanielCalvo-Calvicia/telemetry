@@ -40,8 +40,11 @@ capabilities:
     requirements:
       # REQ-CTR-001: Every emitted event MUST use a versioned envelope with these fields:
       - id: REQ-CTR-001
-        # partial evidence exists (the generated tests cover the serialized envelope fields and the value objects of T-03.1 check each part); the building of the whole envelope is T-03.3
-        pending: T-03.3
+        # the event builder (T-03.3) produces the whole envelope and the shared fixtures compare its exact canonical bytes in both languages; the envelope as a whole is not yet checked against the envelope schema by a validator (data is)
+        tests:
+          - { language: go, path: go/internal/tests/application/services/shared_fixtures_test.go }
+          - { language: go, path: go/internal/tests/application/services/event_builder_service_test.go }
+          - { language: python, path: python/internal/tests/application/services/test_event_builder_service.py }
       # REQ-CTR-002: Each event_type MUST have a JSON schema for data registered in contrac...
       - id: REQ-CTR-002
         tests:
@@ -84,7 +87,11 @@ capabilities:
           - { language: python, path: python/internal/tests/application/ports/test_fakes.py }
       # REQ-CTR-008: Every event MUST carry two instants, both in UTC and in the fixed form...
       - id: REQ-CTR-008
-        pending: T-03.3
+        # recorded_at only from the clock; occurred_at given, or the time of the call, or observed_at (T-03.3)
+        tests:
+          - { language: go, path: go/internal/tests/application/services/shared_fixtures_test.go }
+          - { language: go, path: go/internal/tests/application/services/event_builder_service_test.go }
+          - { language: python, path: python/internal/tests/application/services/test_event_builder_service.py }
       # REQ-CTR-009: event_id MUST be a UUIDv7 (D-04). It MUST NOT be derived from a timest...
       - id: REQ-CTR-009
         # the value object validates a UUIDv7; the generation of one sits behind IDGeneratorPort (T-03.2)
