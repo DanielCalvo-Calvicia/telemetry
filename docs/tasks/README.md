@@ -108,7 +108,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-02.7](T-02_contract-and-generator/T-02.7_capabilities-registry-and-its-check.md) | Capabilities registry and its check | code | done (2026-10-29) |
 | [T-02.8](T-02_contract-and-generator/T-02.8_shared-fixtures.md) | Shared fixtures | test | done (2026-10-29) |
 | [T-03](T-03_core-domain-and-application/T-03_core-domain-and-application.md) | **Core domain and application** | epic | todo |
-| [T-03.1](T-03_core-domain-and-application/T-03.1_value-objects-and-base-value-objects.md) | Value objects and base value objects | code | todo |
+| [T-03.1](T-03_core-domain-and-application/T-03.1_value-objects-and-base-value-objects.md) | Value objects and base value objects | code | done (2026-10-29) |
 | [T-03.2](T-03_core-domain-and-application/T-03.2_ports.md) | Ports | code | todo |
 | [T-03.3](T-03_core-domain-and-application/T-03.3_building-an-event.md) | Building an event | code | todo |
 | [T-03.4](T-03_core-domain-and-application/T-03.4_masking-and-redaction.md) | Masking and redaction | code | todo |

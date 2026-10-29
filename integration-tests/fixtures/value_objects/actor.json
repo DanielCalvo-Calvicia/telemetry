@@ -1,0 +1,70 @@
+{
+  "description": "An actor needs a known kind and an id; type and version are optional identifiers.",
+  "cases": [
+    {
+      "description": "a device",
+      "input": {
+        "kind": "device",
+        "id": "sensor-1"
+      },
+      "valid": true
+    },
+    {
+      "description": "all the fields",
+      "input": {
+        "kind": "agent",
+        "id": "planner",
+        "type": "llm",
+        "version": "2"
+      },
+      "valid": true
+    },
+    {
+      "description": "a subsystem",
+      "input": {
+        "kind": "subsystem",
+        "id": "spool"
+      },
+      "valid": true
+    },
+    {
+      "description": "unknown kind",
+      "input": {
+        "kind": "robot",
+        "id": "x"
+      },
+      "valid": false
+    },
+    {
+      "description": "kind missing",
+      "input": {
+        "id": "x"
+      },
+      "valid": false
+    },
+    {
+      "description": "id missing",
+      "input": {
+        "kind": "device"
+      },
+      "valid": false
+    },
+    {
+      "description": "id empty",
+      "input": {
+        "kind": "device",
+        "id": ""
+      },
+      "valid": false
+    },
+    {
+      "description": "type present but empty",
+      "input": {
+        "kind": "device",
+        "id": "x",
+        "type": ""
+      },
+      "valid": false
+    }
+  ]
+}

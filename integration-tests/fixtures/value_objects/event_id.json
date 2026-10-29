@@ -1,0 +1,65 @@
+{
+  "description": "An event id is a UUID of version 7 in lowercase with the RFC 4122 variant (REQ-CTR-009).",
+  "cases": [
+    {
+      "description": "a UUIDv7",
+      "input": "018f3c1e-7b2a-7c3d-9e4f-0123456789ab",
+      "valid": true
+    },
+    {
+      "description": "another UUIDv7, variant 8",
+      "input": "01900000-0000-7000-8000-000000000000",
+      "valid": true
+    },
+    {
+      "description": "a UUIDv4",
+      "input": "550e8400-e29b-41d4-a716-446655440000",
+      "valid": false
+    },
+    {
+      "description": "a UUIDv1",
+      "input": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "valid": false
+    },
+    {
+      "description": "version 7 with a wrong variant",
+      "input": "018f3c1e-7b2a-7c3d-1e4f-0123456789ab",
+      "valid": false
+    },
+    {
+      "description": "uppercase",
+      "input": "018F3C1E-7B2A-7C3D-9E4F-0123456789AB",
+      "valid": false
+    },
+    {
+      "description": "without hyphens",
+      "input": "018f3c1e7b2a7c3d9e4f0123456789ab",
+      "valid": false
+    },
+    {
+      "description": "with braces",
+      "input": "{018f3c1e-7b2a-7c3d-9e4f-0123456789ab}",
+      "valid": false
+    },
+    {
+      "description": "too short",
+      "input": "018f3c1e-7b2a-7c3d-9e4f-0123456789a",
+      "valid": false
+    },
+    {
+      "description": "a non hexadecimal digit",
+      "input": "018f3c1e-7b2a-7c3d-9e4f-0123456789ag",
+      "valid": false
+    },
+    {
+      "description": "empty",
+      "input": "",
+      "valid": false
+    },
+    {
+      "description": "not a uuid",
+      "input": "not-a-uuid",
+      "valid": false
+    }
+  ]
+}

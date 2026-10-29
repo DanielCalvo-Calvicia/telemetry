@@ -1,0 +1,91 @@
+{
+  "description": "A resource needs service_name and instance_id; the optional fields, when present, are identifiers; time_zone is a plain IANA-shaped name, never used to compute a time.",
+  "cases": [
+    {
+      "description": "the two required fields",
+      "input": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      },
+      "valid": true
+    },
+    {
+      "description": "all the fields",
+      "input": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01",
+        "environment": "staging",
+        "service_version": "1.2.3",
+        "host": "host-a",
+        "time_zone": "Europe/Madrid"
+      },
+      "valid": true
+    },
+    {
+      "description": "time zone with a plus",
+      "input": {
+        "service_name": "s",
+        "instance_id": "i",
+        "time_zone": "Etc/GMT+2"
+      },
+      "valid": true
+    },
+    {
+      "description": "service_name missing",
+      "input": {
+        "instance_id": "hub-01"
+      },
+      "valid": false
+    },
+    {
+      "description": "instance_id missing",
+      "input": {
+        "service_name": "sensor-hub"
+      },
+      "valid": false
+    },
+    {
+      "description": "service_name empty",
+      "input": {
+        "service_name": "",
+        "instance_id": "hub-01"
+      },
+      "valid": false
+    },
+    {
+      "description": "instance_id empty",
+      "input": {
+        "service_name": "s",
+        "instance_id": ""
+      },
+      "valid": false
+    },
+    {
+      "description": "an optional field present but empty",
+      "input": {
+        "service_name": "s",
+        "instance_id": "i",
+        "environment": ""
+      },
+      "valid": false
+    },
+    {
+      "description": "time zone with a space",
+      "input": {
+        "service_name": "s",
+        "instance_id": "i",
+        "time_zone": "Europe Madrid"
+      },
+      "valid": false
+    },
+    {
+      "description": "time zone empty",
+      "input": {
+        "service_name": "s",
+        "instance_id": "i",
+        "time_zone": ""
+      },
+      "valid": false
+    }
+  ]
+}

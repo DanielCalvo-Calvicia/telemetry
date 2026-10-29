@@ -1,0 +1,55 @@
+{
+  "description": "A severity is exactly one of the six values of the contract, in uppercase.",
+  "cases": [
+    {
+      "description": "TRACE",
+      "input": "TRACE",
+      "valid": true
+    },
+    {
+      "description": "DEBUG",
+      "input": "DEBUG",
+      "valid": true
+    },
+    {
+      "description": "INFO",
+      "input": "INFO",
+      "valid": true
+    },
+    {
+      "description": "WARN",
+      "input": "WARN",
+      "valid": true
+    },
+    {
+      "description": "ERROR",
+      "input": "ERROR",
+      "valid": true
+    },
+    {
+      "description": "CRITICAL",
+      "input": "CRITICAL",
+      "valid": true
+    },
+    {
+      "description": "lowercase is not accepted",
+      "input": "info",
+      "valid": false
+    },
+    {
+      "description": "an unknown level",
+      "input": "FATAL",
+      "valid": false
+    },
+    {
+      "description": "empty",
+      "input": "",
+      "valid": false
+    },
+    {
+      "description": "a trailing space",
+      "input": "INFO ",
+      "valid": false
+    }
+  ]
+}

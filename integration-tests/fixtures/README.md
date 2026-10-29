@@ -25,6 +25,7 @@ One JSON file is one case:
 | Folder | What it holds |
 |---|---|
 | [canonical_json/](canonical_json) | the number, string, sorting and event tables of the canonical JSON (the RFC 8785 vectors), read by the canonical JSON tests of both languages and by [compare_canonical_json.py](../compare_canonical_json.py) |
+| [value_objects/](value_objects) | one table per value object of the domain (severity, actor kind, event id, UTC instant, identifier, hex digits, resource, actor, context, attributes): `{ description, cases: [ { description, input, valid } ] }`; both languages accept exactly the cases with `valid: true` and reject the others (T-03.1) |
 | [event_validation/](event_validation) | the valid and invalid cases of the validation at the source, and the tables of the constructs the generated validators support |
 
 ## Adding or changing a case

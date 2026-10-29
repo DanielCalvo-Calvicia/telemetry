@@ -1,0 +1,61 @@
+{
+  "description": "A text of lowercase hexadecimal digits of an exact width; the input is {value, width}.",
+  "cases": [
+    {
+      "description": "a trace id (32)",
+      "input": {
+        "value": "0af7651916cd43dd8448eb211c80319c",
+        "width": 32
+      },
+      "valid": true
+    },
+    {
+      "description": "a span id (16)",
+      "input": {
+        "value": "b7ad6b7169203331",
+        "width": 16
+      },
+      "valid": true
+    },
+    {
+      "description": "uppercase",
+      "input": {
+        "value": "0AF7651916CD43DD8448EB211C80319C",
+        "width": 32
+      },
+      "valid": false
+    },
+    {
+      "description": "too short",
+      "input": {
+        "value": "b7ad6b716920333",
+        "width": 16
+      },
+      "valid": false
+    },
+    {
+      "description": "too long",
+      "input": {
+        "value": "b7ad6b71692033311",
+        "width": 16
+      },
+      "valid": false
+    },
+    {
+      "description": "a non hexadecimal digit",
+      "input": {
+        "value": "b7ad6b716920333g",
+        "width": 16
+      },
+      "valid": false
+    },
+    {
+      "description": "empty",
+      "input": {
+        "value": "",
+        "width": 16
+      },
+      "valid": false
+    }
+  ]
+}

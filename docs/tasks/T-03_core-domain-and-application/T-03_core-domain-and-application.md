@@ -23,7 +23,7 @@ The part of the library that every capability shares, in Go and in Python with t
 
 | Order | Task | Status |
 |---|---|---|
-| 1 | [T-03.1 Value objects and base value objects](T-03.1_value-objects-and-base-value-objects.md) | todo |
+| 1 | [T-03.1 Value objects and base value objects](T-03.1_value-objects-and-base-value-objects.md) | done (2026-10-29) |
 | 2 | [T-03.2 Ports](T-03.2_ports.md) | todo |
 | 3 | [T-03.3 Building an event](T-03.3_building-an-event.md) | todo |
 | 4 | [T-03.4 Masking and redaction](T-03.4_masking-and-redaction.md) | todo |

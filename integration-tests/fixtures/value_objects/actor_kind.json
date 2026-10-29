@@ -1,0 +1,35 @@
+{
+  "description": "An actor kind is one of the values of contracts/enums/actor_kind.json.",
+  "cases": [
+    {
+      "description": "device",
+      "input": "device",
+      "valid": true
+    },
+    {
+      "description": "agent",
+      "input": "agent",
+      "valid": true
+    },
+    {
+      "description": "subsystem",
+      "input": "subsystem",
+      "valid": true
+    },
+    {
+      "description": "uppercase",
+      "input": "DEVICE",
+      "valid": false
+    },
+    {
+      "description": "unknown",
+      "input": "robot",
+      "valid": false
+    },
+    {
+      "description": "empty",
+      "input": "",
+      "valid": false
+    }
+  ]
+}

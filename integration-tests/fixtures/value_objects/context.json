@@ -1,0 +1,62 @@
+{
+  "description": "A context has optional fields: W3C trace_id (32 hex) and span_id (16 hex), and identifiers. An empty context is valid.",
+  "cases": [
+    {
+      "description": "an empty context",
+      "input": {},
+      "valid": true
+    },
+    {
+      "description": "all the fields",
+      "input": {
+        "trace_id": "0af7651916cd43dd8448eb211c80319c",
+        "span_id": "b7ad6b7169203331",
+        "execution_id": "run-7",
+        "correlation_id": "order-9"
+      },
+      "valid": true
+    },
+    {
+      "description": "only a trace id",
+      "input": {
+        "trace_id": "0af7651916cd43dd8448eb211c80319c"
+      },
+      "valid": true
+    },
+    {
+      "description": "trace id uppercase",
+      "input": {
+        "trace_id": "0AF7651916CD43DD8448EB211C80319C"
+      },
+      "valid": false
+    },
+    {
+      "description": "trace id too short",
+      "input": {
+        "trace_id": "0af76519"
+      },
+      "valid": false
+    },
+    {
+      "description": "span id too long",
+      "input": {
+        "span_id": "b7ad6b71692033311"
+      },
+      "valid": false
+    },
+    {
+      "description": "execution_id present but empty",
+      "input": {
+        "execution_id": ""
+      },
+      "valid": false
+    },
+    {
+      "description": "correlation_id present but empty",
+      "input": {
+        "correlation_id": ""
+      },
+      "valid": false
+    }
+  ]
+}

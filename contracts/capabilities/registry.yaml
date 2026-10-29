@@ -40,8 +40,8 @@ capabilities:
     requirements:
       # REQ-CTR-001: Every emitted event MUST use a versioned envelope with these fields:
       - id: REQ-CTR-001
-        # partial evidence exists (the generated tests cover the serialized envelope fields); the versioned envelope and the UUIDv7 id are completed by T-03.1
-        pending: T-03.1
+        # partial evidence exists (the generated tests cover the serialized envelope fields and the value objects of T-03.1 check each part); the building of the whole envelope is T-03.3
+        pending: T-03.3
       # REQ-CTR-002: Each event_type MUST have a JSON schema for data registered in contrac...
       - id: REQ-CTR-002
         tests:
@@ -65,7 +65,13 @@ capabilities:
           - { language: python, path: python/internal/tests/domain/operations/canonical_json/test_time_format.py }
       # REQ-CTR-005: The identity of the resource (process), of the actor, of the execution...
       - id: REQ-CTR-005
-        pending: T-03.1
+        # resource, actor and correlation context are separate value objects (T-03.1)
+        tests:
+          - { language: go, path: go/internal/tests/domain/value_objects/value_objects_test.go }
+          - { language: go, path: go/internal/tests/domain/value_objects/shared_tables_test.go }
+          - { language: go, path: go/internal/tests/domain/base_value_objects/base_value_objects_test.go }
+          - { language: python, path: python/internal/tests/domain/value_objects/test_value_objects.py }
+          - { language: python, path: python/internal/tests/domain/base_value_objects/test_base_value_objects.py }
       # REQ-CTR-006: execution_id, request_id and any high-cardinality identifier MUST NOT
       - id: REQ-CTR-006
         pending: T-10.1
@@ -77,10 +83,16 @@ capabilities:
         pending: T-03.3
       # REQ-CTR-009: event_id MUST be a UUIDv7 (D-04). It MUST NOT be derived from a timest...
       - id: REQ-CTR-009
-        pending: T-03.1
+        # the value object validates a UUIDv7; the generation of one sits behind IDGeneratorPort (T-03.2)
+        tests:
+          - { language: go, path: go/internal/tests/domain/value_objects/value_objects_test.go }
+          - { language: go, path: go/internal/tests/domain/value_objects/shared_tables_test.go }
+          - { language: go, path: go/internal/tests/domain/base_value_objects/base_value_objects_test.go }
+          - { language: python, path: python/internal/tests/domain/value_objects/test_value_objects.py }
+          - { language: python, path: python/internal/tests/domain/base_value_objects/test_base_value_objects.py }
       # REQ-CTR-010: attributes MUST accept only scalar values and lists of scalars, with c...
       - id: REQ-CTR-010
-        # partial evidence exists (the validator tests cover scalars and the schema limits); the configurable limits and the truncation are completed by T-03.5
+        # partial evidence exists (the validator tests and the EventAttributes tests cover the scalar rule); the configurable limits and the truncation are completed by T-03.5
         pending: T-03.5
       # REQ-CNF-001: The contracts/ directory MUST be the single source of truth. Nobody wr...
       - id: REQ-CNF-001

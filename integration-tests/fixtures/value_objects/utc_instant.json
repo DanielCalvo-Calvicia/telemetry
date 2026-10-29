@@ -1,0 +1,40 @@
+{
+  "description": "An instant is in UTC (offset zero) and in the years 0001 to 9999; the text input carries an explicit offset (ADR-012). The formatted text has six decimals and Z.",
+  "cases": [
+    {
+      "description": "UTC with microseconds",
+      "input": "2026-10-28T10:00:00.123456+00:00",
+      "valid": true
+    },
+    {
+      "description": "UTC without decimals",
+      "input": "2026-10-28T10:00:00+00:00",
+      "valid": true
+    },
+    {
+      "description": "the first instant",
+      "input": "0001-01-01T00:00:00+00:00",
+      "valid": true
+    },
+    {
+      "description": "the last instant",
+      "input": "9999-12-31T23:59:59.999999+00:00",
+      "valid": true
+    },
+    {
+      "description": "an offset of +02:00",
+      "input": "2026-10-28T10:00:00.123456+02:00",
+      "valid": false
+    },
+    {
+      "description": "an offset of -05:00",
+      "input": "2026-10-28T10:00:00.123456-05:00",
+      "valid": false
+    },
+    {
+      "description": "an offset of +00:30",
+      "input": "2026-10-28T10:00:00.123456+00:30",
+      "valid": false
+    }
+  ]
+}

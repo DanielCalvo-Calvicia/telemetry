@@ -1,0 +1,45 @@
+{
+  "description": "An identifier is a text that has at least one character that is not whitespace and no control characters (Unicode category Cc, such as a tab or a newline); it is never trimmed or changed.",
+  "cases": [
+    {
+      "description": "a name",
+      "input": "sensor-hub",
+      "valid": true
+    },
+    {
+      "description": "a number-like text",
+      "input": "42",
+      "valid": true
+    },
+    {
+      "description": "with spaces inside",
+      "input": "my service",
+      "valid": true
+    },
+    {
+      "description": "with non-ASCII",
+      "input": "señal-ñ",
+      "valid": true
+    },
+    {
+      "description": "empty",
+      "input": "",
+      "valid": false
+    },
+    {
+      "description": "only spaces",
+      "input": "   ",
+      "valid": false
+    },
+    {
+      "description": "a tab",
+      "input": "\t",
+      "valid": false
+    },
+    {
+      "description": "a newline inside",
+      "input": "a\nb",
+      "valid": false
+    }
+  ]
+}
