@@ -4,4 +4,5 @@ use (
 	.
 	./go
 	./tools/contract_generator
+	./tools/registry_check
 )

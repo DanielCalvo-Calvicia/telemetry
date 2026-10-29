@@ -1,0 +1,42 @@
+registry_version: 1
+capabilities:
+  - id: alpha
+    title: "Title of alpha"
+    level: beta
+    status: supported
+    description: "What alpha is for."
+    public_api: []
+    schemas: []
+    configuration: []
+    errors: []
+    ports: []
+    adapters: []
+    languages:
+      go: { state: passing }
+      python: { state: passing }
+    requirements:
+      - id: REQ-AAA-001
+        tests:
+          - { language: go, path: tests/alpha_test.txt }
+          - { language: python, path: tests/test_alpha.txt }
+      - id: REQ-AAA-002
+        pending: T-01.2
+
+  - id: beta_area
+    title: "Title of beta_area"
+    level: beta
+    status: in_progress
+    description: "What beta_area is for."
+    public_api: []
+    schemas: []
+    configuration: []
+    errors: []
+    ports: []
+    adapters: []
+    languages:
+      go: { state: built }
+      python: { state: todo }
+    requirements:
+      - id: REQ-BBB-001
+        tests:
+          - { language: go, path: tests/beta_test.txt }

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | in-progress (T-02.1 to T-02.6 done 2026-10-28 and 2026-10-29) |
+| Status | in-progress (T-02.1 to T-02.7 done 2026-10-28 and 2026-10-29) |
 | Kind | epic |
 | Parent | project |
 | Depends on | T-01 |
@@ -30,7 +30,7 @@ Write `contracts/`, the single source of truth between the two languages (JSON S
 | 4 | [T-02.4 The generator](T-02.4_the-generator.md) | done (2026-10-28) |
 | 5 | [T-02.5 Canonical JSON](T-02.5_canonical-json.md) | done (2026-10-28) |
 | 6 | [T-02.6 Validation at the source](T-02.6_validation-at-the-source.md) | done (2026-10-29) |
-| 7 | [T-02.7 Capabilities registry and its check](T-02.7_capabilities-registry-and-its-check.md) | todo |
+| 7 | [T-02.7 Capabilities registry and its check](T-02.7_capabilities-registry-and-its-check.md) | done (2026-10-29) |
 | 8 | [T-02.8 Shared fixtures](T-02.8_shared-fixtures.md) | todo |
 
 Order: 1, 2, 3, 4; then 5, 6 and 7 (5 and 6 need 4; 7 only needs 1, so it can start right after 1 and run in parallel with 2 to 4); then 8 (needs 5). T-03 can start when T-02.4 is done, in parallel with 5 to 8. A contract change needs a pull request and a dated note in an ADR (Q01-4).

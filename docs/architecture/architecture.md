@@ -128,6 +128,15 @@ An event whose `data` does not match the schema of its `event_type` is rejected 
 - **What it refuses to generate.** Any other keyword in a schema that an event type reaches (`pattern`, `format`, an inline `enum`, `minimum`, ...) stops the generator, naming the file and the property, so a constraint is never silently ignored.
 - **Not wired yet.** Nothing calls `ValidateEvent` yet: the building of an event (T-03.3) does, once per event, after masking is decided and before the queue. The rejection counter is planned.
 
+### 2.7 The capabilities registry and its check (built, T-02.7)
+
+`contracts/capabilities/registry.yaml` lists the capabilities of the standard and, for **every requirement of the specification**, either the conformance tests that prove it or the task that will write them (section 2 of PR-001, REQ-CNF-007, REQ-CNF-008). Its fields and states are in [contracts/capabilities/README.md](../../contracts/capabilities/README.md). `tools/registry_check/` is the check: a Go module of its own (the same layers as the generator, `gopkg.in/yaml.v3` its only library) run in CI by the job `registry-check`.
+
+- **The source of the requirement ids is the specification** (PR-001, the bold `**REQ-XXX-nnn.**` definitions: 130 ids in 20 areas), through the flag `--spec`. The plan's default, the requirements document, lists only the requirements whose state moved, so it cannot be the source.
+- **What it fails on:** a requirement of the specification that no capability lists; an id that is not in the specification; a requirement with neither tests nor a pending task; a listed test file that does not exist; a pending task that does not exist in `docs/tasks`; a capability marked `supported` while a language is not `passing` (or `not_applicable` without a reason) or while a requirement is only pending; an invalid level, status or state; a duplicated id (a requirement belongs to one capability only). A misspelled key fails too (strict YAML).
+- **What it reports.** The uncovered requirements, one per line with their area and the task they wait for (`REQ-ARC-014 (ARC): pending T-03.9`), a separate list of those that **no task mentions yet** (`pending: unassigned`: allowed, never counted as covered), the counts, and the library maturity as the least complete capability (REQ-CNF-008). A pending item never counts as covered.
+- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **10 covered by real tests** (the architecture, canonical JSON, event validation and generator requirements), **112 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
+
 ## 3. Current state (exists)
 
 | Layer | Package | What it holds |
