@@ -16,6 +16,28 @@ import (
 
 var generated_names = []string{"enums_generated", "event_types_generated", "error_codes_generated", "envelope_generated"}
 
+// validators_name is the file of the generated validators, in the folder of each language.
+const validators_name = "event_validators_generated"
+
+// output_folders are the four folders the generator writes.
+type output_folders struct {
+	go_out, python_out, go_validation_out, python_validation_out string
+}
+
+func new_output_folders(test *testing.T) output_folders {
+	return output_folders{test.TempDir(), test.TempDir(), test.TempDir(), test.TempDir()}
+}
+
+// missing_output_folders are four folders that do not exist yet, to prove that nothing is written into them.
+func missing_output_folders(test *testing.T) output_folders {
+	missing := func(name string) string { return filepath.Join(test.TempDir(), name) }
+	return output_folders{missing("go"), missing("py"), missing("go_validation"), missing("py_validation")}
+}
+
+func (folders output_folders) all() []string {
+	return []string{folders.go_out, folders.python_out, folders.go_validation_out, folders.python_validation_out}
+}
+
 // snapshot returns the content of every file of a folder by name, or nil if it does not exist.
 func snapshot(test *testing.T, directory string) map[string]string {
 	test.Helper()
@@ -31,18 +53,30 @@ func snapshot(test *testing.T, directory string) map[string]string {
 	return files
 }
 
-func generate(contracts_dir string, go_out_dir string, python_out_dir string) error {
-	return composition_root.NewGenerator(contracts_dir, go_out_dir, python_out_dir).Execute()
+func generate(contracts_dir string, folders output_folders) error {
+	return composition_root.NewGenerator(
+		contracts_dir, folders.go_out, folders.python_out, folders.go_validation_out, folders.python_validation_out,
+	).Execute()
 }
 
 func TestTheFixtureContractGeneratesTheExpectedFilesByteByByte(test *testing.T) {
-	go_out_dir, python_out_dir := test.TempDir(), test.TempDir()
-	if generate_error := generate(fixtures.ContractDir(), go_out_dir, python_out_dir); generate_error != nil {
+	folders := new_output_folders(test)
+	if generate_error := generate(fixtures.ContractDir(), folders); generate_error != nil {
 		test.Fatal(generate_error)
 	}
-	go_files, python_files := snapshot(test, go_out_dir), snapshot(test, python_out_dir)
+	go_files, python_files := snapshot(test, folders.go_out), snapshot(test, folders.python_out)
 	if len(go_files) != 4 || len(python_files) != 4 {
 		test.Fatalf("got %d Go and %d Python files, want 4 and 4", len(go_files), len(python_files))
+	}
+	go_validation, python_validation := snapshot(test, folders.go_validation_out), snapshot(test, folders.python_validation_out)
+	if len(go_validation) != 1 || len(python_validation) != 1 {
+		test.Fatalf("got %d Go and %d Python validation files, want 1 and 1", len(go_validation), len(python_validation))
+	}
+	if go_validation[validators_name+".go"] != fixtures.Expected(test, "go/"+validators_name+".go.golden") {
+		test.Error("the Go validators differ from their expected file")
+	}
+	if python_validation[validators_name+".py"] != fixtures.Expected(test, "python/"+validators_name+".py.golden") {
+		test.Error("the Python validators differ from their expected file")
 	}
 	for _, name := range generated_names {
 		if got, expected := go_files[name+".go"], fixtures.Expected(test, "go/"+name+".go.golden"); got != expected {
@@ -55,23 +89,29 @@ func TestTheFixtureContractGeneratesTheExpectedFilesByteByByte(test *testing.T) 
 }
 
 func TestASecondRunChangesNothing(test *testing.T) {
-	go_out_dir, python_out_dir := test.TempDir(), test.TempDir()
-	if generate_error := generate(fixtures.ContractDir(), go_out_dir, python_out_dir); generate_error != nil {
+	folders := new_output_folders(test)
+	if generate_error := generate(fixtures.ContractDir(), folders); generate_error != nil {
 		test.Fatal(generate_error)
 	}
-	first_go, first_python := snapshot(test, go_out_dir), snapshot(test, python_out_dir)
-	if generate_error := generate(fixtures.ContractDir(), go_out_dir, python_out_dir); generate_error != nil {
-		test.Fatal(generate_error)
-	}
-	second_go, second_python := snapshot(test, go_out_dir), snapshot(test, python_out_dir)
-	for name, content := range first_go {
-		if second_go[name] != content {
-			test.Errorf("%s changed in the second run", name)
+	take := func() []map[string]string {
+		var taken []map[string]string
+		for _, folder := range folders.all() {
+			taken = append(taken, snapshot(test, folder))
 		}
+		return taken
 	}
-	for name, content := range first_python {
-		if second_python[name] != content {
-			test.Errorf("%s changed in the second run", name)
+	first := take()
+	if generate_error := generate(fixtures.ContractDir(), folders); generate_error != nil {
+		test.Fatal(generate_error)
+	}
+	for position, second := range take() {
+		if len(second) != len(first[position]) || len(second) == 0 {
+			test.Errorf("folder %d has a different number of files in the second run", position)
+		}
+		for name, content := range first[position] {
+			if second[name] != content {
+				test.Errorf("%s changed in the second run", name)
+			}
 		}
 	}
 }
@@ -133,16 +173,18 @@ func TestABrokenContractStopsTheGeneratorWithTheFileAndWritesNothing(test *testi
 			if each.content != "" {
 				fixtures.Write(test, contracts_dir, each.file, each.content)
 			}
-			go_out_dir, python_out_dir := filepath.Join(test.TempDir(), "go"), filepath.Join(test.TempDir(), "py")
-			generate_error := generate(contracts_dir, go_out_dir, python_out_dir)
+			folders := missing_output_folders(test)
+			generate_error := generate(contracts_dir, folders)
 			if !errors.Is(generate_error, each.sentinel) {
 				test.Fatalf("error %v does not wrap %v", generate_error, each.sentinel)
 			}
 			if !strings.Contains(generate_error.Error(), each.file) {
 				test.Errorf("error %q does not name %s", generate_error, each.file)
 			}
-			if snapshot(test, go_out_dir) != nil || snapshot(test, python_out_dir) != nil {
-				test.Error("nothing must be written for a broken contract")
+			for _, folder := range folders.all() {
+				if snapshot(test, folder) != nil {
+					test.Errorf("nothing must be written for a broken contract, but %s exists", folder)
+				}
 			}
 		})
 	}
@@ -151,7 +193,8 @@ func TestABrokenContractStopsTheGeneratorWithTheFileAndWritesNothing(test *testi
 func TestTheCommandLineGeneratesAndReportsFailures(test *testing.T) {
 	var messages strings.Builder
 	arguments := func(contracts_dir string) []string {
-		return []string{"--contracts", contracts_dir, "--go-out", test.TempDir(), "--python-out", test.TempDir()}
+		return []string{"--contracts", contracts_dir, "--go-out", test.TempDir(), "--python-out", test.TempDir(),
+			"--go-validation-out", test.TempDir(), "--python-validation-out", test.TempDir()}
 	}
 	if code := cli.Run(arguments(fixtures.ContractDir()), &messages, composition_root.NewGenerator); code != cli.ExitOK {
 		test.Fatalf("code %d: %s", code, messages.String())

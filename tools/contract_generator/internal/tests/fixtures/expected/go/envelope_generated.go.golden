@@ -13,8 +13,15 @@ type Context struct {
 
 // DemoThingHappened mirrors contracts/schemas/demo/thing_happened.schema.json.
 type DemoThingHappened struct {
-	Category string `json:"category"`
-	Note     string `json:"note,omitempty"`
+	Category string         `json:"category"`
+	Count    int64          `json:"count"`
+	Severity Severity       `json:"severity"`
+	Flag     *bool          `json:"flag,omitempty"`
+	Labels   Attributes     `json:"labels,omitempty"`
+	Note     string         `json:"note,omitempty"`
+	Payload  map[string]any `json:"payload,omitempty"`
+	Ratio    *float64       `json:"ratio,omitempty"`
+	Resource *Resource      `json:"resource,omitempty"`
 }
 
 // Envelope mirrors contracts/schemas/envelope.schema.json.

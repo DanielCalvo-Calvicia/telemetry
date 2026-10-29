@@ -65,7 +65,12 @@ jobs:
           cache: false
       - name: Generate the code of both languages
         working-directory: tools/contract_generator
-        run: go run . --contracts ../../contracts --go-out ../../go/internal/domain/value_objects --python-out ../../python/src/telemetry/internal/domain/value_objects
+        run: >-
+          go run . --contracts ../../contracts
+          --go-out ../../go/internal/domain/value_objects
+          --python-out ../../python/src/telemetry/internal/domain/value_objects
+          --go-validation-out ../../go/internal/domain/operations/event_validation
+          --python-validation-out ../../python/src/telemetry/internal/domain/operations/event_validation
       - name: Fail if the committed code differs from the contract
         run: |
           git diff --exit-code

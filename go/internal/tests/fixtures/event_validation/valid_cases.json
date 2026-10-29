@@ -1,0 +1,35 @@
+{
+  "description": "Data that is valid for its event type. Go and Python read this same file; both must return no error for every case.",
+  "cases": [
+    {
+      "name": "category_function_and_message",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "function": "handle_request", "message": "request served" }
+    },
+    {
+      "name": "no_function",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": "request served" }
+    },
+    {
+      "name": "empty_message",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": "" }
+    },
+    {
+      "name": "empty_category_and_empty_function",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "", "function": "", "message": "x" }
+    },
+    {
+      "name": "unicode_message",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "i18n", "message": "café ☃ 😀" }
+    },
+    {
+      "name": "long_message",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "big", "message": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
+    }
+  ]
+}

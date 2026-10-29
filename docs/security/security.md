@@ -30,6 +30,10 @@ Everything pushed is permanent (the Go proxy caches versions forever). Before a 
 - Consumers pin a tag, commit `go.sum` and use `GOFLAGS=-mod=readonly` in CI; a bad release is retracted, never moved ([ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md)).
 - `LICENSE` is MIT.
 
+## Validation errors never carry the value (planned, T-02.6)
+
+The validator of the new standard (built, not yet called from a logging path) puts only the event type, the field path and a fixed reason in its error, never the value that failed: a value may be a secret. A hostile field name is cut to 64 characters and its control characters are replaced, so it cannot forge a log line. A test feeds a fake secret-looking value and checks it never appears in a message.
+
 ## Reporting a vulnerability
 
 Privately, through GitHub's private vulnerability reporting of the repository (see `SECURITY.md`). Not through a public issue.

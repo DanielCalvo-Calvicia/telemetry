@@ -1,0 +1,31 @@
+{
+  "description": "Valid data for the demo event type of the fixture contract of tools/contract_generator (enum, nested object, attributes, integer, number, boolean, string limits). The Python test runs the generated validator that the generator wrote for that fixture contract; the Go test builds the same rules by hand with the exported rules of the package. Both must accept every case.",
+  "cases": [
+    { "name": "only_the_required_fields", "data": { "category": "c", "count": 1, "severity": "INFO" } },
+    {
+      "name": "every_field",
+      "data": {
+        "category": "c",
+        "count": 3,
+        "severity": "ERROR",
+        "flag": false,
+        "labels": { "a": "x", "b": 1, "c": [true, "y", 2.5] },
+        "note": "hello",
+        "payload": { "any": { "nested": [1, 2] } },
+        "ratio": 1.5,
+        "resource": { "service_name": "svc", "host": "h" }
+      }
+    },
+    { "name": "an_integer_written_with_a_fraction_of_zero", "data": { "category": "c", "count": 2.0, "severity": "INFO" } },
+    { "name": "a_huge_integer", "data": { "category": "c", "count": 12345678901234567890, "severity": "INFO" } },
+    { "name": "a_number_that_is_a_whole_number", "data": { "category": "c", "count": 1, "severity": "INFO", "ratio": 7 } },
+    { "name": "empty_attributes_and_empty_payload", "data": { "category": "c", "count": 1, "severity": "INFO", "labels": {}, "payload": {} } },
+    { "name": "a_note_of_one_character", "data": { "category": "c", "count": 1, "severity": "INFO", "note": "n" } },
+    { "name": "a_note_of_exactly_twenty_characters", "data": { "category": "c", "count": 1, "severity": "INFO", "note": "aaaaaaaaaaaaaaaaaaaa" } },
+    {
+      "name": "attributes_at_every_limit",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": "aaaaaaaaaa", "abcdefgh": 1, "z": [] } }
+    },
+    { "name": "characters_are_counted_not_bytes", "data": { "category": "c", "count": 1, "severity": "INFO", "note": "éééééééééééééééééééé" } }
+  ]
+}

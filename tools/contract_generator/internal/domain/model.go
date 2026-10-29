@@ -76,6 +76,13 @@ type Field struct {
 	Ref string
 	// Required is true when the schema lists the property as required.
 	Required bool
+	// MinLength is the minimum length of a string, in characters; 0 means no minimum.
+	MinLength int
+	// MaxLength is the maximum length of a string, in characters; 0 means no maximum.
+	MaxLength int
+	// Unsupported lists, comma separated, the keywords of the property that the generated validation cannot honour
+	// (pattern, format, an inline enum...). It stops the generator only when the struct is validated.
+	Unsupported string
 }
 
 // Struct is an object schema: the envelope, a common object or the data of an event type.
@@ -86,6 +93,10 @@ type Struct struct {
 	Source string
 	// Fields are the properties in the order of the schema.
 	Fields []Field
+	// Closed is true when the schema has additionalProperties false: a field it does not name is invalid.
+	Closed bool
+	// Unsupported lists, comma separated, the keywords of the schema that the generated validation cannot honour.
+	Unsupported string
 }
 
 // OrderedFields returns the fields with the required ones first and then the optional ones, each group in
@@ -103,6 +114,21 @@ func (declared Struct) OrderedFields() []Field {
 	return ordered
 }
 
+// AttributesLimits are the limits of the attributes schema that the generated validation applies. A zero means no
+// limit.
+type AttributesLimits struct {
+	// Source is the path of the attributes schema; it is empty when the contract has none.
+	Source string
+	// MaxProperties is the most keys an attributes object may have.
+	MaxProperties int
+	// MinKeyLength is the shortest key, in characters.
+	MinKeyLength int
+	// MaxKeyLength is the longest key, in characters.
+	MaxKeyLength int
+	// MaxStringLength is the longest string value, in characters.
+	MaxStringLength int
+}
+
 // Contract is the whole contract folder, already read.
 type Contract struct {
 	// Enums are the enums of contracts/enums.
@@ -116,6 +142,8 @@ type Contract struct {
 	// DataSchemas are the paths, relative to the contracts folder, of every event data schema found in the folder
 	// (schemas/<domain>/<entity>_<action>.schema.json), registered or not.
 	DataSchemas []string
+	// Attributes are the limits of the attributes schema.
+	Attributes AttributesLimits
 }
 
 // Sorted returns a copy of the contract with every list in a deterministic order: the enums, the event types, the
@@ -128,6 +156,7 @@ func (contract Contract) Sorted() Contract {
 		ErrorCodes:  append([]ErrorCode(nil), contract.ErrorCodes...),
 		Structs:     append([]Struct(nil), contract.Structs...),
 		DataSchemas: append([]string(nil), contract.DataSchemas...),
+		Attributes:  contract.Attributes,
 	}
 	sort.SliceStable(sorted.Enums, func(left int, right int) bool { return sorted.Enums[left].Name < sorted.Enums[right].Name })
 	sort.SliceStable(sorted.EventTypes, func(left int, right int) bool {

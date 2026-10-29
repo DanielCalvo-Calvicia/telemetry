@@ -1,8 +1,10 @@
 package contract_folder
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"path"
 	"sort"
@@ -88,6 +90,7 @@ func build_contract(documents []document, registry registry_file, catalog catalo
 		switch {
 		case name == attributes_name && path.Dir(declared.path) == "schemas/"+common_folder:
 			targets[declared.id] = target{kind: domain.KindAttributes}
+			contract.Attributes = read_attributes_limits(declared)
 		case is_struct:
 			targets[declared.id] = target{kind: domain.KindStruct, name: name}
 			pending = append(pending, pending_struct{declared: declared, name: name})
@@ -163,7 +166,8 @@ func map_struct(awaiting pending_struct, targets map[string]target) (domain.Stru
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	built := domain.Struct{Name: awaiting.name, Source: source}
+	built := domain.Struct{Name: awaiting.name, Source: source, Closed: declared.body["additionalProperties"] == false}
+	built.Unsupported = unsupported_keywords(declared.body, struct_keywords)
 	for _, name := range names {
 		property, _ := properties[name].(map[string]any)
 		field, field_error := map_field(declared, name, property, targets)
@@ -179,6 +183,7 @@ func map_struct(awaiting pending_struct, targets map[string]target) (domain.Stru
 // map_field turns a property of an object schema into a field.
 func map_field(declared document, name string, property map[string]any, targets map[string]target) (domain.Field, error) {
 	field := domain.Field{JSONName: name}
+	field.Unsupported = unsupported_keywords(property, property_keywords)
 	if reference, has_reference := property["$ref"].(string); has_reference {
 		return map_reference(declared, field, reference, targets)
 	}
@@ -186,6 +191,10 @@ func map_field(declared document, name string, property map[string]any, targets 
 	switch kind {
 	case "string":
 		field.Kind = domain.KindString
+		field.MinLength, field.MaxLength = integer_of(property["minLength"]), integer_of(property["maxLength"])
+		if _, has_maximum := property["maxLength"]; has_maximum && field.MaxLength < 1 {
+			return field, unsupported(declared, name, "a maxLength below 1")
+		}
 	case "number":
 		field.Kind = domain.KindNumber
 	case "integer":
@@ -227,6 +236,67 @@ func map_reference(declared document, field domain.Field, reference string, targ
 	field.Kind = pointed.kind
 	field.Ref = pointed.name
 	return field, nil
+}
+
+// property_keywords are the keywords of a property that the generated validation honours or that only describe it.
+var property_keywords = map[string]bool{
+	"type": true, "$ref": true, "description": true, "title": true, "$comment": true, "examples": true,
+	"minLength": true, "maxLength": true,
+}
+
+// struct_keywords are the keywords of an object schema that the generated validation honours or that only describe it.
+var struct_keywords = map[string]bool{
+	"$schema": true, "$id": true, "$defs": true, "$comment": true, "title": true, "description": true, "type": true,
+	"required": true, "properties": true, "additionalProperties": true,
+}
+
+// unsupported_keywords returns, sorted and comma separated, the keywords of a schema that are not in the allowed set.
+// An additionalProperties that is not a boolean is also unsupported: the validation knows only "closed" and "open".
+func unsupported_keywords(body map[string]any, allowed map[string]bool) string {
+	var found []string
+	for keyword, value := range body {
+		_, is_flag := value.(bool)
+		if !allowed[keyword] || (keyword == "additionalProperties" && !is_flag) {
+			found = append(found, keyword)
+		}
+	}
+	sort.Strings(found)
+	return strings.Join(found, ", ")
+}
+
+// integer_of returns a JSON number as an int: a whole number written with or without a zero fraction (2 or 2.0). It
+// returns 0 for anything else, which means no limit.
+func integer_of(value any) int {
+	number, is_number := value.(json.Number)
+	if !is_number {
+		return 0
+	}
+	if parsed, parse_error := number.Int64(); parse_error == nil {
+		return int(parsed)
+	}
+	parsed, parse_error := number.Float64()
+	if parse_error != nil || parsed != math.Trunc(parsed) {
+		return 0
+	}
+	return int(parsed)
+}
+
+// read_attributes_limits reads the limits of the attributes schema: the most keys, the length of a key and the length
+// of a string value. A limit the schema does not state stays 0, which means no limit.
+func read_attributes_limits(declared document) domain.AttributesLimits {
+	limits := domain.AttributesLimits{Source: domain.SourcePrefix + declared.path, MaxProperties: integer_of(declared.body["maxProperties"])}
+	names, _ := declared.body["propertyNames"].(map[string]any)
+	limits.MinKeyLength, limits.MaxKeyLength = integer_of(names["minLength"]), integer_of(names["maxLength"])
+	definitions, _ := declared.body["$defs"].(map[string]any)
+	scalar, _ := definitions["scalar"].(map[string]any)
+	alternatives, _ := scalar["anyOf"].([]any)
+	for _, alternative := range alternatives {
+		candidate, _ := alternative.(map[string]any)
+		if candidate["type"] == "string" {
+			limits.MaxStringLength = integer_of(candidate["maxLength"])
+		}
+	}
+	return limits
 }
 
 // unsupported builds the error of a property the generator cannot map.

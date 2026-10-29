@@ -3,10 +3,17 @@
   "$id": "https://telemetry.example/fixture/schemas/demo/thing_happened.schema.json",
   "title": "demo.thing.happened: data",
   "type": "object",
-  "required": ["category"],
+  "required": ["category", "count", "severity"],
   "properties": {
     "category": { "type": "string" },
-    "note": { "type": "string" }
+    "note": { "type": "string", "minLength": 1, "maxLength": 20 },
+    "severity": { "$ref": "https://telemetry.example/fixture/enums/severity.json" },
+    "resource": { "$ref": "https://telemetry.example/fixture/schemas/common/resource.schema.json" },
+    "labels": { "$ref": "https://telemetry.example/fixture/schemas/common/attributes.schema.json" },
+    "count": { "type": "integer" },
+    "ratio": { "type": "number" },
+    "flag": { "type": "boolean" },
+    "payload": { "type": "object" }
   },
   "additionalProperties": false
 }

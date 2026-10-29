@@ -46,12 +46,17 @@ func (Renderer) Render(contract domain.Contract) ([]domain.GeneratedFile, error)
 
 // header is the start of every file: the generated marker, the sources and the package clause.
 func header(sources []string) string {
+	return header_of(package_name, sources)
+}
+
+// header_of is the header of a file of a given package.
+func header_of(package_clause string, sources []string) string {
 	var text strings.Builder
 	text.WriteString(generated_marker + "\n")
 	for _, source := range sources {
 		text.WriteString("// Source: " + source + "\n")
 	}
-	text.WriteString("\npackage " + package_name + "\n")
+	text.WriteString("\npackage " + package_clause + "\n")
 	return text.String()
 }
 

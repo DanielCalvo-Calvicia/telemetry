@@ -1,4 +1,4 @@
-// Package cli is the command line of the generator: it reads the three folders from the arguments and runs the use
+// Package cli is the command line of the generator: it reads the five folders from the arguments and runs the use
 // case.
 package cli
 
@@ -14,8 +14,15 @@ type Executor interface {
 	Execute() error
 }
 
-// Factory builds the use case for the three folders of the command line.
-type Factory func(contracts_dir string, go_out_dir string, python_out_dir string) Executor
+// Factory builds the use case for the five folders of the command line: the contracts folder, the folders of the
+// generated types of each language and the folders of the generated validators of each language.
+type Factory func(
+	contracts_dir string,
+	go_out_dir string,
+	python_out_dir string,
+	go_validation_out_dir string,
+	python_validation_out_dir string,
+) Executor
 
 // Exit codes of the command.
 const (
@@ -35,15 +42,18 @@ func Run(arguments []string, error_writer io.Writer, build Factory) int {
 	contracts_dir := flags.String("contracts", "", "the contracts folder to read (required)")
 	go_out_dir := flags.String("go-out", "", "the folder where the Go files are written (required)")
 	python_out_dir := flags.String("python-out", "", "the folder where the Python files are written (required)")
+	go_validation_out_dir := flags.String("go-validation-out", "", "the folder where the Go validators are written (required)")
+	python_validation_out_dir := flags.String("python-validation-out", "", "the folder where the Python validators are written (required)")
 	if parse_error := flags.Parse(arguments); parse_error != nil {
 		return ExitUsage
 	}
-	if *contracts_dir == "" || *go_out_dir == "" || *python_out_dir == "" {
-		fmt.Fprintln(error_writer, "contract_generator: --contracts, --go-out and --python-out are all required")
+	if *contracts_dir == "" || *go_out_dir == "" || *python_out_dir == "" || *go_validation_out_dir == "" || *python_validation_out_dir == "" {
+		fmt.Fprintln(error_writer, "contract_generator: --contracts, --go-out, --python-out, --go-validation-out and --python-validation-out are all required")
 		flags.Usage()
 		return ExitUsage
 	}
-	if execute_error := build(*contracts_dir, *go_out_dir, *python_out_dir).Execute(); execute_error != nil {
+	executor := build(*contracts_dir, *go_out_dir, *python_out_dir, *go_validation_out_dir, *python_validation_out_dir)
+	if execute_error := executor.Execute(); execute_error != nil {
 		fmt.Fprintf(error_writer, "contract_generator: %v\n", execute_error)
 		return ExitFailure
 	}

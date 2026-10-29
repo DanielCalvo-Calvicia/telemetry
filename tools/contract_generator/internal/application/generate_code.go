@@ -1,32 +1,31 @@
 package application
 
-import "fmt"
+import (
+	"fmt"
 
-// GenerateCode is the use case of the generator: read the contract, check it, render the code of both languages and
-// write it. Nothing is written unless the contract is valid and both languages rendered.
-type GenerateCode struct {
-	reader          ContractReader
-	go_renderer     CodeRenderer
-	python_renderer CodeRenderer
-	go_writer       FileWriter
-	python_writer   FileWriter
+	"github.com/DanielCalvo-Calvicia/telemetry/tools/contract_generator/internal/domain"
+)
+
+// Target is one output of the generator: the renderer of one kind of file in one language and the writer of the
+// folder where those files go.
+type Target struct {
+	// Renderer turns the contract into the files of this output.
+	Renderer CodeRenderer
+	// Writer writes those files into their folder.
+	Writer FileWriter
 }
 
-// NewGenerateCode builds the use case from its ports.
-func NewGenerateCode(
-	reader ContractReader,
-	go_renderer CodeRenderer,
-	python_renderer CodeRenderer,
-	go_writer FileWriter,
-	python_writer FileWriter,
-) GenerateCode {
-	return GenerateCode{
-		reader:          reader,
-		go_renderer:     go_renderer,
-		python_renderer: python_renderer,
-		go_writer:       go_writer,
-		python_writer:   python_writer,
-	}
+// GenerateCode is the use case of the generator: read the contract, check it, render every output and write them.
+// Nothing is written unless the contract is valid and every output rendered.
+type GenerateCode struct {
+	reader  ContractReader
+	targets []Target
+}
+
+// NewGenerateCode builds the use case from its ports: the reader and the outputs, which are rendered and written in
+// the order they are given.
+func NewGenerateCode(reader ContractReader, targets ...Target) GenerateCode {
+	return GenerateCode{reader: reader, targets: targets}
 }
 
 // Execute runs the use case. The same contract always gives the same bytes.
@@ -39,16 +38,21 @@ func (use_case GenerateCode) Execute() error {
 	if validation_error := contract.Validate(); validation_error != nil {
 		return fmt.Errorf("%w:\n%w", ErrInvalidContract, validation_error)
 	}
-	go_files, go_error := use_case.go_renderer.Render(contract)
-	if go_error != nil {
-		return go_error
+	if validatable_error := contract.CheckValidatable(); validatable_error != nil {
+		return validatable_error
 	}
-	python_files, python_error := use_case.python_renderer.Render(contract)
-	if python_error != nil {
-		return python_error
+	rendered := make([][]domain.GeneratedFile, len(use_case.targets))
+	for position, target := range use_case.targets {
+		files, render_error := target.Renderer.Render(contract)
+		if render_error != nil {
+			return render_error
+		}
+		rendered[position] = files
 	}
-	if write_error := use_case.go_writer.Write(go_files); write_error != nil {
-		return write_error
+	for position, target := range use_case.targets {
+		if write_error := target.Writer.Write(rendered[position]); write_error != nil {
+			return write_error
+		}
 	}
-	return use_case.python_writer.Write(python_files)
+	return nil
 }

@@ -14,6 +14,10 @@ var (
 	ErrUnsupportedValue = errors.New("the value has no canonical JSON form")
 	// ErrNonUTCTime is returned for an instant that is not in UTC or is outside the years 0000 to 9999.
 	ErrNonUTCTime = errors.New("the instant is not a UTC time of the format of the contract")
+	// ErrEventSchemaInvalid is returned for the data of an event that does not match the schema of its event type.
+	ErrEventSchemaInvalid = errors.New("the data of the event does not match the schema of its type")
+	// ErrEventTypeUnknown is returned for an event type that is not in the registry.
+	ErrEventTypeUnknown = errors.New("the event type is not in the registry")
 )
 
 // ClassifiedError is an error with the code of the catalog of error codes. It keeps the cause, so errors.Is finds the

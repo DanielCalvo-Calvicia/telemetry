@@ -1,7 +1,7 @@
-// Command contract_generator reads the contracts folder and writes the Go and the Python code generated from it
+// Command contract_generator reads the contracts folder and writes the Go and the Python types and validators generated from it
 // (REQ-CNF-002). It stops, naming the file, when the contract is not valid.
 //
-//	go run . --contracts <dir> --go-out <dir> --python-out <dir>
+//	go run . --contracts <dir> --go-out <dir> --python-out <dir> --go-validation-out <dir> --python-validation-out <dir>
 package main
 
 import (

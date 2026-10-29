@@ -29,7 +29,14 @@ class DemoThingHappened:
     """Mirror of contracts/schemas/demo/thing_happened.schema.json."""
 
     category: str
+    count: int
+    severity: Severity
+    flag: bool | None = None
+    labels: Attributes | None = None
     note: str | None = None
+    payload: dict[str, Any] | None = None
+    ratio: float | None = None
+    resource: Resource | None = None
 
 
 @dataclasses.dataclass

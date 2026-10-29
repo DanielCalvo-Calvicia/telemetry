@@ -1,0 +1,202 @@
+{
+  "description": "Data that is invalid for its event type. Go and Python read this same file and must return the same error_code and the same field_path for every case. message is the detail of the error: the event type, the field path and the reason. secret, when present, is a value of the input that must NEVER appear in the error message. field_path is null when the error has no field path (an unknown event type).",
+  "cases": [
+    {
+      "name": "missing_message",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http" },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: required field is missing"
+    },
+    {
+      "name": "missing_category",
+      "event_type": "log.entry.recorded",
+      "data": { "message": "hello" },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.category",
+      "message": "log.entry.recorded: data.category: required field is missing"
+    },
+    {
+      "name": "everything_missing_reports_the_first_in_alphabetical_order",
+      "event_type": "log.entry.recorded",
+      "data": {},
+      "error_code": "event_schema_invalid",
+      "field_path": "data.category",
+      "message": "log.entry.recorded: data.category: required field is missing"
+    },
+    {
+      "name": "a_missing_field_is_reported_before_a_wrong_type",
+      "event_type": "log.entry.recorded",
+      "data": { "category": 7 },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: required field is missing"
+    },
+    {
+      "name": "message_is_a_number",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": 42 },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: expected string"
+    },
+    {
+      "name": "message_is_null",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": null },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: expected string"
+    },
+    {
+      "name": "message_is_an_object_that_holds_a_secret",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": { "token": "FAKE-SECRET-VALUE-1234" } },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: expected string",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "message_is_a_list_that_holds_a_secret",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": ["FAKE-SECRET-VALUE-1234"] },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: expected string",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "category_is_a_boolean",
+      "event_type": "log.entry.recorded",
+      "data": { "category": true, "message": "x" },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.category",
+      "message": "log.entry.recorded: data.category: expected string"
+    },
+    {
+      "name": "function_is_a_number",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "function": 3.5, "message": "x" },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.function",
+      "message": "log.entry.recorded: data.function: expected string"
+    },
+    {
+      "name": "a_wrong_type_is_reported_before_an_unknown_field",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": 1, "extra": "FAKE-SECRET-VALUE-1234" },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.message",
+      "message": "log.entry.recorded: data.message: expected string",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "unknown_field_with_a_secret_value",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": "x", "extra": "FAKE-SECRET-VALUE-1234" },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.extra",
+      "message": "log.entry.recorded: data.extra: unknown field",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "several_unknown_fields_report_the_smallest_name",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": "x", "zeta": 1, "alpha": 2, "mid": 3 },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.alpha",
+      "message": "log.entry.recorded: data.alpha: unknown field"
+    },
+    {
+      "name": "an_unknown_field_name_with_a_control_character_is_cleaned",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": "x", "bad\u0001name": 1 },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.bad?name",
+      "message": "log.entry.recorded: data.bad?name: unknown field"
+    },
+    {
+      "name": "a_very_long_unknown_field_name_is_cut",
+      "event_type": "log.entry.recorded",
+      "data": { "category": "http", "message": "x", "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy": 1 },
+      "error_code": "event_schema_invalid",
+      "field_path": "data.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...",
+      "message": "log.entry.recorded: data.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...: unknown field"
+    },
+    {
+      "name": "data_is_a_string_that_is_a_secret",
+      "event_type": "log.entry.recorded",
+      "data": "FAKE-SECRET-VALUE-1234",
+      "error_code": "event_schema_invalid",
+      "field_path": "data",
+      "message": "log.entry.recorded: data: expected object",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "data_is_a_number",
+      "event_type": "log.entry.recorded",
+      "data": 42,
+      "error_code": "event_schema_invalid",
+      "field_path": "data",
+      "message": "log.entry.recorded: data: expected object"
+    },
+    {
+      "name": "data_is_a_boolean",
+      "event_type": "log.entry.recorded",
+      "data": false,
+      "error_code": "event_schema_invalid",
+      "field_path": "data",
+      "message": "log.entry.recorded: data: expected object"
+    },
+    {
+      "name": "data_is_a_list",
+      "event_type": "log.entry.recorded",
+      "data": [{ "category": "http", "message": "x" }],
+      "error_code": "event_schema_invalid",
+      "field_path": "data",
+      "message": "log.entry.recorded: data: expected object"
+    },
+    {
+      "name": "data_is_null",
+      "event_type": "log.entry.recorded",
+      "data": null,
+      "error_code": "event_schema_invalid",
+      "field_path": "data",
+      "message": "log.entry.recorded: data: expected object"
+    },
+    {
+      "name": "an_event_type_that_is_not_registered",
+      "event_type": "log.entry.unknown",
+      "data": { "category": "http", "message": "x" },
+      "error_code": "event_type_unknown",
+      "field_path": null,
+      "message": "the event type is not registered: log.entry.unknown"
+    },
+    {
+      "name": "an_empty_event_type",
+      "event_type": "",
+      "data": { "category": "http", "message": "x" },
+      "error_code": "event_type_unknown",
+      "field_path": null,
+      "message": "the event type is not registered: "
+    },
+    {
+      "name": "an_event_type_in_capitals",
+      "event_type": "LOG.ENTRY.RECORDED",
+      "data": { "category": "http", "message": "x" },
+      "error_code": "event_type_unknown",
+      "field_path": null,
+      "message": "the event type is not registered: LOG.ENTRY.RECORDED"
+    },
+    {
+      "name": "an_event_type_with_a_control_character_is_cleaned",
+      "event_type": "log.entry\u0007recorded",
+      "data": {},
+      "error_code": "event_type_unknown",
+      "field_path": null,
+      "message": "the event type is not registered: log.entry?recorded"
+    }
+  ]
+}

@@ -35,3 +35,5 @@ The report keeps the identifiers of the dropped entry (application, instance, pr
 ## Not present
 
 Metrics, tracing, a retry queue and a disk buffer. Delivery is best effort ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)).
+
+> **Planned (T-02.6):** the new standard counts the events rejected by the validation at the source (a counter by event type and error code) in its diagnostics (REQ-DGN-001). The validator exists in the domain; the counter is wired by T-03.5 and T-05.5. Nothing counts rejections today.

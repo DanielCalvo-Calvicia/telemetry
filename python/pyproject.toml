@@ -35,7 +35,11 @@ fail_under = 95
 line-length = 120
 target-version = "py310"
 src = ["src"]
-extend-exclude = ["internal/tests/fixtures/architecture", "src/telemetry/internal/domain/value_objects/*_generated.py"]
+extend-exclude = [
+    "internal/tests/fixtures/architecture",
+    "src/telemetry/internal/domain/value_objects/*_generated.py",
+    "src/telemetry/internal/domain/operations/event_validation/*_generated.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N"]

@@ -1,0 +1,118 @@
+{
+  "description": "Invalid data for the demo event type of the fixture contract of tools/contract_generator. field_path and reason are the exact first problem that the Go rules and the generated Python validator must report. secret, when present, is a value of the input that must never appear in the reason or the path.",
+  "cases": [
+    { "name": "count_is_missing", "data": { "category": "c", "severity": "INFO" }, "field_path": "data.count", "reason": "required field is missing" },
+    {
+      "name": "severity_is_not_an_allowed_value",
+      "data": { "category": "c", "count": 1, "severity": "FAKE-SECRET-VALUE-1234" },
+      "field_path": "data.severity",
+      "reason": "not one of the allowed values",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    { "name": "severity_is_a_number", "data": { "category": "c", "count": 1, "severity": 5 }, "field_path": "data.severity", "reason": "expected string" },
+    { "name": "count_has_a_fraction", "data": { "category": "c", "count": 1.5, "severity": "INFO" }, "field_path": "data.count", "reason": "expected integer" },
+    { "name": "count_is_a_boolean", "data": { "category": "c", "count": true, "severity": "INFO" }, "field_path": "data.count", "reason": "expected integer" },
+    { "name": "count_is_a_string", "data": { "category": "c", "count": "1", "severity": "INFO" }, "field_path": "data.count", "reason": "expected integer" },
+    { "name": "ratio_is_a_boolean", "data": { "category": "c", "count": 1, "severity": "INFO", "ratio": true }, "field_path": "data.ratio", "reason": "expected number" },
+    { "name": "ratio_is_a_string", "data": { "category": "c", "count": 1, "severity": "INFO", "ratio": "1.5" }, "field_path": "data.ratio", "reason": "expected number" },
+    { "name": "flag_is_a_number", "data": { "category": "c", "count": 1, "severity": "INFO", "flag": 1 }, "field_path": "data.flag", "reason": "expected boolean" },
+    { "name": "flag_is_a_string", "data": { "category": "c", "count": 1, "severity": "INFO", "flag": "true" }, "field_path": "data.flag", "reason": "expected boolean" },
+    { "name": "note_is_empty", "data": { "category": "c", "count": 1, "severity": "INFO", "note": "" }, "field_path": "data.note", "reason": "string is shorter than 1 characters" },
+    {
+      "name": "note_has_twenty_one_characters",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "note": "aaaaaaaaaaaaaaaaaaaaa" },
+      "field_path": "data.note",
+      "reason": "string is longer than 20 characters"
+    },
+    { "name": "payload_is_a_list", "data": { "category": "c", "count": 1, "severity": "INFO", "payload": [] }, "field_path": "data.payload", "reason": "expected object" },
+    { "name": "payload_is_a_string", "data": { "category": "c", "count": 1, "severity": "INFO", "payload": "x" }, "field_path": "data.payload", "reason": "expected object" },
+    {
+      "name": "resource_is_a_string",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "resource": "x" },
+      "field_path": "data.resource",
+      "reason": "expected object"
+    },
+    {
+      "name": "resource_has_no_service_name",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "resource": { "host": "h" } },
+      "field_path": "data.resource.service_name",
+      "reason": "required field is missing"
+    },
+    {
+      "name": "resource_service_name_is_empty",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "resource": { "service_name": "" } },
+      "field_path": "data.resource.service_name",
+      "reason": "string is shorter than 1 characters"
+    },
+    {
+      "name": "resource_has_an_unknown_field",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "resource": { "service_name": "s", "extra": 1 } },
+      "field_path": "data.resource.extra",
+      "reason": "unknown field"
+    },
+    {
+      "name": "resource_host_is_a_number",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "resource": { "service_name": "s", "host": 1 } },
+      "field_path": "data.resource.host",
+      "reason": "expected string"
+    },
+    { "name": "labels_is_a_list", "data": { "category": "c", "count": 1, "severity": "INFO", "labels": [] }, "field_path": "data.labels", "reason": "expected object" },
+    {
+      "name": "labels_has_too_many_keys",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "a": 1, "b": 2, "c": 3, "d": 4 } },
+      "field_path": "data.labels",
+      "reason": "too many keys"
+    },
+    {
+      "name": "labels_has_an_empty_key",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "": 1 } },
+      "field_path": "data.labels.",
+      "reason": "the key has an invalid length"
+    },
+    {
+      "name": "labels_has_a_key_of_nine_characters",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "abcdefghi": 1 } },
+      "field_path": "data.labels.abcdefghi",
+      "reason": "the key has an invalid length"
+    },
+    {
+      "name": "labels_has_a_string_of_eleven_characters",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": "FAKE-SECRET-VALUE-1234" } },
+      "field_path": "data.labels.k",
+      "reason": "string is longer than 10 characters",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "labels_has_a_null_value",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": null } },
+      "field_path": "data.labels.k",
+      "reason": "expected a scalar or a list of scalars"
+    },
+    {
+      "name": "labels_has_an_object_value",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": { "token": "FAKE-SECRET-VALUE-1234" } } },
+      "field_path": "data.labels.k",
+      "reason": "expected a scalar or a list of scalars",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    },
+    {
+      "name": "labels_has_a_list_with_an_object",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": ["a", { "x": 1 }] } },
+      "field_path": "data.labels.k[1]",
+      "reason": "expected a string, a number or a boolean"
+    },
+    {
+      "name": "labels_has_a_list_with_a_nested_list",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": [[1]] } },
+      "field_path": "data.labels.k[0]",
+      "reason": "expected a string, a number or a boolean"
+    },
+    {
+      "name": "labels_has_a_list_with_a_long_string",
+      "data": { "category": "c", "count": 1, "severity": "INFO", "labels": { "k": ["a", "b", "FAKE-SECRET-VALUE-1234"] } },
+      "field_path": "data.labels.k[2]",
+      "reason": "string is longer than 10 characters",
+      "secret": "FAKE-SECRET-VALUE-1234"
+    }
+  ]
+}

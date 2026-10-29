@@ -3,5 +3,14 @@
   "$id": "https://telemetry.example/fixture/schemas/common/attributes.schema.json",
   "title": "Attributes",
   "type": "object",
-  "additionalProperties": { "type": ["string", "number", "boolean"] }
+  "maxProperties": 3,
+  "propertyNames": { "minLength": 1, "maxLength": 8 },
+  "additionalProperties": {
+    "anyOf": [{ "$ref": "#/$defs/scalar" }, { "type": "array", "items": { "$ref": "#/$defs/scalar" } }]
+  },
+  "$defs": {
+    "scalar": {
+      "anyOf": [{ "type": "string", "maxLength": 10 }, { "type": "number" }, { "type": "boolean" }]
+    }
+  }
 }

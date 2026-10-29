@@ -13,13 +13,20 @@ import (
 	"github.com/DanielCalvo-Calvicia/telemetry/tools/contract_generator/internal/infrastructure/outbound/python_renderer"
 )
 
-// NewGenerator builds the use case that reads the contracts folder and writes the Go and the Python code.
-func NewGenerator(contracts_dir string, go_out_dir string, python_out_dir string) cli.Executor {
+// NewGenerator builds the use case that reads the contracts folder and writes the Go and the Python types and the Go
+// and the Python validators of the data of the event types.
+func NewGenerator(
+	contracts_dir string,
+	go_out_dir string,
+	python_out_dir string,
+	go_validation_out_dir string,
+	python_validation_out_dir string,
+) cli.Executor {
 	return application.NewGenerateCode(
 		contract_folder.NewReader(folder_external.NewFolder(contracts_dir)),
-		go_renderer.NewRenderer(),
-		python_renderer.NewRenderer(),
-		file_writer.NewWriter(writer_external.Disk{}, go_out_dir),
-		file_writer.NewWriter(writer_external.Disk{}, python_out_dir),
+		application.Target{Renderer: go_renderer.NewRenderer(), Writer: file_writer.NewWriter(writer_external.Disk{}, go_out_dir)},
+		application.Target{Renderer: python_renderer.NewRenderer(), Writer: file_writer.NewWriter(writer_external.Disk{}, python_out_dir)},
+		application.Target{Renderer: go_renderer.NewValidationRenderer(), Writer: file_writer.NewWriter(writer_external.Disk{}, go_validation_out_dir)},
+		application.Target{Renderer: python_renderer.NewValidationRenderer(), Writer: file_writer.NewWriter(writer_external.Disk{}, python_validation_out_dir)},
 	)
 }
