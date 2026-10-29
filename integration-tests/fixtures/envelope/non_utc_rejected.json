@@ -1,0 +1,6 @@
+{
+  "description": "An instant whose offset is not zero is rejected, never converted silently.",
+  "kind": "time",
+  "input": "2026-10-28T12:00:00.123456+02:00",
+  "error_code": "event_schema_invalid"
+}

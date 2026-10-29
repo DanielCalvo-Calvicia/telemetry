@@ -8,7 +8,7 @@ from typing import Any
 # The tables are shared with the Go tests: both languages read the SAME files, so they cannot drift apart. T-02.8
 # moves them to integration-tests/fixtures/.
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[6]
-FIXTURES_DIRECTORY = REPOSITORY_ROOT / "go" / "internal" / "tests" / "fixtures" / "event_validation"
+FIXTURES_DIRECTORY = REPOSITORY_ROOT / "integration-tests" / "fixtures" / "event_validation"
 
 # The Python validators that tools/contract_generator wrote for its own fixture contract (demo.thing.happened), which
 # uses every construct the validation supports: an enum, a nested object, attributes, an integer, a number, a boolean,

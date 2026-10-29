@@ -1,0 +1,6 @@
+{
+  "description": "The time formatter writes a UTC instant with exactly six decimals and the Z; three decimals are padded with zeros.",
+  "kind": "time",
+  "input": "2026-10-28T10:00:00.120+00:00",
+  "expected": "2026-10-28T10:00:00.120000Z"
+}

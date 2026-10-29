@@ -1,0 +1,23 @@
+{
+  "description": "Attribute keys outside the BMP sort by UTF-16 code units: U+1F600 (surrogate D83D) comes before U+FB33, the opposite of code-point order.",
+  "kind": "canonical",
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "0194f0a2-7c1e-7b3a-9d10-3f5a6c2b8e05",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:01.000000Z",
+    "recorded_at": "2026-10-28T10:00:01.000500Z",
+    "severity": "DEBUG",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {},
+    "attributes": {
+      "דּ": "second",
+      "😀": "first",
+      "a": 1
+    }
+  },
+  "expected": "{\"attributes\":{\"a\":1,\"😀\":\"first\",\"דּ\":\"second\"},\"data\":{},\"event_id\":\"0194f0a2-7c1e-7b3a-9d10-3f5a6c2b8e05\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:01.000000Z\",\"recorded_at\":\"2026-10-28T10:00:01.000500Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"DEBUG\"}"
+}

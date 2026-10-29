@@ -12,7 +12,7 @@ import (
 )
 
 // fixtures_directory is the folder of the tables that the Python tests read too (the same files).
-const fixtures_directory = "../../../fixtures/canonical_json"
+const fixtures_directory = "../../../../../../integration-tests/fixtures/canonical_json"
 
 type fixture_file struct {
 	Cases []json.RawMessage `json:"cases"`

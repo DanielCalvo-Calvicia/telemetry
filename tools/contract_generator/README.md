@@ -34,4 +34,4 @@ For the data schema of each registered event type, and for every object it reach
 cd tools/contract_generator && go test ./... -count=1
 ```
 
-They are black-box and mirror the code under `internal/tests/`: a small fixture contract whose generated output is compared byte by byte with golden files (`*.golden`), the second run, and the broken contracts. The validators of the fixture contract (`event_validators_generated.*.golden`) use every construct above; the Python test loads that generated file and the Go test builds the same rules by hand, and both run the shared tables of `go/internal/tests/fixtures/event_validation/constructs/`.
+They are black-box and mirror the code under `internal/tests/`: a small fixture contract whose generated output is compared byte by byte with golden files (`*.golden`), the second run, and the broken contracts. The validators of the fixture contract (`event_validators_generated.*.golden`) use every construct above; the Python test loads that generated file and the Go test builds the same rules by hand, and both run the shared tables of `integration-tests/fixtures/event_validation/constructs/`.

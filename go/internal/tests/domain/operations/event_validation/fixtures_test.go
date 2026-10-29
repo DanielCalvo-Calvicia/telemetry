@@ -14,7 +14,7 @@ import (
 )
 
 // fixtures_directory is the folder of the tables that the Python tests read too (the same files).
-const fixtures_directory = "../../../fixtures/event_validation"
+const fixtures_directory = "../../../../../../integration-tests/fixtures/event_validation"
 
 // valid_case is a case of valid_cases.json.
 type valid_case struct {

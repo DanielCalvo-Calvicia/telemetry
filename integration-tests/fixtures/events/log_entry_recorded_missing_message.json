@@ -1,0 +1,15 @@
+{
+  "description": "The data of log.entry.recorded without its required message is rejected at the source.",
+  "kind": "validation",
+  "input": {
+    "event_type": "log.entry.recorded",
+    "data": {
+      "category": "http"
+    }
+  },
+  "error_code": "event_schema_invalid",
+  "message_contains": [
+    "log.entry.recorded",
+    "data.message"
+  ]
+}

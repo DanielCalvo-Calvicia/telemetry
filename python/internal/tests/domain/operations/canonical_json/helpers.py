@@ -10,7 +10,7 @@ from telemetry.internal.domain.value_objects.envelope_generated import Actor, Co
 # The tables are shared with the Go tests: both languages read the SAME files, so they cannot drift apart. T-02.8
 # moves them to integration-tests/fixtures/.
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[6]
-FIXTURES_DIRECTORY = REPOSITORY_ROOT / "go" / "internal" / "tests" / "fixtures" / "canonical_json"
+FIXTURES_DIRECTORY = REPOSITORY_ROOT / "integration-tests" / "fixtures" / "canonical_json"
 
 
 def load_cases(file_name: str) -> list[dict[str, Any]]:

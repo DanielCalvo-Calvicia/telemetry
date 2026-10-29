@@ -2,7 +2,7 @@
 
 The seed of the cross-language runner of T-12.1. It uses the standard library only:
 
-1. It asks Go for the canonical bytes of every case of go/internal/tests/fixtures/canonical_json/events.json by running
+1. It asks Go for the canonical bytes of every case of integration-tests/fixtures/canonical_json/events.json by running
    the test TestWriteCanonicalFixtures, which writes one file per case to a temporary folder.
 2. It serializes the same cases in Python, from the plain dict and from the generated Envelope dataclass.
 3. It compares both with the expected text of the fixture, and with each other.
@@ -20,7 +20,7 @@ import tempfile
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[1]
 GO_MODULE = REPOSITORY_ROOT / "go"
-EVENTS_FIXTURE = GO_MODULE / "internal" / "tests" / "fixtures" / "canonical_json" / "events.json"
+EVENTS_FIXTURE = REPOSITORY_ROOT / "integration-tests" / "fixtures" / "canonical_json" / "events.json"
 
 sys.path.insert(0, str(REPOSITORY_ROOT / "python" / "src"))
 sys.path.insert(0, str(REPOSITORY_ROOT / "python"))

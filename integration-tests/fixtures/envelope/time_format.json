@@ -1,0 +1,18 @@
+{
+  "description": "Times with trailing zeros: the six decimals and the zeros are kept exactly as given.",
+  "kind": "canonical",
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "0194f0a2-7c1e-7b3a-9d10-3f5a6c2b8e03",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.120000Z",
+    "recorded_at": "2026-10-28T10:00:00.120000Z",
+    "severity": "DEBUG",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {}
+  },
+  "expected": "{\"data\":{},\"event_id\":\"0194f0a2-7c1e-7b3a-9d10-3f5a6c2b8e03\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.120000Z\",\"recorded_at\":\"2026-10-28T10:00:00.120000Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"DEBUG\"}"
+}

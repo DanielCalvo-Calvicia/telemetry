@@ -1,0 +1,47 @@
+{
+  "description": "The same logical event as full.json with the keys written in the opposite order at every level: the canonical bytes are identical.",
+  "kind": "canonical",
+  "input": {
+    "attributes": {
+      "gpio_levels": [
+        true,
+        false
+      ],
+      "ratio": 0.5,
+      "i2c_bus": 1,
+      "source_type": "i2c"
+    },
+    "data": {
+      "message": "request received",
+      "function": "handle_request",
+      "category": "http"
+    },
+    "context": {
+      "correlation_id": "corr-1",
+      "execution_id": "run-0001",
+      "span_id": "b7ad6b7169203331",
+      "trace_id": "0af7651916cd43dd8448eb211c80319c"
+    },
+    "actor": {
+      "version": "fw-2",
+      "type": "temperature_sensor",
+      "id": "temp-01",
+      "kind": "device"
+    },
+    "resource": {
+      "time_zone": "Europe/Madrid",
+      "host": "host-1",
+      "service_version": "1.2.3",
+      "environment": "staging",
+      "instance_id": "hub-01",
+      "service_name": "sensor-hub"
+    },
+    "severity": "INFO",
+    "recorded_at": "2026-10-28T10:00:00.125000Z",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "event_type": "log.entry.recorded",
+    "event_id": "0194f0a2-7c1e-7b3a-9d10-3f5a6c2b8e01",
+    "schema_version": "0.1"
+  },
+  "expected": "{\"actor\":{\"id\":\"temp-01\",\"kind\":\"device\",\"type\":\"temperature_sensor\",\"version\":\"fw-2\"},\"attributes\":{\"gpio_levels\":[true,false],\"i2c_bus\":1,\"ratio\":0.5,\"source_type\":\"i2c\"},\"context\":{\"correlation_id\":\"corr-1\",\"execution_id\":\"run-0001\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"},\"data\":{\"category\":\"http\",\"function\":\"handle_request\",\"message\":\"request received\"},\"event_id\":\"0194f0a2-7c1e-7b3a-9d10-3f5a6c2b8e01\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.125000Z\",\"resource\":{\"environment\":\"staging\",\"host\":\"host-1\",\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\",\"service_version\":\"1.2.3\",\"time_zone\":\"Europe/Madrid\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

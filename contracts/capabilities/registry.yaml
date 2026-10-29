@@ -105,7 +105,10 @@ capabilities:
         pending: T-12.1
       # REQ-CNF-005: There MUST be a set of shared fixtures (integration-tests/fixtures/) t...
       - id: REQ-CNF-005
-        pending: T-02.8
+        # the first shared cases (envelope, events, time, validation); more arrive with each capability
+        tests:
+          - { language: go, path: go/internal/tests/contract/fixtures_test.go }
+          - { language: python, path: python/internal/tests/contract/test_fixtures.py }
       # REQ-CNF-006: The cross Go<->Python tests MUST cover at least byte-for-byte serializ...
       - id: REQ-CNF-006
         pending: T-12.1

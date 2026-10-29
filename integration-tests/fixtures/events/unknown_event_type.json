@@ -1,0 +1,12 @@
+{
+  "description": "An event type that is not in the registry is rejected.",
+  "kind": "validation",
+  "input": {
+    "event_type": "log.entry.unknown",
+    "data": {}
+  },
+  "error_code": "event_type_unknown",
+  "message_contains": [
+    "log.entry.unknown"
+  ]
+}
