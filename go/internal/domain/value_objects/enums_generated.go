@@ -43,11 +43,12 @@ type FailureCategory string
 const (
 	FailureCategoryValidation    FailureCategory = "validation"
 	FailureCategoryConfiguration FailureCategory = "configuration"
+	FailureCategoryInternal      FailureCategory = "internal"
 )
 
 // FailureCategoryValues returns every value of FailureCategory, in the order of the contract.
 func FailureCategoryValues() []FailureCategory {
-	return []FailureCategory{FailureCategoryValidation, FailureCategoryConfiguration}
+	return []FailureCategory{FailureCategoryValidation, FailureCategoryConfiguration, FailureCategoryInternal}
 }
 
 // Severity is the enum of contracts/enums/severity.json.

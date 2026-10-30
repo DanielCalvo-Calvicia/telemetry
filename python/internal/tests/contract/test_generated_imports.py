@@ -20,7 +20,8 @@ class GeneratedEnumsTest(unittest.TestCase):
     def test_the_other_enums(self):
         self.assertEqual([kind.value for kind in enums_generated.ActorKind], ["device", "agent", "subsystem"])
         self.assertEqual(
-            [category.value for category in enums_generated.FailureCategory], ["validation", "configuration"]
+            [category.value for category in enums_generated.FailureCategory],
+            ["validation", "configuration", "internal"],
         )
 
 
@@ -29,16 +30,20 @@ class GeneratedRegistriesTest(unittest.TestCase):
         self.assertEqual(event_types_generated.EVENT_TYPE_LOG_ENTRY_RECORDED, "log.entry.recorded")
         self.assertEqual(event_types_generated.EVENT_TYPES, ("log.entry.recorded",))
 
-    def test_the_five_error_codes(self):
+    def test_the_nine_error_codes(self):
         catalog = error_codes_generated.ERROR_CODES
         self.assertEqual(
             sorted(catalog),
             [
                 "config_field_invalid",
                 "delivery_mode_unknown",
+                "event_build_failed",
                 "event_schema_invalid",
                 "event_type_unknown",
+                "instance_id_unavailable",
                 "limit_exceeded",
+                "limits_failed",
+                "masking_failed",
             ],
         )
         info = catalog[error_codes_generated.ERROR_CODE_EVENT_SCHEMA_INVALID]

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/limits"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 )
@@ -31,14 +32,14 @@ func NewLimitsService(limits value_objects.Limits) *LimitsService {
 // Apply returns a limited copy of the envelope and the report of what was cut, by the policy of limits.ApplyLimits; the
 // envelope it receives is never modified. An event that is still too large after the cuts returns the classified error
 // limit_exceeded, an empty envelope and a report with EventsRejected = 1. It never panics: a panic becomes an empty
-// envelope, a zero report and an error that wraps application.ErrEnvelopeLimitsFailed, and the caller drops the event
+// envelope, a zero report and a classified error (limits_failed) that wraps application.ErrEnvelopeLimitsFailed, and the caller drops the event
 // (ADR-005).
 func (service *LimitsService) Apply(_ context.Context, envelope value_objects.Envelope) (limited_envelope value_objects.Envelope, report limits.Report, apply_error error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			limited_envelope = value_objects.Envelope{}
 			report = limits.Report{}
-			apply_error = application.JoinErrors(application.ErrEnvelopeLimitsFailed)
+			apply_error = domain.NewClassifiedError(value_objects.ErrorCodeLimitsFailed, application.ErrEnvelopeLimitsFailed, nil)
 		}
 	}()
 

@@ -28,7 +28,7 @@ func TestTheOtherEnumsHaveTheirValues(test *testing.T) {
 	if got := value_objects.ActorKindValues(); len(got) != 3 || got[0] != value_objects.ActorKindDevice {
 		test.Errorf("actor kinds: %v", got)
 	}
-	if got := value_objects.FailureCategoryValues(); len(got) != 2 || got[1] != value_objects.FailureCategoryConfiguration {
+	if got := value_objects.FailureCategoryValues(); len(got) != 3 || got[1] != value_objects.FailureCategoryConfiguration || got[2] != value_objects.FailureCategoryInternal {
 		test.Errorf("failure categories: %v", got)
 	}
 }
@@ -43,11 +43,11 @@ func TestTheRegisteredEventTypeIsListed(test *testing.T) {
 	}
 }
 
-func TestTheErrorCatalogHasTheFiveCodes(test *testing.T) {
+func TestTheErrorCatalogHasTheNineCodes(test *testing.T) {
 	code_pattern := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 	catalog := value_objects.ErrorCodes()
-	if len(catalog) != 5 {
-		test.Fatalf("got %d error codes, want 5", len(catalog))
+	if len(catalog) != 9 {
+		test.Fatalf("got %d error codes, want 9", len(catalog))
 	}
 	seen := map[string]bool{}
 	for _, info := range catalog {
@@ -56,7 +56,7 @@ func TestTheErrorCatalogHasTheFiveCodes(test *testing.T) {
 		}
 		seen[info.Code] = true
 	}
-	if !seen[value_objects.ErrorCodeEventSchemaInvalid] || catalog[2].Category != value_objects.FailureCategoryValidation {
+	if !seen[value_objects.ErrorCodeEventSchemaInvalid] || catalog[3].Category != value_objects.FailureCategoryValidation {
 		test.Errorf("event_schema_invalid is missing or has the wrong category: %+v", catalog)
 	}
 }

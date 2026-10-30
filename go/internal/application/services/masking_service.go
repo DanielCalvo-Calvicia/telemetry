@@ -41,14 +41,15 @@ func NewMaskingService(masker masking.SensitiveDataMasker) *MaskingService {
 // Mask returns a masked copy of the envelope; the envelope it receives is never modified. Only data, attributes and
 // context are masked (data and attributes by the masker, field by field, and the four ids of the context by the rules
 // of their names); event_type, the ids of the event, the times, the severity, the schema version, the resource and the
-// actor are never changed. It never panics: a panic becomes an empty envelope and an error that wraps
+// actor are never changed. It never panics: a panic becomes an empty envelope and a classified error (masking_failed)
+// that wraps
 // application.ErrEnvelopeMaskingFailed, and the caller drops the event (ADR-005). It never returns the unmasked
 // envelope.
 func (service *MaskingService) Mask(_ context.Context, envelope value_objects.Envelope) (masked_envelope value_objects.Envelope, mask_error error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			masked_envelope = value_objects.Envelope{}
-			mask_error = application.JoinErrors(application.ErrEnvelopeMaskingFailed)
+			mask_error = domain.NewClassifiedError(value_objects.ErrorCodeMaskingFailed, application.ErrEnvelopeMaskingFailed, nil)
 		}
 	}()
 

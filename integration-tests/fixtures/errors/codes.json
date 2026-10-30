@@ -1,0 +1,180 @@
+{
+  "description": "Each case is a failure that the core produces. Each language has a producer of the same name that makes the REAL failure with its real code (a constructor, a validator, a service with a failing port) and the test checks that the code of the error found by the language is expected_code, the same in Go and Python (REQ-CNF-004). value_in_input says that the producer receives a secret-looking value as part of the invalid input: the message of the error must never contain it. The set of names is the set of producers of each language, and every code of the catalog must appear at least once.",
+  "secret": "SECRET-VALUE-9f3a1c",
+  "cases": [
+    {
+      "name": "event_id_invalid",
+      "description": "A text that is not a UUIDv7 as an event id.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "severity_invalid",
+      "description": "A severity that is not one of the six values.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "actor_kind_invalid",
+      "description": "An actor kind that is not one of the values.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "identifier_blank",
+      "description": "An identifier of white space only.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": false
+    },
+    {
+      "name": "identifier_control_characters",
+      "description": "An identifier with a control character.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "hex_digits_invalid",
+      "description": "Hexadecimal digits that are not lowercase hexadecimal.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "time_zone_invalid",
+      "description": "A time zone that is not an IANA-shaped name.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "utc_instant_not_utc",
+      "description": "An instant with an offset that is not zero.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": false
+    },
+    {
+      "name": "utc_instant_text_invalid",
+      "description": "A text that is not an instant of the contract format.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "attribute_key_invalid",
+      "description": "An attribute with an empty key.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": false
+    },
+    {
+      "name": "attribute_value_invalid",
+      "description": "An attribute whose value is a nested object holding the secret.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "resource_identity_invalid",
+      "description": "A resource identity with an invalid optional field.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "actor_identity_invalid",
+      "description": "An actor identity with an invalid id.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "correlation_context_invalid",
+      "description": "A correlation context with an invalid trace id.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "number_out_of_range",
+      "description": "A number with no canonical form (not a number).",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": false
+    },
+    {
+      "name": "unsupported_value",
+      "description": "A value with no canonical JSON form.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "event_schema_invalid",
+      "description": "The data of an event that does not match its schema.",
+      "expected_code": "event_schema_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "event_type_unknown",
+      "description": "An event type that is not in the registry.",
+      "expected_code": "event_type_unknown",
+      "value_in_input": false
+    },
+    {
+      "name": "limit_exceeded",
+      "description": "An event over the limit of bytes.",
+      "expected_code": "limit_exceeded",
+      "value_in_input": true
+    },
+    {
+      "name": "limit_invalid",
+      "description": "A limit of zero.",
+      "expected_code": "config_field_invalid",
+      "value_in_input": false
+    },
+    {
+      "name": "batch_limit_below_event_limit",
+      "description": "A batch limit below the event limit.",
+      "expected_code": "config_field_invalid",
+      "value_in_input": false
+    },
+    {
+      "name": "mask_pattern_invalid",
+      "description": "An extra masking pattern that does not compile.",
+      "expected_code": "config_field_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "mask_rule_invalid",
+      "description": "A class rule that is not drop, redact or allow.",
+      "expected_code": "config_field_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "delivery_mode_unknown",
+      "description": "A delivery mode that does not exist.",
+      "expected_code": "delivery_mode_unknown",
+      "value_in_input": true
+    },
+    {
+      "name": "config_field_invalid",
+      "description": "A configuration with invalid fields (every problem together).",
+      "expected_code": "config_field_invalid",
+      "value_in_input": true
+    },
+    {
+      "name": "instance_id_unavailable",
+      "description": "The identifier generator fails while the instance id is generated at start.",
+      "expected_code": "instance_id_unavailable",
+      "value_in_input": false
+    },
+    {
+      "name": "event_build_failed",
+      "description": "A port fails while an event is built.",
+      "expected_code": "event_build_failed",
+      "value_in_input": false
+    },
+    {
+      "name": "masking_failed",
+      "description": "The masking service fails.",
+      "expected_code": "masking_failed",
+      "value_in_input": false
+    },
+    {
+      "name": "limits_failed",
+      "description": "The limits service fails for a reason other than a limit exceeded.",
+      "expected_code": "limits_failed",
+      "value_in_input": false
+    }
+  ]
+}

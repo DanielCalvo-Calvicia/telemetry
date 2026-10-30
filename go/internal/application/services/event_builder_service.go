@@ -57,8 +57,9 @@ func NewEventBuilderService(
 
 // ----- METHODS --------------------------------------------------------------
 
-// Build makes one envelope from the input. It never panics (a panic, including one of a port, becomes an error that
-// wraps application.ErrEventBuildFailed) and it never returns a half-built envelope together with a nil error. The
+// Build makes one envelope from the input. It never panics (a panic, including one of a port, becomes a
+// *domain.ClassifiedError with the code event_build_failed that wraps application.ErrEventBuildFailed) and it never
+// returns a half-built envelope together with a nil error. The
 // steps run in this order:
 //
 //  1. Read the clock once. recorded_at is that time, always: only the clock port sets it and the input has no field
@@ -76,7 +77,8 @@ func NewEventBuilderService(
 //  6. Validate data against the schema of the event type, last, on the data of the built envelope. A failure is
 //     returned as it is: a *domain.ClassifiedError.
 //
-// A failure of a port or of the values the core made is application.ErrEventBuildFailed joined with its cause.
+// A failure of a port or of the values the core made is the classified error event_build_failed, with
+// application.ErrEventBuildFailed joined with its cause.
 //
 // The envelope is NOT masked and NOT limited yet (T-03.4, T-03.5). Nothing may send it to a sink before masking
 // (ADR-006); T-03.9 wires the chain.
@@ -84,7 +86,7 @@ func (service *EventBuilderService) Build(ctx context.Context, input dtos.NewEve
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			built_envelope = value_objects.Envelope{}
-			build_error = application.JoinErrors(application.ErrEventBuildFailed, application.ErrEventBuildPanicked)
+			build_error = build_failed(application.ErrEventBuildPanicked)
 		}
 	}()
 
@@ -96,17 +98,17 @@ func (service *EventBuilderService) Build(ctx context.Context, input dtos.NewEve
 
 	event_id, id_error := service.id_generator.NewEventID(ctx)
 	if id_error != nil {
-		return value_objects.Envelope{}, application.JoinErrors(application.ErrEventBuildFailed, id_error)
+		return value_objects.Envelope{}, build_failed(id_error)
 	}
 
 	configuration, configuration_error := service.configuration.Configuration(ctx)
 	if configuration_error != nil {
-		return value_objects.Envelope{}, application.JoinErrors(application.ErrEventBuildFailed, configuration_error)
+		return value_objects.Envelope{}, build_failed(configuration_error)
 	}
 
 	attributes, attributes_error := merge_attributes(input.Attributes, service.clock.ClockInfo(ctx))
 	if attributes_error != nil {
-		return value_objects.Envelope{}, application.JoinErrors(application.ErrEventBuildFailed, attributes_error)
+		return value_objects.Envelope{}, build_failed(attributes_error)
 	}
 
 	envelope := value_objects.Envelope{
@@ -171,4 +173,10 @@ func merge_attributes(caller_attributes *value_objects.EventAttributes, clock_in
 		merged[clock_synced_key] = clock_info.Synced
 	}
 	return value_objects.NewEventAttributes(merged)
+}
+
+// build_failed is the classified error event_build_failed: application.ErrEventBuildFailed joined with its cause. The
+// cause is a failure of a port or of the core, never a value of the caller.
+func build_failed(cause error) error {
+	return domain.NewClassifiedError(value_objects.ErrorCodeEventBuildFailed, application.ErrEventBuildFailed, cause)
 }

@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://telemetry.example/contracts/enums/failure_category.json",
   "title": "Failure category",
-  "description": "The category of a failure or of an error code (REQ-FLT-001). It starts with the two categories the first error codes need; each capability adds its own values as it is built, and adding a value is a MINOR change of the contract (REQ-VER-003). The AI error categories live in enums/ai/ (REQ-AI-005).",
+  "description": "The category of a failure or of an error code (REQ-FLT-001). `validation` and `configuration` are the categories of the first error codes; `internal` (T-03.7) is a failure of the library itself while it did its work (a port or a step failed), never a mistake of the caller. Each capability adds its own values as it is built, and adding a value is a MINOR change of the contract (REQ-VER-003). The AI error categories live in enums/ai/ (REQ-AI-005).",
   "type": "string",
   "enum": [
     "validation",
-    "configuration"
+    "configuration",
+    "internal"
   ]
 }

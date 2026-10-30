@@ -5,11 +5,15 @@ package value_objects
 
 // The error codes of the catalog.
 const (
-	ErrorCodeConfigFieldInvalid  = "config_field_invalid"
-	ErrorCodeDeliveryModeUnknown = "delivery_mode_unknown"
-	ErrorCodeEventSchemaInvalid  = "event_schema_invalid"
-	ErrorCodeEventTypeUnknown    = "event_type_unknown"
-	ErrorCodeLimitExceeded       = "limit_exceeded"
+	ErrorCodeConfigFieldInvalid    = "config_field_invalid"
+	ErrorCodeDeliveryModeUnknown   = "delivery_mode_unknown"
+	ErrorCodeEventBuildFailed      = "event_build_failed"
+	ErrorCodeEventSchemaInvalid    = "event_schema_invalid"
+	ErrorCodeEventTypeUnknown      = "event_type_unknown"
+	ErrorCodeInstanceIdUnavailable = "instance_id_unavailable"
+	ErrorCodeLimitExceeded         = "limit_exceeded"
+	ErrorCodeLimitsFailed          = "limits_failed"
+	ErrorCodeMaskingFailed         = "masking_failed"
 )
 
 // ErrorCodeInfo describes an error code of the catalog.
@@ -24,8 +28,12 @@ func ErrorCodes() []ErrorCodeInfo {
 	return []ErrorCodeInfo{
 		{Code: ErrorCodeConfigFieldInvalid, Category: FailureCategoryConfiguration, DefaultMessage: "a configuration field is invalid"},
 		{Code: ErrorCodeDeliveryModeUnknown, Category: FailureCategoryConfiguration, DefaultMessage: "the delivery mode is not best_effort, retry or durable"},
+		{Code: ErrorCodeEventBuildFailed, Category: FailureCategoryInternal, DefaultMessage: "the event could not be built"},
 		{Code: ErrorCodeEventSchemaInvalid, Category: FailureCategoryValidation, DefaultMessage: "the data of the event does not match the schema of its type"},
 		{Code: ErrorCodeEventTypeUnknown, Category: FailureCategoryValidation, DefaultMessage: "the event type is not in the registry"},
+		{Code: ErrorCodeInstanceIdUnavailable, Category: FailureCategoryConfiguration, DefaultMessage: "the instance id of the resource could not be generated"},
 		{Code: ErrorCodeLimitExceeded, Category: FailureCategoryValidation, DefaultMessage: "a limit of the contract was exceeded"},
+		{Code: ErrorCodeLimitsFailed, Category: FailureCategoryInternal, DefaultMessage: "the limits could not be applied to the event"},
+		{Code: ErrorCodeMaskingFailed, Category: FailureCategoryInternal, DefaultMessage: "the event could not be masked"},
 	}
 }

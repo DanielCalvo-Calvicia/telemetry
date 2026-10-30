@@ -9,4 +9,4 @@ def parse_severity(text: str) -> Severity:
     for member in Severity:
         if member.value == text:
             return member
-    raise SeverityInvalidError(f"{text!r} is not a severity of the contract")
+    raise SeverityInvalidError("the severity is not one of the values of the contract")

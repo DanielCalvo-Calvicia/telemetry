@@ -190,8 +190,8 @@ func Test_an_invalid_extra_pattern_is_a_classified_error_that_keeps_the_cause(t 
 	if !errors.As(err, &classified) || classified.Code != value_objects.ErrorCodeConfigFieldInvalid {
 		t.Errorf("error = %v, want a ClassifiedError with the code config_field_invalid", err)
 	}
-	if err != nil && !strings.Contains(err.Error(), "broken(") {
-		t.Errorf("the error must say which pattern failed (through the compile error): %v", err)
+	if err != nil && !strings.Contains(err.Error(), "extra pattern 1") || strings.Contains(err.Error(), "broken(") {
+		t.Errorf("the error must say which pattern failed by its position and never quote it: %v", err)
 	}
 	if masker.MaskText("password=x") != "password=x" {
 		t.Error("a failed masker must be the zero masker and hide nothing by text")

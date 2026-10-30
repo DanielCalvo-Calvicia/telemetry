@@ -30,6 +30,7 @@ class FailureCategory(str, enum.Enum):
 
     VALIDATION = "validation"
     CONFIGURATION = "configuration"
+    INTERNAL = "internal"
 
 
 class Severity(str, enum.Enum):

@@ -56,3 +56,8 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 - No field of the core configuration is a secret and none has a credential as default; the secrets of an adapter (a token, a password) are fields of that adapter, given by the consumer in code (REQ-CFG-005, REQ-SEC-007). `.env.example` holds fake values only.
 - The validation errors name the field and a fixed reason and **never the configured value**.
 - The library reads no environment and no file for its configuration; a test fails if a source mentions the environment.
+
+## Errors carry no value (built, T-03.7)
+
+- A message names a field path or an event type (cut to 64 characters, control characters replaced), never a value that the caller gave: a value may be a secret. A test in each language makes 29 real failures with a secret-looking value and fails if it appears in a message.
+- The cause of an error that a consumer's own adapter built is kept in the chain and may hold whatever that adapter put there: an adapter must not put a value in its errors.

@@ -1,6 +1,8 @@
-"""The errors of the domain operations, each one with the code of the catalog (contracts/errors/catalog.yaml).
+"""The errors of the domain, each one with the code of the catalog (contracts/errors/catalog.yaml).
 
-The full error model arrives with T-03.7; these are small on purpose and easy to move.
+The root is TelemetryError; a class with a code derives from ClassifiedError. They are raised by the domain layer at
+construction and by its operations, which the services turn into a returned error: the hot path never raises them
+(ADR-005). ``error_code_of`` reads the code of any error of the core, following the chain of causes.
 """
 
 from telemetry.internal.domain.base_value_objects.errors import HexDigitsInvalidError as HexDigitsInvalidError
@@ -10,6 +12,7 @@ from telemetry.internal.domain.base_value_objects.errors import (
 from telemetry.internal.domain.base_value_objects.errors import (
     IdentifierHasControlCharactersError as IdentifierHasControlCharactersError,
 )
+from telemetry.internal.domain.base_value_objects.errors import TelemetryError as TelemetryError
 from telemetry.internal.domain.base_value_objects.errors import ValueObjectError as ValueObjectError
 from telemetry.internal.domain.value_objects.error_codes_generated import (
     ERROR_CODE_CONFIG_FIELD_INVALID,
@@ -20,8 +23,8 @@ from telemetry.internal.domain.value_objects.error_codes_generated import (
 )
 
 
-class ClassifiedError(Exception):
-    """An error with a code of the catalog of error codes."""
+class ClassifiedError(TelemetryError):
+    """An error with a code of the catalog of error codes (returned, not raised, on the hot path)."""
 
     code: str = ERROR_CODE_EVENT_SCHEMA_INVALID
 
@@ -149,3 +152,22 @@ class ConfigFieldInvalidError(ClassifiedError):
     """A field of the configuration is not valid (code ``config_field_invalid``)."""
 
     code = ERROR_CODE_CONFIG_FIELD_INVALID
+
+
+def error_code_of(error: BaseException) -> str:
+    """Return the code of the catalog of an error of the core, or an empty text when it has none.
+
+    A ClassifiedError gives its own code; a base value object error is a validation error (``event_schema_invalid``);
+    any other error gives the code of the first error of its chain of causes (``__cause__``, else ``__context__``)
+    that has one. A cycle in the chain ends the search.
+    """
+    seen: set[int] = set()
+    current: BaseException | None = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, ClassifiedError):
+            return current.code
+        if isinstance(current, ValueObjectError):
+            return ERROR_CODE_EVENT_SCHEMA_INVALID
+        current = current.__cause__ if current.__cause__ is not None else current.__context__
+    return ""

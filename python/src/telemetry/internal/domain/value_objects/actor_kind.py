@@ -9,4 +9,4 @@ def parse_actor_kind(text: str) -> ActorKind:
     for member in ActorKind:
         if member.value == text:
             return member
-    raise ActorKindInvalidError(f"{text!r} is not an actor kind of the contract")
+    raise ActorKindInvalidError("the actor kind is not one of the values of the contract")

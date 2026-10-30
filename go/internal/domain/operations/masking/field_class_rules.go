@@ -1,7 +1,7 @@
 package masking
 
 import (
-	"fmt"
+	"errors"
 	"sort"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
@@ -37,7 +37,7 @@ func new_field_class_rules(field_classes map[string]string, class_rules map[stri
 		rule := class_rules[class_name]
 		if rule != domain.MaskRuleDrop && rule != domain.MaskRuleRedact && rule != domain.MaskRuleAllow {
 			return field_class_rules{}, domain.NewClassifiedError(
-				value_objects.ErrorCodeConfigFieldInvalid, ErrMaskRuleInvalid, fmt.Errorf("class %q has the rule %q", class_name, rule))
+				value_objects.ErrorCodeConfigFieldInvalid, ErrMaskRuleInvalid, errors.New("a class has a rule that is not drop, redact or allow"))
 		}
 		rule_by_class[class_name] = rule
 	}

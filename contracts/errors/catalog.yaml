@@ -38,3 +38,23 @@ errors:
     category: configuration
     default_message: the delivery mode is not best_effort, retry or durable
     meaning: A destination is configured with a delivery mode that does not exist (section 10.1 of PR-001).
+
+  - code: instance_id_unavailable
+    category: configuration
+    default_message: the instance id of the resource could not be generated
+    meaning: The consumer gave no instance_id and the identifier generator failed while the core started (T-03.6, T-03.7).
+
+  - code: event_build_failed
+    category: internal
+    default_message: the event could not be built
+    meaning: A port (the clock, the identifier generator or the configuration) failed, or an unexpected failure happened, while the envelope of an event was built (T-03.3). The event is dropped and counted; the caller never fails (ADR-005).
+
+  - code: masking_failed
+    category: internal
+    default_message: the event could not be masked
+    meaning: The masking of an event failed. The event is dropped, never sent unmasked (ADR-006, T-03.4).
+
+  - code: limits_failed
+    category: internal
+    default_message: the limits could not be applied to the event
+    meaning: Applying the size limits to an event failed for a reason other than a limit being exceeded. The event is dropped (T-03.5).

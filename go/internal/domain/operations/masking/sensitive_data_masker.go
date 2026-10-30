@@ -1,7 +1,10 @@
 package masking
 
 import (
+	"errors"
 	"regexp"
+	"regexp/syntax"
+	"strconv"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
@@ -65,13 +68,13 @@ func NewSensitiveDataMasker(options MaskerOptions) (SensitiveDataMasker, error) 
 		NewCredentialPairDetector(),
 	}
 
-	for _, extra_pattern := range options.ExtraPatterns {
+	for pattern_position, extra_pattern := range options.ExtraPatterns {
 		if extra_pattern == "" {
 			continue
 		}
 		compiled_pattern, compile_error := regexp.Compile(extra_pattern)
 		if compile_error != nil {
-			return SensitiveDataMasker{}, domain.NewClassifiedError(value_objects.ErrorCodeConfigFieldInvalid, ErrMaskPatternInvalid, compile_error)
+			return SensitiveDataMasker{}, domain.NewClassifiedError(value_objects.ErrorCodeConfigFieldInvalid, ErrMaskPatternInvalid, pattern_detail(pattern_position, compile_error))
 		}
 		text_detectors = append(text_detectors, NewTextDetector(extra_pattern, compiled_pattern, domain.MaskedText))
 	}
@@ -115,4 +118,15 @@ func (sensitive_data_masker SensitiveDataMasker) MaskMap(source_map map[string]a
 // is_sensitive reports whether the value of the field is hidden by the active list of names.
 func (sensitive_data_masker SensitiveDataMasker) is_sensitive(field_name string) bool {
 	return matches_any_name(normalize_field_name(field_name), sensitive_data_masker.field_names)
+}
+
+// pattern_detail returns the detail of a pattern that does not compile: its position in the list and the reason of the
+// parser, without the pattern.
+// The error of the regexp package quotes the pattern, and a pattern may hold a secret, so it is never kept.
+func pattern_detail(pattern_position int, compile_error error) error {
+	var syntax_error *syntax.Error
+	if errors.As(compile_error, &syntax_error) {
+		return errors.New("extra pattern " + strconv.Itoa(pattern_position) + " is not valid: " + string(syntax_error.Code))
+	}
+	return errors.New("extra pattern " + strconv.Itoa(pattern_position) + " is not valid")
 }

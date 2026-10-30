@@ -19,9 +19,13 @@ class ErrorCodeInfo:
 
 ERROR_CODE_CONFIG_FIELD_INVALID = "config_field_invalid"
 ERROR_CODE_DELIVERY_MODE_UNKNOWN = "delivery_mode_unknown"
+ERROR_CODE_EVENT_BUILD_FAILED = "event_build_failed"
 ERROR_CODE_EVENT_SCHEMA_INVALID = "event_schema_invalid"
 ERROR_CODE_EVENT_TYPE_UNKNOWN = "event_type_unknown"
+ERROR_CODE_INSTANCE_ID_UNAVAILABLE = "instance_id_unavailable"
 ERROR_CODE_LIMIT_EXCEEDED = "limit_exceeded"
+ERROR_CODE_LIMITS_FAILED = "limits_failed"
+ERROR_CODE_MASKING_FAILED = "masking_failed"
 
 ERROR_CODES: dict[str, ErrorCodeInfo] = {
     ERROR_CODE_CONFIG_FIELD_INVALID: ErrorCodeInfo(
@@ -34,6 +38,11 @@ ERROR_CODES: dict[str, ErrorCodeInfo] = {
         category=FailureCategory.CONFIGURATION,
         default_message="the delivery mode is not best_effort, retry or durable",
     ),
+    ERROR_CODE_EVENT_BUILD_FAILED: ErrorCodeInfo(
+        code=ERROR_CODE_EVENT_BUILD_FAILED,
+        category=FailureCategory.INTERNAL,
+        default_message="the event could not be built",
+    ),
     ERROR_CODE_EVENT_SCHEMA_INVALID: ErrorCodeInfo(
         code=ERROR_CODE_EVENT_SCHEMA_INVALID,
         category=FailureCategory.VALIDATION,
@@ -44,9 +53,24 @@ ERROR_CODES: dict[str, ErrorCodeInfo] = {
         category=FailureCategory.VALIDATION,
         default_message="the event type is not in the registry",
     ),
+    ERROR_CODE_INSTANCE_ID_UNAVAILABLE: ErrorCodeInfo(
+        code=ERROR_CODE_INSTANCE_ID_UNAVAILABLE,
+        category=FailureCategory.CONFIGURATION,
+        default_message="the instance id of the resource could not be generated",
+    ),
     ERROR_CODE_LIMIT_EXCEEDED: ErrorCodeInfo(
         code=ERROR_CODE_LIMIT_EXCEEDED,
         category=FailureCategory.VALIDATION,
         default_message="a limit of the contract was exceeded",
+    ),
+    ERROR_CODE_LIMITS_FAILED: ErrorCodeInfo(
+        code=ERROR_CODE_LIMITS_FAILED,
+        category=FailureCategory.INTERNAL,
+        default_message="the limits could not be applied to the event",
+    ),
+    ERROR_CODE_MASKING_FAILED: ErrorCodeInfo(
+        code=ERROR_CODE_MASKING_FAILED,
+        category=FailureCategory.INTERNAL,
+        default_message="the event could not be masked",
     ),
 }

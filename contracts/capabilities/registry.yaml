@@ -131,7 +131,11 @@ capabilities:
           - { language: python, path: python/internal/tests/domain/operations/canonical_json/test_time_format.py }
       # REQ-CNF-004: The validation and configuration error codes MUST be identical. The me...
       - id: REQ-CNF-004
-        pending: T-12.1
+        # 29 failures made by the real code in each language give the same catalog code, from one shared table (T-03.7); the cross run of both languages together is T-12.1
+        tests:
+          - { language: go, path: go/internal/tests/domain/errors_codes_test.go }
+          - { language: go, path: go/internal/tests/domain/value_objects/error_codes_test.go }
+          - { language: python, path: python/internal/tests/domain/test_error_codes.py }
       # REQ-CNF-005: There MUST be a set of shared fixtures (integration-tests/fixtures/) t...
       - id: REQ-CNF-005
         # the first shared cases (envelope, events, time, validation); more arrive with each capability

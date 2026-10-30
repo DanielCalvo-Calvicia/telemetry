@@ -30,7 +30,7 @@ var _ outbound.ConfigurationPort = (*ConfigurationProvider)(nil)
 
 // NewConfigurationProvider validates the config and returns the provider of it. An invalid config returns the
 // *ValidationError as it is, with every problem. When resource.instance_id is empty it asks the identifier generator
-// for one; a failure is returned joined with application.ErrConfigurationInstanceIDFailed.
+// for one; a failure is returned as a classified error (instance_id_unavailable) with application.ErrConfigurationInstanceIDFailed joined with the cause.
 func NewConfigurationProvider(ctx context.Context, config Config, id_generator outbound.IDGeneratorPort) (*ConfigurationProvider, error) {
 	if validation_error := Validate(config); validation_error != nil {
 		return nil, validation_error
@@ -40,7 +40,7 @@ func NewConfigurationProvider(ctx context.Context, config Config, id_generator o
 	if instance_id == "" {
 		generated_id, generation_error := id_generator.NewInstanceID(ctx)
 		if generation_error != nil {
-			return nil, application.JoinErrors(application.ErrConfigurationInstanceIDFailed, generation_error)
+			return nil, domain.NewClassifiedError(value_objects.ErrorCodeInstanceIdUnavailable, application.ErrConfigurationInstanceIDFailed, generation_error)
 		}
 		instance_id = generated_id.String()
 	}
