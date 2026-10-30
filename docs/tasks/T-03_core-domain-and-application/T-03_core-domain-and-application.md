@@ -30,7 +30,7 @@ The part of the library that every capability shares, in Go and in Python with t
 | 5 | [T-03.5 Limits](T-03.5_limits.md) | done (2026-10-30) |
 | 6 | [T-03.6 Configuration and profiles](T-03.6_configuration-and-profiles.md) | done (2026-10-30) |
 | 7 | [T-03.7 Error model](T-03.7_error-model.md) | done (2026-10-30) |
-| 8 | [T-03.8 Call context](T-03.8_call-context.md) | todo |
+| 8 | [T-03.8 Call context](T-03.8_call-context.md) | done (2026-10-30) |
 | 9 | [T-03.9 Core composition root and the public entry point](T-03.9_core-composition-root-and-the-public-entry-point.md) | todo |
 
 Order: 1, 2, 3; then 4 and 5 (both need 3); 6 and 7 only need T-02.4 and T-02.3, so they can start as soon as the generator exists, in parallel with 1 to 3; 8 needs 2; 9 closes the epic and needs 2 to 8. Go and Python are done together for each subtask, so the two never drift. Go tests live under `go/internal/tests/` and are black-box; the coverage gate is 95% without `external/`. Apply the `go-architecture-standard` skill before writing Go here.

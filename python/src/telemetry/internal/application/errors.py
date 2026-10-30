@@ -8,6 +8,7 @@ role of ``errors.Join`` in Go, and a message never holds a value of the caller.
 from telemetry.internal.domain.errors import ClassifiedError
 from telemetry.internal.domain.value_objects.error_codes_generated import (
     ERROR_CODE_EVENT_BUILD_FAILED,
+    ERROR_CODE_EVENT_SCHEMA_INVALID,
     ERROR_CODE_INSTANCE_ID_UNAVAILABLE,
     ERROR_CODE_LIMITS_FAILED,
     ERROR_CODE_MASKING_FAILED,
@@ -30,6 +31,24 @@ class EnvelopeLimitsFailedError(ClassifiedError):
     """The size limits could not be applied (code ``limits_failed``); the event is dropped, never sent unchecked."""
 
     code = ERROR_CODE_LIMITS_FAILED
+
+
+class CallContextFieldInvalidError(ClassifiedError):
+    """A field of a call context is not valid (code ``event_schema_invalid``); the message names fields, not values."""
+
+    code = ERROR_CODE_EVENT_SCHEMA_INVALID
+
+
+class CallContextIdAllZerosError(ClassifiedError):
+    """A trace id or a span id is all zeros, which W3C Trace Context forbids (code ``event_schema_invalid``)."""
+
+    code = ERROR_CODE_EVENT_SCHEMA_INVALID
+
+
+class CallContextIdFailedError(ClassifiedError):
+    """The id of a new request could not be generated (code ``event_build_failed``); the cause is chained."""
+
+    code = ERROR_CODE_EVENT_BUILD_FAILED
 
 
 class ConfigurationInstanceIdFailedError(ClassifiedError):

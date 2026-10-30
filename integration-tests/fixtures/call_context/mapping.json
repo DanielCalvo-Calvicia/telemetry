@@ -1,0 +1,53 @@
+{
+  "description": "What a call context gives the envelope: the correlation context of the event (REQ-LOG-005). Only the four correlation ids go to the envelope context; the application and the instance of the call context are not part of it (the resource comes from the configuration); a call context with none of the four gives no context at all. expected is the exact canonical JSON of the context or null when there is none.",
+  "cases": [
+    {
+      "description": "all four ids and the identity",
+      "input": {
+        "trace_id": "0af7651916cd43dd8448eb211c80319c",
+        "span_id": "b7ad6b7169203331",
+        "execution_id": "run-7",
+        "correlation_id": "order-9",
+        "application": "sensor-hub",
+        "instance_id": "hub-01"
+      },
+      "expected": "{\"correlation_id\":\"order-9\",\"execution_id\":\"run-7\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"}"
+    },
+    {
+      "description": "only a trace id",
+      "input": {
+        "trace_id": "0af7651916cd43dd8448eb211c80319c"
+      },
+      "expected": "{\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"}"
+    },
+    {
+      "description": "execution and correlation only",
+      "input": {
+        "execution_id": "run-7",
+        "correlation_id": "order-9"
+      },
+      "expected": "{\"correlation_id\":\"order-9\",\"execution_id\":\"run-7\"}"
+    },
+    {
+      "description": "the application and the instance are not part of the envelope context",
+      "input": {
+        "application": "sensor-hub",
+        "instance_id": "hub-01"
+      },
+      "expected": null
+    },
+    {
+      "description": "nothing set gives no context",
+      "input": {},
+      "expected": null
+    },
+    {
+      "description": "empty texts count as not set",
+      "input": {
+        "trace_id": "",
+        "execution_id": ""
+      },
+      "expected": null
+    }
+  ]
+}

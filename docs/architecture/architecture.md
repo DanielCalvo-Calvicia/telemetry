@@ -238,6 +238,17 @@ One logical model, [contracts/config/config.schema.json](../../contracts/config/
 - **The sentinels and the codes are kept equal by a shared table**: `integration-tests/fixtures/errors/codes.json`, read by one test in each language, plus a check that the generated codes equal the catalog file.
 - **Error translation of an adapter** stays in the adapter's `error/` folder; this layer defines only the sentinels of the domain and the application.
 
+### 2.16 The call context (built, T-03.8)
+
+`application/call_context/` (Go and Python) carries the identity and the correlation of a call through the program, migrated from the old `call_depth` package (which stays, unchanged, until T-04.7). A `CallContext` holds the `application`, the `instance_id`, the `execution_id`, the `correlation_id`, the `trace_id`, the `span_id` and the **indentation** of the call depth (it starts at 1 and grows by one at each deeper layer). Empty means not set and is never an error.
+
+- **Go** stores it in `context.Context` under an unexported key type: `WithCallContext`, `FromContext`, `NextIndentation` (a copy one layer deeper; the original is never changed) and `NewRequestContext`. **Python** stores it in a `contextvars.ContextVar` (per-call storage, not shared mutable state: it works with threads, each of which starts with none, and with `asyncio` tasks, which inherit the context of their creator and cannot change each other's): `use_call_context(...)` and `deeper_indentation()` are context managers, `current_call_context()` reads it. The Python names map to the Go ones by that rule.
+- **Validation** (`NewCallContext` / `new_call_context`): `trace_id` is 32 and `span_id` 16 lowercase hexadecimal digits and **neither may be all zeros** (W3C Trace Context); the other fields are identifiers (not blank, no control characters, never trimmed). All problems are reported together as one classified error with the code `event_schema_invalid`, naming the fields and never the values. An incoming id is **data, not authorization** (REQ-TRC-003): it is validated and never trusted. It never raises to the caller (Python returns a `CallContextResult`).
+- **A new request** (`NewRequestContext` / `start_request`): the application and the instance id are validated, and the old per-request process id becomes the **correlation id**, a UUIDv7 generated with the identifier generator port (`NewEventID`; the port may get its own method later). A failing generator is an `event_build_failed` error with the cause in the chain and no context.
+- **What goes to the envelope:** `ToCorrelationContext` / `to_correlation_context` maps only the four correlation ids to the correlation context of the event (REQ-LOG-005) and gives none when all four are empty. **The application and the instance are not part of the envelope context**: the resource comes from the configuration. They stay in the call context for the migration of the old consumers.
+- **The indentation is not part of the envelope** either: it is stored here and the console adapter (T-04.2) decides how to draw it. This is the answer proposed by the task; the maintainer was not asked.
+- **It carries only identifiers and the depth**, never a secret, a request body or a payload (REQ-LOG-006). The logger that attaches the ids to a log line is T-04.1; W3C propagation over HTTP is T-10.
+
 ## 3. Current state (exists)
 
 | Layer | Package | What it holds |

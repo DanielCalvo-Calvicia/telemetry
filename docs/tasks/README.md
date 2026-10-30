@@ -115,7 +115,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-03.5](T-03_core-domain-and-application/T-03.5_limits.md) | Limits | code | done (2026-10-30) |
 | [T-03.6](T-03_core-domain-and-application/T-03.6_configuration-and-profiles.md) | Configuration and profiles | code | done (2026-10-30) |
 | [T-03.7](T-03_core-domain-and-application/T-03.7_error-model.md) | Error model | code | done (2026-10-30) |
-| [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | todo |
+| [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | done (2026-10-30) |
 | [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | todo |
 | [T-04](T-04_logging-and-core-adapters/T-04_logging-and-core-adapters.md) | **Logging and the core adapters** | epic | todo |
 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | todo |

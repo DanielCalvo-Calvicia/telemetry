@@ -45,6 +45,20 @@ var (
 	ErrConfigurationInstanceIDFailed = errors.New("the instance id of the resource could not be generated")
 )
 
+// #### CALL CONTEXT ERRORS
+
+var (
+	// ErrCallContextFieldInvalid is the sentinel of a field of the call context that is not valid. The detail of the
+	// error names the field and the rule it broke, never the value.
+	ErrCallContextFieldInvalid = errors.New("a field of the call context is invalid")
+	// ErrCallContextIDAllZeros is the cause of a trace id or a span id that is made only of zeros, which the W3C Trace
+	// Context does not allow.
+	ErrCallContextIDAllZeros = errors.New("a trace id or a span id must not be all zeros")
+	// ErrCallContextIDFailed is returned, joined with its cause, when the correlation id of a request could not be
+	// generated.
+	ErrCallContextIDFailed = errors.New("the correlation id of the request could not be generated")
+)
+
 // #### ERROR COMPOSITION
 
 // JoinErrors joins the non-nil errors into one, so errors.Is finds each of them. It returns nil when there is none.

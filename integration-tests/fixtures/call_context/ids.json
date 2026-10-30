@@ -1,0 +1,181 @@
+{
+  "description": "One field of a call context and the value given; valid says whether it is accepted. An empty text means not set and is valid. trace_id is 32 lowercase hexadecimal digits and span_id 16, and neither may be all zeros (W3C Trace Context); the other fields are identifiers (not blank, no control characters). An incoming id is data, not authorization (REQ-TRC-003).",
+  "cases": [
+    {
+      "description": "a trace id",
+      "input": {
+        "field": "trace_id",
+        "value": "0af7651916cd43dd8448eb211c80319c"
+      },
+      "valid": true
+    },
+    {
+      "description": "trace id not set",
+      "input": {
+        "field": "trace_id",
+        "value": ""
+      },
+      "valid": true
+    },
+    {
+      "description": "trace id uppercase",
+      "input": {
+        "field": "trace_id",
+        "value": "0AF7651916CD43DD8448EB211C80319C"
+      },
+      "valid": false
+    },
+    {
+      "description": "trace id too short",
+      "input": {
+        "field": "trace_id",
+        "value": "0af7651916cd43dd8448eb211c80319"
+      },
+      "valid": false
+    },
+    {
+      "description": "trace id too long",
+      "input": {
+        "field": "trace_id",
+        "value": "0af7651916cd43dd8448eb211c80319c0"
+      },
+      "valid": false
+    },
+    {
+      "description": "trace id not hexadecimal",
+      "input": {
+        "field": "trace_id",
+        "value": "0af7651916cd43dd8448eb211c80319g"
+      },
+      "valid": false
+    },
+    {
+      "description": "trace id all zeros",
+      "input": {
+        "field": "trace_id",
+        "value": "00000000000000000000000000000000"
+      },
+      "valid": false
+    },
+    {
+      "description": "a span id",
+      "input": {
+        "field": "span_id",
+        "value": "b7ad6b7169203331"
+      },
+      "valid": true
+    },
+    {
+      "description": "span id not set",
+      "input": {
+        "field": "span_id",
+        "value": ""
+      },
+      "valid": true
+    },
+    {
+      "description": "span id too long",
+      "input": {
+        "field": "span_id",
+        "value": "b7ad6b71692033310"
+      },
+      "valid": false
+    },
+    {
+      "description": "span id uppercase",
+      "input": {
+        "field": "span_id",
+        "value": "B7AD6B7169203331"
+      },
+      "valid": false
+    },
+    {
+      "description": "span id all zeros",
+      "input": {
+        "field": "span_id",
+        "value": "0000000000000000"
+      },
+      "valid": false
+    },
+    {
+      "description": "an execution id",
+      "input": {
+        "field": "execution_id",
+        "value": "run-7"
+      },
+      "valid": true
+    },
+    {
+      "description": "execution id blank",
+      "input": {
+        "field": "execution_id",
+        "value": "   "
+      },
+      "valid": false
+    },
+    {
+      "description": "execution id with a newline",
+      "input": {
+        "field": "execution_id",
+        "value": "run\n7"
+      },
+      "valid": false
+    },
+    {
+      "description": "a correlation id",
+      "input": {
+        "field": "correlation_id",
+        "value": "order-9"
+      },
+      "valid": true
+    },
+    {
+      "description": "correlation id blank",
+      "input": {
+        "field": "correlation_id",
+        "value": " "
+      },
+      "valid": false
+    },
+    {
+      "description": "an application",
+      "input": {
+        "field": "application",
+        "value": "sensor-hub"
+      },
+      "valid": true
+    },
+    {
+      "description": "application blank",
+      "input": {
+        "field": "application",
+        "value": "\t"
+      },
+      "valid": false
+    },
+    {
+      "description": "an instance id",
+      "input": {
+        "field": "instance_id",
+        "value": "hub-01"
+      },
+      "valid": true
+    },
+    {
+      "description": "instance id with a control character",
+      "input": {
+        "field": "instance_id",
+        "value": "hub 01\u0007"
+      },
+      "valid": false
+    },
+    {
+      "description": "non ASCII identifier",
+      "input": {
+        "field": "execution_id",
+        "value": "ejecución-ñ-😀"
+      },
+      "valid": true
+    }
+  ]
+}

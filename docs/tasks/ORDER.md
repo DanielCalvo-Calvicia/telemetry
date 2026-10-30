@@ -46,7 +46,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 22 | [T-03.5](T-03_core-domain-and-application/T-03.5_limits.md) | Limits | code | Done | done (2026-10-30) | T-03.3 | 2026-10-28 |
 | 23 | [T-03.6](T-03_core-domain-and-application/T-03.6_configuration-and-profiles.md) | Configuration and profiles | code | Done | done (2026-10-30) | T-02.4 | 2026-10-28 |
 | 24 | [T-03.7](T-03_core-domain-and-application/T-03.7_error-model.md) | Error model | code | Done | done (2026-10-30) | T-02.3 | 2026-10-28 |
-| 25 | [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | Todo | todo | T-03.2 | 2026-10-28 |
+| 25 | [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | Done | done (2026-10-30) | T-03.2 | 2026-10-28 |
 | 26 | [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | Todo | todo | T-03.2 to T-03.8 | 2026-10-28 |
 | 27 | [T-04](T-04_logging-and-core-adapters/T-04_logging-and-core-adapters.md) | Logging and the core adapters | epic | Todo | todo | T-03 | 2026-10-28 |
 | 28 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | Todo | todo | T-03.9 | 2026-10-28 |
