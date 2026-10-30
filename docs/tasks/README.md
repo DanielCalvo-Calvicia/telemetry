@@ -112,7 +112,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-03.2](T-03_core-domain-and-application/T-03.2_ports.md) | Ports | code | done (2026-10-29) |
 | [T-03.3](T-03_core-domain-and-application/T-03.3_building-an-event.md) | Building an event | code | done (2026-10-29) |
 | [T-03.4](T-03_core-domain-and-application/T-03.4_masking-and-redaction.md) | Masking and redaction | code | done (2026-10-30) |
-| [T-03.5](T-03_core-domain-and-application/T-03.5_limits.md) | Limits | code | todo |
+| [T-03.5](T-03_core-domain-and-application/T-03.5_limits.md) | Limits | code | done (2026-10-30) |
 | [T-03.6](T-03_core-domain-and-application/T-03.6_configuration-and-profiles.md) | Configuration and profiles | code | todo |
 | [T-03.7](T-03_core-domain-and-application/T-03.7_error-model.md) | Error model | code | todo |
 | [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | todo |

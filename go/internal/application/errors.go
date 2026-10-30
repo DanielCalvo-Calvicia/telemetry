@@ -28,6 +28,15 @@ var (
 	ErrEnvelopeMaskingFailed = errors.New("the envelope could not be masked")
 )
 
+// #### LIMITS ERRORS
+
+var (
+	// ErrEnvelopeLimitsFailed is returned, with an empty envelope, when the limits could not be applied to an envelope:
+	// a panic was recovered while they were applied. The caller drops the event (ADR-005). The panic value is not kept,
+	// because it could hold data of the event.
+	ErrEnvelopeLimitsFailed = errors.New("the limits could not be applied to the envelope")
+)
+
 // #### ERROR COMPOSITION
 
 // JoinErrors joins the non-nil errors into one, so errors.Is finds each of them. It returns nil when there is none.

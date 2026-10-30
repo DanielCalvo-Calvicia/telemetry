@@ -279,6 +279,13 @@ func is_empty_value(value reflect.Value) bool {
 	return false
 }
 
+// KeyLess reports whether the key left sorts before the key right in the order of the canonical form: by UTF-16 code
+// units (RFC 8785 section 3.2.3). Other operations that need the same order, such as the limits, use it so the order is
+// written once.
+func KeyLess(left string, right string) bool {
+	return utf16_less(left, right)
+}
+
 // utf16_less compares two keys by UTF-16 code units, as RFC 8785 section 3.2.3 requires. It differs from the order
 // of code points (and of UTF-8 bytes) for the characters outside the Basic Multilingual Plane.
 func utf16_less(left string, right string) bool {

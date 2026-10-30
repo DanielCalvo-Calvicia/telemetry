@@ -20,6 +20,9 @@ var (
 	ErrEventSchemaInvalid = errors.New("the data of the event does not match the schema of its type")
 	// ErrEventTypeUnknown is returned for an event type that is not in the registry.
 	ErrEventTypeUnknown = errors.New("the event type is not in the registry")
+	// ErrEventTooLarge is returned for an event that is still larger than the limit of its size after the attributes
+	// were cut. The detail holds the two numbers, never the content of the event.
+	ErrEventTooLarge = errors.New("the event is larger than the limit")
 )
 
 // === Masking ===
@@ -30,6 +33,16 @@ var (
 	ErrMaskPatternInvalid = errors.New("an extra masking pattern is not a valid regular expression")
 	// ErrMaskRuleInvalid is returned for a rule of a class of fields that is not drop, redact or allow.
 	ErrMaskRuleInvalid = errors.New("the rule of a class of fields must be drop, redact or allow")
+)
+
+// === Limits ===
+
+var (
+	// ErrLimitInvalid is returned for a limit that is zero or negative.
+	ErrLimitInvalid = errors.New("a limit must be greater than zero")
+	// ErrBatchLimitBelowEventLimit is returned when the limit of a batch is smaller than the limit of one event, so a
+	// batch could never hold an event that is allowed.
+	ErrBatchLimitBelowEventLimit = errors.New("the batch limit must hold at least one event")
 )
 
 // #### VALUE OBJECT ERRORS

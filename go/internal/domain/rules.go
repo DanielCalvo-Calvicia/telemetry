@@ -55,6 +55,32 @@ const (
 	SchemaVersion = "0.1"
 )
 
+// #### LIMIT RULES
+
+// The default size limits (REQ-CTR-010, REQ-SEC-004). They are untyped; the Limits value object wraps them and the
+// consumer may change each one (T-03.6 maps the configuration to NewLimits). Texts are counted in characters (Unicode
+// code points); the event and the batch are counted in bytes of the canonical JSON.
+
+// === Attributes ===
+
+const (
+	// DefaultMaxAttributeKeys is the default number of attributes that an event may keep.
+	DefaultMaxAttributeKeys = 32
+	// DefaultMaxAttributeKeyChars is the default length of an attribute key, in characters.
+	DefaultMaxAttributeKeyChars = 64
+	// DefaultMaxAttributeValueChars is the default length of a text value of an attribute, in characters.
+	DefaultMaxAttributeValueChars = 256
+)
+
+// === Event and batch ===
+
+const (
+	// DefaultMaxEventBytes is the default size of one event in canonical JSON: 64 KiB.
+	DefaultMaxEventBytes = 65536
+	// DefaultMaxBatchBytes is the default size of one HTTP batch: 1 MiB.
+	DefaultMaxBatchBytes = 1048576
+)
+
 // #### MASKING RULES
 
 // Everything sensitive is hidden behind MaskedText, wherever it appears: as the value of a field with a sensitive name,

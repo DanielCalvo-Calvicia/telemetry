@@ -51,11 +51,12 @@ def _serialize_object(members: dict[Any, Any]) -> str:
         if not isinstance(name, str):
             raise UnsupportedValueError("an object needs string keys")
     # RFC 8785 section 3.2.3: sort by UTF-16 code units. The UTF-16 big-endian bytes compare in the same order.
-    ordered_names = sorted(members, key=_utf16_sort_key)
+    ordered_names = sorted(members, key=utf16_sort_key)
     return "{" + ",".join(f"{_serialize_string(name)}:{_serialize(members[name])}" for name in ordered_names) + "}"
 
 
-def _utf16_sort_key(text: str) -> bytes:
+def utf16_sort_key(text: str) -> bytes:
+    """Return the RFC 8785 sort key of a text (its UTF-16 code units); a lone surrogate raises UnsupportedValueError."""
     try:
         return text.encode("utf-16-be")
     except UnicodeEncodeError as encode_error:

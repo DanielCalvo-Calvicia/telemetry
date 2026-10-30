@@ -1,0 +1,25 @@
+{
+  "description": "A batch limit smaller than the event limit is a configuration error: not even one event would fit.",
+  "kind": "limits",
+  "options": {
+    "max_event_bytes": 100000,
+    "max_batch_bytes": 1000
+  },
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m"
+    }
+  },
+  "error_code": "config_field_invalid"
+}

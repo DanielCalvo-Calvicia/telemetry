@@ -1,0 +1,54 @@
+{
+  "description": "fits_in_batch(batch_bytes, event_bytes): the bytes already in the batch plus the bytes of the next event must not exceed the batch limit; the framing of the batch belongs to the batcher (T-04.4).",
+  "kind": "batch",
+  "cases": [
+    {
+      "description": "empty batch with an event of 1 MiB",
+      "input": {
+        "batch_bytes": 0,
+        "event_bytes": 1048576
+      },
+      "expected": true
+    },
+    {
+      "description": "exactly 1 MiB in total",
+      "input": {
+        "batch_bytes": 1000000,
+        "event_bytes": 48576
+      },
+      "expected": true
+    },
+    {
+      "description": "one byte over 1 MiB",
+      "input": {
+        "batch_bytes": 1000000,
+        "event_bytes": 48577
+      },
+      "expected": false
+    },
+    {
+      "description": "custom batch limit",
+      "input": {
+        "batch_bytes": 60000,
+        "event_bytes": 40000
+      },
+      "expected": true,
+      "options": {
+        "max_batch_bytes": 100000,
+        "max_event_bytes": 50000
+      }
+    },
+    {
+      "description": "custom batch limit, one over",
+      "input": {
+        "batch_bytes": 60000,
+        "event_bytes": 40001
+      },
+      "expected": false,
+      "options": {
+        "max_batch_bytes": 100000,
+        "max_event_bytes": 50000
+      }
+    }
+  ]
+}

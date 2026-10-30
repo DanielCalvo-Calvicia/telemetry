@@ -39,3 +39,5 @@ Metrics, tracing, a retry queue and a disk buffer. Delivery is best effort ([ADR
 > **Planned (T-02.6):** the new standard counts the events rejected by the validation at the source (a counter by event type and error code) in its diagnostics (REQ-DGN-001). The validator exists in the domain; the counter is wired by T-03.5 and T-05.5. Nothing counts rejections today.
 
 > **Planned (T-03.2):** the result of a sink call (`SendResult`: accepted, dropped, failed and a reason) is the source of the drop counters per destination and reason (REQ-DLV-008, REQ-DGN-001). The ports and the result exist; the counters are wired in T-05.5. Nothing is emitted yet.
+
+> **Planned (T-03.5):** the counters of the limits (attribute keys dropped, attribute keys truncated, attribute values truncated, events rejected) come with the result of every call and become the drop and truncation diagnostics in T-05.5 (REQ-DGN-001). They count items, never text. Nothing is emitted yet.

@@ -27,7 +27,7 @@ The part of the library that every capability shares, in Go and in Python with t
 | 2 | [T-03.2 Ports](T-03.2_ports.md) | done (2026-10-29) |
 | 3 | [T-03.3 Building an event](T-03.3_building-an-event.md) | done (2026-10-29) |
 | 4 | [T-03.4 Masking and redaction](T-03.4_masking-and-redaction.md) | done (2026-10-30) |
-| 5 | [T-03.5 Limits](T-03.5_limits.md) | todo |
+| 5 | [T-03.5 Limits](T-03.5_limits.md) | done (2026-10-30) |
 | 6 | [T-03.6 Configuration and profiles](T-03.6_configuration-and-profiles.md) | todo |
 | 7 | [T-03.7 Error model](T-03.7_error-model.md) | todo |
 | 8 | [T-03.8 Call context](T-03.8_call-context.md) | todo |

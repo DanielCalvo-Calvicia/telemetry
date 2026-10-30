@@ -15,6 +15,7 @@ from telemetry.internal.domain.value_objects.error_codes_generated import (
     ERROR_CODE_CONFIG_FIELD_INVALID,
     ERROR_CODE_EVENT_SCHEMA_INVALID,
     ERROR_CODE_EVENT_TYPE_UNKNOWN,
+    ERROR_CODE_LIMIT_EXCEEDED,
 )
 
 
@@ -115,3 +116,22 @@ class MaskRuleInvalidError(ClassifiedError):
     """The rule of a class of fields is not drop, redact or allow (code ``config_field_invalid``)."""
 
     code = ERROR_CODE_CONFIG_FIELD_INVALID
+
+
+# The size limits (T-03.5). The messages give numbers, never the content of an event.
+class LimitInvalidError(ClassifiedError):
+    """A size limit is not an integer greater than zero (code ``config_field_invalid``)."""
+
+    code = ERROR_CODE_CONFIG_FIELD_INVALID
+
+
+class BatchLimitBelowEventLimitError(ClassifiedError):
+    """The batch limit cannot hold one event of the maximum size (code ``config_field_invalid``)."""
+
+    code = ERROR_CODE_CONFIG_FIELD_INVALID
+
+
+class EventTooLargeError(ClassifiedError):
+    """An event is over the size limit after the cuts (code ``limit_exceeded``); the message has numbers only."""
+
+    code = ERROR_CODE_LIMIT_EXCEEDED

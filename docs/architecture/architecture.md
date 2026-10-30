@@ -135,7 +135,7 @@ An event whose `data` does not match the schema of its `event_type` is rejected 
 - **The source of the requirement ids is the specification** (PR-001, the bold `**REQ-XXX-nnn.**` definitions: 130 ids in 20 areas), through the flag `--spec`. The plan's default, the requirements document, lists only the requirements whose state moved, so it cannot be the source.
 - **What it fails on:** a requirement of the specification that no capability lists; an id that is not in the specification; a requirement with neither tests nor a pending task; a listed test file that does not exist; a pending task that does not exist in `docs/tasks`; a capability marked `supported` while a language is not `passing` (or `not_applicable` without a reason) or while a requirement is only pending; an invalid level, status or state; a duplicated id (a requirement belongs to one capability only). A misspelled key fails too (strict YAML).
 - **What it reports.** The uncovered requirements, one per line with their area and the task they wait for (`REQ-ARC-014 (ARC): pending T-03.9`), a separate list of those that **no task mentions yet** (`pending: unassigned`: allowed, never counted as covered), the counts, and the library maturity as the least complete capability (REQ-CNF-008). A pending item never counts as covered.
-- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **19 covered by real tests** (the architecture, canonical JSON, event validation, generator, shared-fixture, value-object, port, event-building and masking-list requirements), **103 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
+- **Today.** 17 capabilities, all `beta`, none `supported`; 130 requirements: **21 covered by real tests** (the architecture, canonical JSON, event validation, generator, shared-fixture, value-object, port, event-building, masking-list and limits requirements), **101 pending** on a task and **8 with no task yet**. Run it with `cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`.
 
 ### 2.8 The shared fixtures (built, T-02.8)
 
@@ -200,6 +200,21 @@ The masker is a domain operation (`domain/operations/masking/`, Go and Python); 
 - **Where the options come from:** the configuration (T-03.6) maps to `MaskerOptions`; the core reads no file and no environment.
 - **Regular expressions in two engines.** Go RE2 and Python `re` differ, so the Python side compiles the shared pattern texts through one translation (ASCII word boundaries, the exact set of white space characters of RE2, the flags, the case folding of Go) and the shared tables, a differential test of random inputs and the old library catch a difference. A consumer's extra pattern must stay in the common subset (no look-around, no Go-only classes): a pattern valid in one engine and not in the other fails at start in that engine.
 - **Not wired yet.** Nothing calls the service outside the tests: T-03.9 wires the chain (builder, validation, masking, limits, sinks). Until then the spying-sink test builds the chain inside the test.
+
+### 2.13 Limits (built, T-03.5)
+
+`Limits` (a value object) holds the five limits and `ApplyLimits` (a domain operation in `domain/operations/limits/`) applies them; `LimitsService` (`application/services/`) wraps it for the chain. The defaults are those of Q08-9: **32 attribute keys, a key of 64 characters, a value of 256 characters, an event of 64 KiB (65536 bytes) and an HTTP batch of 1 MiB (1048576 bytes)**. All are configurable through `NewLimits` / `Limits(...)`; a value that is not greater than zero, or a batch limit smaller than the event limit, is a configuration error (`config_field_invalid`). T-03.6 maps the configuration to it.
+
+**The policy** (REQ-CTR-010, REQ-SEC-004), the same in both languages:
+
+1. Only `attributes` are cut. The keys are taken in the **sorted order of the canonical form** (UTF-16 code units of the original key): a Go map has no insertion order, and this order makes Go and Python equal. The keys beyond the first 32 are **dropped**.
+2. A key longer than 64 characters is **cut** to 64; if the cut key equals a key already kept, the second one is dropped (counted as dropped, not as truncated).
+3. A string value longer than 256 characters is **cut** to 256; every string of a list is limited on its own. Numbers, booleans and null are never cut.
+4. **Characters are Unicode code points**, not bytes and not UTF-16 units (257 emoji are cut to 256 emoji).
+5. After the cuts the size of the event is the number of **bytes of its canonical JSON**. More than 65536 is **rejected** with `limit_exceeded` and counted; exactly 65536 is accepted. A half-event is not useful, so an event is never cut to fit. (This is the rule proposed by the task; the maintainer was not asked and it is the default.)
+6. **The counters** (`attribute_keys_dropped`, `attribute_keys_truncated`, `attribute_values_truncated`, `events_rejected`) are plain integers returned with the result and **never hold the cut text**, which may be sensitive. They become diagnostics in T-05.5.
+
+`fits_in_batch(batch_bytes, event_bytes)` is a pure function (the sum must not exceed the batch limit); the framing bytes of a batch belong to the batcher (T-04.4, T-05.1). The service **never raises or panics** (ADR-005): a failure returns an error and no envelope. It runs **after masking**, so a secret is never cut in half and left half visible (ADR-006), and before the sinks; T-03.9 wires the chain.
 
 ## 3. Current state (exists)
 

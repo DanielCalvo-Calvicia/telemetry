@@ -100,3 +100,14 @@ MASK_RULE_DROP = "drop"  # the field is removed
 MASK_RULE_REDACT = "redact"  # the value is replaced by MASKED_TEXT
 MASK_RULE_ALLOW = "allow"  # the rule of the sensitive names is skipped (the text detectors still run)
 MASK_RULES = (MASK_RULE_DROP, MASK_RULE_REDACT, MASK_RULE_ALLOW)
+
+
+# =============================================================================
+# Size limits (REQ-CTR-010, REQ-SEC-004). The defaults are a CONTRACT shared with Go.
+# =============================================================================
+
+DEFAULT_MAX_ATTRIBUTE_KEYS = 32  # keys kept in the attributes of an event
+DEFAULT_MAX_ATTRIBUTE_KEY_CHARS = 64  # characters (code points) of a key
+DEFAULT_MAX_ATTRIBUTE_VALUE_CHARS = 256  # characters (code points) of a text value
+DEFAULT_MAX_EVENT_BYTES = 65536  # 64 KiB of canonical JSON
+DEFAULT_MAX_BATCH_BYTES = 1048576  # 1 MiB of an HTTP batch

@@ -103,8 +103,14 @@ capabilities:
           - { language: python, path: python/internal/tests/domain/base_value_objects/test_base_value_objects.py }
       # REQ-CTR-010: attributes MUST accept only scalar values and lists of scalars, with c...
       - id: REQ-CTR-010
-        # partial evidence exists (the validator tests and the EventAttributes tests cover the scalar rule); the configurable limits and the truncation are completed by T-03.5
-        pending: T-03.5
+        # the scalar rule (T-03.1) and the limits and the truncation of the attributes (T-03.5)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/limits/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/limits/apply_limits_test.go }
+          - { language: go, path: go/internal/tests/application/services/limits_shared_fixtures_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/limits/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/domain/operations/limits/test_limits.py }
+          - { language: python, path: python/internal/tests/application/services/test_limits_shared_fixtures.py }
       # REQ-CNF-001: The contracts/ directory MUST be the single source of truth. Nobody wr...
       - id: REQ-CNF-001
         # the generator reads contracts/ and CI fails if the committed code differs
@@ -855,7 +861,14 @@ capabilities:
           - { language: python, path: python/internal/tests/application/services/test_masking_spy.py }
       # REQ-SEC-004: MUST apply configurable limits on the size of the payload, of the even...
       - id: REQ-SEC-004
-        pending: T-03.5
+        # the limits of the attributes, of the event and of a batch exist and are configurable through Limits; the TLS and payload parts of the requirement are other tasks
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/limits/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/limits/apply_limits_test.go }
+          - { language: go, path: go/internal/tests/application/services/limits_shared_fixtures_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/limits/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/domain/operations/limits/test_limits.py }
+          - { language: python, path: python/internal/tests/application/services/test_limits_shared_fixtures.py }
       # REQ-SEC-005: TLS verification MUST be on by default and turning it off MUST require...
       - id: REQ-SEC-005
         pending: T-04.4

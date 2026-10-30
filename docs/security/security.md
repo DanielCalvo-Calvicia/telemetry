@@ -45,3 +45,8 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 - **A failing mask drops the event**, never sends it unmasked. The error never holds the value.
 - **Checklist before a push:** the masking fixtures hold only fake credentials (AWS documentation examples and obvious placeholders); no real key, token or host.
 - **Planned:** the guarantee that no sink sees an unmasked event is complete when the chain is wired (T-03.9); the tests build the chain by hand until then.
+
+## Limits as a protection against oversized payloads (built, T-03.5)
+
+- An event is rejected above 64 KiB of canonical JSON and the attributes are bounded (32 keys, 64 and 256 characters), so a caller cannot make the library build an unbounded event. A batch for HTTP is bounded at 1 MiB by the batcher using `fits_in_batch`.
+- The limits are applied after masking, so a secret is never cut in half and left half visible. The counters and the error messages hold sizes and counts, never the cut text.
