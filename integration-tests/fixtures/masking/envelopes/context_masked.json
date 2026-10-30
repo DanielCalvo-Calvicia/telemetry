@@ -1,0 +1,26 @@
+{
+  "description": "The context is masked too; the hexadecimal trace and span ids are not touched.",
+  "kind": "mask",
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m"
+    },
+    "context": {
+      "correlation_id": "token=abc12345678",
+      "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "span_id": "b7ad6b7169203331"
+    }
+  },
+  "expected": "{\"context\":{\"correlation_id\":\"token=*****MASKED*****\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"},\"data\":{\"category\":\"c\",\"message\":\"m\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

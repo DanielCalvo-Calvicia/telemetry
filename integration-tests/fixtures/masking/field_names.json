@@ -1,0 +1,236 @@
+{
+  "description": "Whether the value of a field with this name is always hidden (the name is read in snake case; it matches a name of the list or ends with an underscore and one).",
+  "oracle": "The expected values were produced by the masker of the old library (internal/logging/domain/operations at the commit of T-03.4), the detectors being unchanged in the new code (Q06-5).",
+  "cases": [
+    {
+      "description": "password",
+      "input": "password",
+      "expected": true
+    },
+    {
+      "description": "db_password",
+      "input": "db_password",
+      "expected": true
+    },
+    {
+      "description": "Password",
+      "input": "Password",
+      "expected": true
+    },
+    {
+      "description": "dbPassword",
+      "input": "dbPassword",
+      "expected": true
+    },
+    {
+      "description": "access-key",
+      "input": "access-key",
+      "expected": true
+    },
+    {
+      "description": "accessKey",
+      "input": "accessKey",
+      "expected": true
+    },
+    {
+      "description": "secret",
+      "input": "secret",
+      "expected": true
+    },
+    {
+      "description": "secret_string",
+      "input": "secret_string",
+      "expected": true
+    },
+    {
+      "description": "SecretString",
+      "input": "SecretString",
+      "expected": true
+    },
+    {
+      "description": "secret_binary",
+      "input": "secret_binary",
+      "expected": true
+    },
+    {
+      "description": "client_secret",
+      "input": "client_secret",
+      "expected": true
+    },
+    {
+      "description": "api_key",
+      "input": "api_key",
+      "expected": true
+    },
+    {
+      "description": "apikey",
+      "input": "apikey",
+      "expected": true
+    },
+    {
+      "description": "authorization",
+      "input": "authorization",
+      "expected": true
+    },
+    {
+      "description": "access_token",
+      "input": "access_token",
+      "expected": true
+    },
+    {
+      "description": "session_token",
+      "input": "session_token",
+      "expected": true
+    },
+    {
+      "description": "request_body",
+      "input": "request_body",
+      "expected": true
+    },
+    {
+      "description": "body",
+      "input": "body",
+      "expected": true
+    },
+    {
+      "description": "message_body",
+      "input": "message_body",
+      "expected": true
+    },
+    {
+      "description": "MessageBody",
+      "input": "MessageBody",
+      "expected": true
+    },
+    {
+      "description": "content",
+      "input": "content",
+      "expected": true
+    },
+    {
+      "description": "payload",
+      "input": "payload",
+      "expected": true
+    },
+    {
+      "description": "private_key",
+      "input": "private_key",
+      "expected": true
+    },
+    {
+      "description": "x-amz-signature",
+      "input": "x-amz-signature",
+      "expected": true
+    },
+    {
+      "description": "cookie",
+      "input": "cookie",
+      "expected": true
+    },
+    {
+      "description": "credentials",
+      "input": "credentials",
+      "expected": true
+    },
+    {
+      "description": "X Api Key",
+      "input": "X Api Key",
+      "expected": true
+    },
+    {
+      "description": "db.password",
+      "input": "db.password",
+      "expected": true
+    },
+    {
+      "description": "",
+      "input": "",
+      "expected": false
+    },
+    {
+      "description": "key",
+      "input": "key",
+      "expected": false
+    },
+    {
+      "description": "bucket",
+      "input": "bucket",
+      "expected": false
+    },
+    {
+      "description": "secret_id",
+      "input": "secret_id",
+      "expected": false
+    },
+    {
+      "description": "secret_name",
+      "input": "secret_name",
+      "expected": false
+    },
+    {
+      "description": "secret_arn",
+      "input": "secret_arn",
+      "expected": false
+    },
+    {
+      "description": "token_count",
+      "input": "token_count",
+      "expected": false
+    },
+    {
+      "description": "queue_url",
+      "input": "queue_url",
+      "expected": false
+    },
+    {
+      "description": "error",
+      "input": "error",
+      "expected": false
+    },
+    {
+      "description": "message",
+      "input": "message",
+      "expected": false
+    },
+    {
+      "description": "size",
+      "input": "size",
+      "expected": false
+    },
+    {
+      "description": "bodyguard",
+      "input": "bodyguard",
+      "expected": false
+    },
+    {
+      "description": "passwordless",
+      "input": "passwordless",
+      "expected": false
+    },
+    {
+      "description": "contents",
+      "input": "contents",
+      "expected": false
+    },
+    {
+      "description": "tokenizer",
+      "input": "tokenizer",
+      "expected": false
+    },
+    {
+      "description": "ñpassword",
+      "input": "ñpassword",
+      "expected": false
+    },
+    {
+      "description": "PASSWORD",
+      "input": "PASSWORD",
+      "expected": true
+    },
+    {
+      "description": "api key",
+      "input": "api key",
+      "expected": true
+    }
+  ]
+}

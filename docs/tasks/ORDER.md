@@ -42,7 +42,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 18 | [T-03.1](T-03_core-domain-and-application/T-03.1_value-objects-and-base-value-objects.md) | Value objects and base value objects | code | Done | done (2026-10-29) | T-02.4 | 2026-10-28 |
 | 19 | [T-03.2](T-03_core-domain-and-application/T-03.2_ports.md) | Ports | code | Done | done (2026-10-29) | T-03.1 | 2026-10-28 |
 | 20 | [T-03.3](T-03_core-domain-and-application/T-03.3_building-an-event.md) | Building an event | code | Done | done (2026-10-29) | T-03.2 | 2026-10-28 |
-| 21 | [T-03.4](T-03_core-domain-and-application/T-03.4_masking-and-redaction.md) | Masking and redaction | code | Todo | todo | T-03.3 | 2026-10-28 |
+| 21 | [T-03.4](T-03_core-domain-and-application/T-03.4_masking-and-redaction.md) | Masking and redaction | code | Done | done (2026-10-30) | T-03.3 | 2026-10-28 |
 | 22 | [T-03.5](T-03_core-domain-and-application/T-03.5_limits.md) | Limits | code | Todo | todo | T-03.3 | 2026-10-28 |
 | 23 | [T-03.6](T-03_core-domain-and-application/T-03.6_configuration-and-profiles.md) | Configuration and profiles | code | Todo | todo | T-02.4 | 2026-10-28 |
 | 24 | [T-03.7](T-03_core-domain-and-application/T-03.7_error-model.md) | Error model | code | Todo | todo | T-02.3 | 2026-10-28 |

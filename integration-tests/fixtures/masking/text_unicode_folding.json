@@ -1,0 +1,91 @@
+{
+  "cases": [
+    {
+      "description": "long s in password",
+      "input": "paſſword=hunter2",
+      "expected": "paſſword=*****MASKED*****"
+    },
+    {
+      "description": "kelvin sign in api_key",
+      "input": "api_Key=abc",
+      "expected": "api_Key=*****MASKED*****"
+    },
+    {
+      "description": "kelvin sign in token",
+      "input": "toKen=abc",
+      "expected": "toKen=*****MASKED*****"
+    },
+    {
+      "description": "long s at the start of secret",
+      "input": "ſecret=abc",
+      "expected": "ſecret=*****MASKED*****"
+    },
+    {
+      "description": "long s in a prefixed name",
+      "input": "client_ſecret=abc",
+      "expected": "client_ſecret=*****MASKED*****"
+    },
+    {
+      "description": "kelvin sign in access_key",
+      "input": "ACCESS_KEY=zzz",
+      "expected": "ACCESS_KEY=*****MASKED*****"
+    },
+    {
+      "description": "long s in signature of a presigned url",
+      "input": "X-Amz-ſignature=abcdef&X-Amz-Expires=300",
+      "expected": "X-Amz-ſignature=*****MASKED*****&X-Amz-Expires=300"
+    },
+    {
+      "description": "long s in a quoted json name",
+      "input": "{\"ſecret\": \"abc 123\", \"user\": \"bob\"}",
+      "expected": "{\"ſecret\": *****MASKED*****, \"user\": \"bob\"}"
+    },
+    {
+      "description": "kelvin sign in the value of an authorization token",
+      "input": "authorization=token Khunter2x",
+      "expected": "authorization=token *****MASKED*****"
+    },
+    {
+      "description": "kelvin sign inside a bearer credential",
+      "input": "Authorization: Bearer abcKdef12345",
+      "expected": "Authorization: Bearer *****MASKED*****"
+    },
+    {
+      "description": "long s inside a bearer credential",
+      "input": "sent bearer abcdeſgh1234 now",
+      "expected": "sent bearer *****MASKED***** now"
+    },
+    {
+      "description": "long s in the scheme basic",
+      "input": "Authorization: Baſic dXNlcjpwYXNz",
+      "expected": "Authorization: Baſic *****MASKED*****"
+    },
+    {
+      "description": "a plain ascii bearer is still hidden",
+      "input": "Authorization: Bearer abcdef123456",
+      "expected": "Authorization: Bearer *****MASKED*****"
+    },
+    {
+      "description": "ascii upper case still works",
+      "input": "SECRET=abc TOKEN=def",
+      "expected": "SECRET=*****MASKED***** TOKEN=*****MASKED*****"
+    },
+    {
+      "description": "kelvin sign in a non sensitive name is kept",
+      "input": "Key=abc cache=1",
+      "expected": "Key=abc cache=1"
+    },
+    {
+      "description": "long s in a connection string password",
+      "input": "postgres://admin:huntſer2@db.local:5432/app",
+      "expected": "postgres://admin:*****MASKED*****@db.local:5432/app"
+    },
+    {
+      "description": "a word that only looks like a key",
+      "input": "paſſ=1 toK=2",
+      "expected": "paſſ=1 toK=2"
+    }
+  ],
+  "description": "Free text where the case folding of the engine matters: with a case-insensitive pattern the Kelvin sign folds onto k and the long s onto s, so a secret written with them is still hidden.",
+  "oracle": "The expected values were produced by the Go masker (go/internal/domain/operations/masking), whose regular expressions (RE2) fold these characters; Python emulates it in shared_pattern.py."
+}

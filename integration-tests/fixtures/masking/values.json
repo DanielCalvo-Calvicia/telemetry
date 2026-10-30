@@ -1,0 +1,279 @@
+{
+  "description": "A value of a field (a name and any JSON value): the value of a sensitive name is replaced as a whole, texts are masked, numbers and booleans are kept, maps and lists are walked with the name of each key.",
+  "oracle": "The expected values were produced by the masker of the old library (internal/logging/domain/operations at the commit of T-03.4), the detectors being unchanged in the new code (Q06-5).",
+  "cases": [
+    {
+      "description": "password: hunter2",
+      "input": {
+        "field_name": "password",
+        "value": "hunter2"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "secret_string: plain text with no pattern at all",
+      "input": {
+        "field_name": "secret_string",
+        "value": "plain text with no pattern at all"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "token: 123456",
+      "input": {
+        "field_name": "token",
+        "value": 123456
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "credentials: map[user:bob]",
+      "input": {
+        "field_name": "credentials",
+        "value": {
+          "user": "bob"
+        }
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "api_key: [a b]",
+      "input": {
+        "field_name": "api_key",
+        "value": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "body: some file content",
+      "input": {
+        "field_name": "body",
+        "value": "some file content"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "accessKey: whatever",
+      "input": {
+        "field_name": "accessKey",
+        "value": "whatever"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "anything: \u003cnil\u003e",
+      "input": {
+        "field_name": "anything",
+        "value": null
+      },
+      "expected": null
+    },
+    {
+      "description": "bucket: my-bucket",
+      "input": {
+        "field_name": "bucket",
+        "value": "my-bucket"
+      },
+      "expected": "my-bucket"
+    },
+    {
+      "description": "secret_id: prod/db/credentials",
+      "input": {
+        "field_name": "secret_id",
+        "value": "prod/db/credentials"
+      },
+      "expected": "prod/db/credentials"
+    },
+    {
+      "description": "count: 42",
+      "input": {
+        "field_name": "count",
+        "value": 42
+      },
+      "expected": 42
+    },
+    {
+      "description": "ratio: 0.5",
+      "input": {
+        "field_name": "ratio",
+        "value": 0.5
+      },
+      "expected": 0.5
+    },
+    {
+      "description": "found: true",
+      "input": {
+        "field_name": "found",
+        "value": true
+      },
+      "expected": true
+    },
+    {
+      "description": "found: false",
+      "input": {
+        "field_name": "found",
+        "value": false
+      },
+      "expected": false
+    },
+    {
+      "description": "nested: map[api_key:k count:3]",
+      "input": {
+        "field_name": "nested",
+        "value": {
+          "api_key": "k",
+          "count": 3
+        }
+      },
+      "expected": {
+        "api_key": "*****MASKED*****",
+        "count": 3
+      }
+    },
+    {
+      "description": "list: [password=x 5 map[secret:y]]",
+      "input": {
+        "field_name": "list",
+        "value": [
+          "password=x",
+          5,
+          {
+            "secret": "y"
+          }
+        ]
+      },
+      "expected": [
+        "password=*****MASKED*****",
+        5,
+        {
+          "secret": "*****MASKED*****"
+        }
+      ]
+    },
+    {
+      "description": "texts: [safe password=z]",
+      "input": {
+        "field_name": "texts",
+        "value": [
+          "safe",
+          "password=z"
+        ]
+      },
+      "expected": [
+        "safe",
+        "password=*****MASKED*****"
+      ]
+    },
+    {
+      "description": "deep: map[a:map[b:[map[ok:fine token:t]]]]",
+      "input": {
+        "field_name": "deep",
+        "value": {
+          "a": {
+            "b": [
+              {
+                "ok": "fine",
+                "token": "t"
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "a": {
+          "b": [
+            {
+              "ok": "fine",
+              "token": "*****MASKED*****"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "description": "empty_map: map[]",
+      "input": {
+        "field_name": "empty_map",
+        "value": {}
+      },
+      "expected": {}
+    },
+    {
+      "description": "empty_list: []",
+      "input": {
+        "field_name": "empty_list",
+        "value": []
+      },
+      "expected": []
+    },
+    {
+      "description": "message: Authorization: Bearer abcdef123456",
+      "input": {
+        "field_name": "message",
+        "value": "Authorization: Bearer abcdef123456"
+      },
+      "expected": "Authorization: Bearer *****MASKED*****"
+    },
+    {
+      "description": "jwt_field: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl",
+      "input": {
+        "field_name": "jwt_field",
+        "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "key_field: AKIAIOSFODNN7EXAMPLE",
+      "input": {
+        "field_name": "key_field",
+        "value": "AKIAIOSFODNN7EXAMPLE"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "pem: -----BEGIN RSA PRIVATE KEY-----\nFAKEFAKEFAKEFAKE\nFAKEFAKEFAKEFAKE\n-----END RSA PRIVATE KEY-----",
+      "input": {
+        "field_name": "pem",
+        "value": "-----BEGIN RSA PRIVATE KEY-----\nFAKEFAKEFAKEFAKE\nFAKEFAKEFAKEFAKE\n-----END RSA PRIVATE KEY-----"
+      },
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "user: señal 😀",
+      "input": {
+        "field_name": "user",
+        "value": "señal 😀"
+      },
+      "expected": "señal 😀"
+    },
+    {
+      "description": ": password=hunter2",
+      "input": {
+        "field_name": "",
+        "value": "password=hunter2"
+      },
+      "expected": "password=*****MASKED*****"
+    },
+    {
+      "description": "list_of_lists: [[token=abc] []]",
+      "input": {
+        "field_name": "list_of_lists",
+        "value": [
+          [
+            "token=abc"
+          ],
+          []
+        ]
+      },
+      "expected": [
+        [
+          "token=*****MASKED*****"
+        ],
+        []
+      ]
+    }
+  ]
+}

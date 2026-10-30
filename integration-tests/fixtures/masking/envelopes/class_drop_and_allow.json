@@ -1,0 +1,38 @@
+{
+  "description": "A class with the rule drop removes the field (the name is read in snake case at any depth); allow keeps a field that the default list would hide.",
+  "kind": "mask",
+  "options": {
+    "field_classes": {
+      "patient_name": "pii",
+      "body": "internal"
+    },
+    "class_rules": {
+      "pii": "drop",
+      "internal": "allow"
+    }
+  },
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m",
+      "patient_name": "Ann",
+      "body": "visible text",
+      "user": "bob",
+      "nested": {
+        "PatientName": "Bob",
+        "keep": 1
+      }
+    }
+  },
+  "expected": "{\"data\":{\"body\":\"visible text\",\"category\":\"c\",\"message\":\"m\",\"nested\":{\"keep\":1},\"user\":\"bob\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

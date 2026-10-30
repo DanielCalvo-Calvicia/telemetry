@@ -37,3 +37,11 @@ The validator of the new standard (built, not yet called from a logging path) pu
 ## Reporting a vulnerability
 
 Privately, through GitHub's private vulnerability reporting of the repository (see `SECURITY.md`). Not through a public issue.
+
+## Masking in the new core (built, T-03.4)
+
+- **What the masker protects:** `data`, `attributes` and `context` of every envelope, at any depth, by the six detectors of ADR-006 (AWS access keys, bearer credentials, JWTs, private key blocks, passwords in connection strings, credential pairs), by the default list of field names and by what the consumer adds. The resource and the actor are identities and are not masked.
+- **Limits that remain:** detection is by pattern and by name; a secret of an unusual shape inside free text is not recognized until the consumer adds a pattern. `body`, `content` and `payload` are always hidden by name (an open question). A consumer that replaces the default list of names removes that protection for its own names: the detectors stay on.
+- **A failing mask drops the event**, never sends it unmasked. The error never holds the value.
+- **Checklist before a push:** the masking fixtures hold only fake credentials (AWS documentation examples and obvious placeholders); no real key, token or host.
+- **Planned:** the guarantee that no sink sees an unmasked event is complete when the chain is wired (T-03.9); the tests build the chain by hand until then.

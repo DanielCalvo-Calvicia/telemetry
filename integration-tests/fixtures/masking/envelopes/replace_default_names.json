@@ -1,0 +1,29 @@
+{
+  "description": "A consumer list of field names replaces the default list of names (the pattern detectors stay on).",
+  "kind": "mask",
+  "options": {
+    "field_names": [
+      "pin"
+    ]
+  },
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m",
+      "password": "plain",
+      "token": "t",
+      "pin": "1234"
+    }
+  },
+  "expected": "{\"data\":{\"category\":\"c\",\"message\":\"m\",\"password\":\"plain\",\"pin\":\"*****MASKED*****\",\"token\":\"t\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

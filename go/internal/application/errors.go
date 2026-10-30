@@ -19,6 +19,15 @@ var (
 	ErrObservedAtInvalid = errors.New("data.observed_at must be a string in the format YYYY-MM-DDTHH:MM:SS.ffffffZ")
 )
 
+// #### MASKING ERRORS
+
+var (
+	// ErrEnvelopeMaskingFailed is returned, with an empty envelope, when an envelope could not be masked: a panic was
+	// recovered while it was masked. The caller drops the event; it never receives the unmasked envelope (ADR-005,
+	// ADR-006). The panic value is not kept, because it could hold data of the event.
+	ErrEnvelopeMaskingFailed = errors.New("the envelope could not be masked")
+)
+
 // #### ERROR COMPOSITION
 
 // JoinErrors joins the non-nil errors into one, so errors.Is finds each of them. It returns nil when there is none.

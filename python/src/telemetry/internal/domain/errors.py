@@ -12,6 +12,7 @@ from telemetry.internal.domain.base_value_objects.errors import (
 )
 from telemetry.internal.domain.base_value_objects.errors import ValueObjectError as ValueObjectError
 from telemetry.internal.domain.value_objects.error_codes_generated import (
+    ERROR_CODE_CONFIG_FIELD_INVALID,
     ERROR_CODE_EVENT_SCHEMA_INVALID,
     ERROR_CODE_EVENT_TYPE_UNKNOWN,
 )
@@ -101,3 +102,16 @@ class AttributeKeyInvalidError(InvalidValueError):
 
 class AttributeValueInvalidError(InvalidValueError):
     """The value of an attribute is not a string, a boolean, a number or a flat list of them (null, object, nesting)."""
+
+
+# The masking options (T-03.4): a start with an invalid option fails instead of logging without the protection.
+class MaskPatternInvalidError(ClassifiedError):
+    """An extra masking pattern is not a valid regular expression (code ``config_field_invalid``)."""
+
+    code = ERROR_CODE_CONFIG_FIELD_INVALID
+
+
+class MaskRuleInvalidError(ClassifiedError):
+    """The rule of a class of fields is not drop, redact or allow (code ``config_field_invalid``)."""
+
+    code = ERROR_CODE_CONFIG_FIELD_INVALID

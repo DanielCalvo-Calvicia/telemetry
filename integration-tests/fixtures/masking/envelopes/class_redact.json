@@ -1,0 +1,31 @@
+{
+  "description": "A class with the rule redact replaces the value of the field.",
+  "kind": "mask",
+  "options": {
+    "field_classes": {
+      "email": "pii"
+    },
+    "class_rules": {
+      "pii": "redact"
+    }
+  },
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m",
+      "email": "a@b.c",
+      "n": 1
+    }
+  },
+  "expected": "{\"data\":{\"category\":\"c\",\"email\":\"*****MASKED*****\",\"message\":\"m\",\"n\":1},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

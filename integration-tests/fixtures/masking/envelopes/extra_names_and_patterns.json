@@ -1,0 +1,33 @@
+{
+  "description": "Extra field names and extra patterns are added to the defaults.",
+  "kind": "mask",
+  "options": {
+    "extra_field_names": [
+      "ssn"
+    ],
+    "extra_patterns": [
+      "ID-[0-9]{4}"
+    ]
+  },
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m",
+      "ssn": "123-45",
+      "note": "see ID-1234 now",
+      "password": "p",
+      "ok": "fine"
+    }
+  },
+  "expected": "{\"data\":{\"category\":\"c\",\"message\":\"m\",\"note\":\"see *****MASKED***** now\",\"ok\":\"fine\",\"password\":\"*****MASKED*****\",\"ssn\":\"*****MASKED*****\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

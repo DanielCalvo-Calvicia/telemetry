@@ -1,0 +1,25 @@
+{
+  "description": "A null stays null even under a sensitive name; numbers and booleans are kept.",
+  "kind": "mask",
+  "input": {
+    "schema_version": "0.1",
+    "event_id": "01900000-0000-7000-8000-000000000001",
+    "event_type": "log.entry.recorded",
+    "occurred_at": "2026-10-28T10:00:00.123456Z",
+    "recorded_at": "2026-10-28T10:00:00.123456Z",
+    "severity": "INFO",
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01"
+    },
+    "data": {
+      "category": "c",
+      "message": "m",
+      "password": null,
+      "n": 1.5,
+      "b": true,
+      "z": null
+    }
+  },
+  "expected": "{\"data\":{\"b\":true,\"category\":\"c\",\"message\":\"m\",\"n\":1.5,\"password\":null,\"z\":null},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+}

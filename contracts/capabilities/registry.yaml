@@ -827,13 +827,32 @@ capabilities:
     requirements:
       # REQ-SEC-001: MUST offer configurable redaction (by field name and by pattern) appli...
       - id: REQ-SEC-001
-        pending: T-03.4
+        # the masker, the options by name and by pattern and the masking service exist and are tested; "before any output" is true only once the chain is wired in T-03.9 (the spying-sink test builds the chain inside the test)
+        pending: T-03.9
       # REQ-SEC-002: There MUST be a default redaction list (for example password, token, a...
       - id: REQ-SEC-002
-        pending: T-03.4
+        # the default list and the six detectors of ADR-006, ported unchanged and checked against the old library as oracle (T-03.4)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/masking/shared_tables_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/masking/sensitive_data_masker_test.go }
+          - { language: go, path: go/internal/tests/application/services/masking_shared_fixtures_test.go }
+          - { language: go, path: go/internal/tests/application/services/masking_spy_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/masking/test_shared_tables.py }
+          - { language: python, path: python/internal/tests/domain/operations/masking/test_sensitive_data_masker.py }
+          - { language: python, path: python/internal/tests/application/services/test_masking_shared_fixtures.py }
+          - { language: python, path: python/internal/tests/application/services/test_masking_spy.py }
       # REQ-SEC-003: MUST support optional data classification per field and rules per clas...
       - id: REQ-SEC-003
-        pending: T-03.4
+        # classification per field with the rules drop, redact and allow (T-03.4)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/masking/shared_tables_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/masking/sensitive_data_masker_test.go }
+          - { language: go, path: go/internal/tests/application/services/masking_shared_fixtures_test.go }
+          - { language: go, path: go/internal/tests/application/services/masking_spy_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/masking/test_shared_tables.py }
+          - { language: python, path: python/internal/tests/domain/operations/masking/test_sensitive_data_masker.py }
+          - { language: python, path: python/internal/tests/application/services/test_masking_shared_fixtures.py }
+          - { language: python, path: python/internal/tests/application/services/test_masking_spy.py }
       # REQ-SEC-004: MUST apply configurable limits on the size of the payload, of the even...
       - id: REQ-SEC-004
         pending: T-03.5

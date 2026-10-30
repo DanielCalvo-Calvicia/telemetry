@@ -1,0 +1,221 @@
+{
+  "description": "Free text: every sensitive segment is hidden behind the masked text and the rest is kept. The input is the same text for both languages.",
+  "oracle": "The expected values were produced by the masker of the old library (internal/logging/domain/operations at the commit of T-03.4), the detectors being unchanged in the new code (Q06-5).",
+  "cases": [
+    {
+      "description": "aws access key inside a text",
+      "input": "key AKIAIOSFODNN7EXAMPLE used",
+      "expected": "key *****MASKED***** used"
+    },
+    {
+      "description": "aws temporary key",
+      "input": "ASIAIOSFODNN7EXAMPLE",
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "aws key inside a longer word is kept",
+      "input": "XAKIAIOSFODNN7EXAMPLEX",
+      "expected": "XAKIAIOSFODNN7EXAMPLEX"
+    },
+    {
+      "description": "aws key after a non ASCII letter (the word boundary is ASCII only)",
+      "input": "ñAKIAIOSFODNN7EXAMPLE",
+      "expected": "ñ*****MASKED*****"
+    },
+    {
+      "description": "bearer header",
+      "input": "Authorization: Bearer abcdef123456",
+      "expected": "Authorization: Bearer *****MASKED*****"
+    },
+    {
+      "description": "bearer lower case",
+      "input": "sent bearer abcdef123456 now",
+      "expected": "sent bearer *****MASKED***** now"
+    },
+    {
+      "description": "basic header",
+      "input": "Authorization: Basic dXNlcjpwYXNz",
+      "expected": "Authorization: Basic *****MASKED*****"
+    },
+    {
+      "description": "basic as a word",
+      "input": "basic configuration needed",
+      "expected": "basic configuration needed"
+    },
+    {
+      "description": "token as a word",
+      "input": "invalid token supplied here",
+      "expected": "invalid token supplied here"
+    },
+    {
+      "description": "jwt",
+      "input": "jwt=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl end",
+      "expected": "jwt=*****MASKED***** end"
+    },
+    {
+      "description": "not a jwt",
+      "input": "eyJ is only a prefix",
+      "expected": "eyJ is only a prefix"
+    },
+    {
+      "description": "private key block",
+      "input": "before -----BEGIN RSA PRIVATE KEY-----\nFAKEFAKEFAKEFAKE\nFAKEFAKEFAKEFAKE\n-----END RSA PRIVATE KEY----- after",
+      "expected": "before *****MASKED***** after"
+    },
+    {
+      "description": "private key without a type",
+      "input": "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----",
+      "expected": "*****MASKED*****"
+    },
+    {
+      "description": "cut private key block",
+      "input": "start -----BEGIN EC PRIVATE KEY-----\nAAAA\nBBBB",
+      "expected": "start *****MASKED*****"
+    },
+    {
+      "description": "public key is kept",
+      "input": "-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----",
+      "expected": "-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----"
+    },
+    {
+      "description": "connection string password",
+      "input": "postgres://admin:hunter2@db.local:5432/app",
+      "expected": "postgres://admin:*****MASKED*****@db.local:5432/app"
+    },
+    {
+      "description": "url without credentials",
+      "input": "https://example.com:8080/path",
+      "expected": "https://example.com:8080/path"
+    },
+    {
+      "description": "url with a user only",
+      "input": "https://user@example.com/path",
+      "expected": "https://user@example.com/path"
+    },
+    {
+      "description": "password pair",
+      "input": "password=hunter2 user=bob",
+      "expected": "password=*****MASKED***** user=bob"
+    },
+    {
+      "description": "prefixed name",
+      "input": "db_password: s3cret!",
+      "expected": "db_password: *****MASKED*****"
+    },
+    {
+      "description": "upper case name",
+      "input": "API_KEY=abc123",
+      "expected": "API_KEY=*****MASKED*****"
+    },
+    {
+      "description": "json pair",
+      "input": "{\"token\": \"abc 123\", \"user\": \"bob\"}",
+      "expected": "{\"token\": *****MASKED*****, \"user\": \"bob\"}"
+    },
+    {
+      "description": "single quoted pair",
+      "input": "secret='my value' next",
+      "expected": "secret=*****MASKED***** next"
+    },
+    {
+      "description": "aws secret key pair",
+      "input": "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+      "expected": "aws_secret_access_key = *****MASKED*****"
+    },
+    {
+      "description": "presigned url signature",
+      "input": "X-Amz-Signature=abcdef012345\u0026X-Amz-Expires=300",
+      "expected": "X-Amz-Signature=*****MASKED*****\u0026X-Amz-Expires=300"
+    },
+    {
+      "description": "names that only start with a keyword",
+      "input": "secret_id=abc token_count=5",
+      "expected": "secret_id=abc token_count=5"
+    },
+    {
+      "description": "login failed",
+      "input": "login failed for user=bob password=hunter2 from 10.0.0.1",
+      "expected": "login failed for user=bob password=*****MASKED***** from 10.0.0.1"
+    },
+    {
+      "description": "connection error",
+      "input": "cannot connect to postgres://admin:hunter2@db.local:5432/app: timeout",
+      "expected": "cannot connect to postgres://admin:*****MASKED*****@db.local:5432/app: timeout"
+    },
+    {
+      "description": "request with bearer",
+      "input": "request with Authorization: Bearer abcdef123456 failed",
+      "expected": "request with Authorization: Bearer *****MASKED***** failed"
+    },
+    {
+      "description": "several in one text",
+      "input": "password=a token=b",
+      "expected": "password=*****MASKED***** token=*****MASKED*****"
+    },
+    {
+      "description": "nothing sensitive",
+      "input": "object copied from bucket a to bucket b",
+      "expected": "object copied from bucket a to bucket b"
+    },
+    {
+      "description": "empty",
+      "input": "",
+      "expected": ""
+    },
+    {
+      "description": "already masked is unchanged",
+      "input": "password=*****MASKED*****",
+      "expected": "password=*****MASKED*****"
+    },
+    {
+      "description": "non ASCII text around a pair",
+      "input": "señal: password=hunter2 température",
+      "expected": "señal: password=*****MASKED***** température"
+    },
+    {
+      "description": "pair after a non ASCII letter",
+      "input": "ñpassword=hunter2",
+      "expected": "ñpassword=*****MASKED*****"
+    },
+    {
+      "description": "emoji and a jwt",
+      "input": "😀 eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl 😀",
+      "expected": "😀 *****MASKED***** 😀"
+    },
+    {
+      "description": "multi line text with a pair",
+      "input": "line one\npassword=hunter2\nline three",
+      "expected": "line one\npassword=*****MASKED*****\nline three"
+    },
+    {
+      "description": "tab separated pair",
+      "input": "token=\tabc",
+      "expected": "token=\t*****MASKED*****"
+    },
+    {
+      "description": "a pair with a vertical tab",
+      "input": "password=a\u000bb",
+      "expected": "password=*****MASKED*****"
+    },
+    {
+      "description": "client secret in json",
+      "input": "{\"client_secret\":\"abc\",\"client_id\":\"xyz\"}",
+      "expected": "{\"client_secret\":*****MASKED*****,\"client_id\":\"xyz\"}"
+    },
+    {
+      "description": "semicolon separated pairs",
+      "input": "pwd=one;token=two;name=three",
+      "expected": "pwd=*****MASKED*****;token=*****MASKED*****;name=three"
+    },
+    {
+      "description": "signature in a url",
+      "input": "https://h/p?sig=1\u0026signature=abc123\u0026x=1",
+      "expected": "https://h/p?sig=1\u0026signature=*****MASKED*****\u0026x=1"
+    },
+    {
+      "description": "credentials pair with colon",
+      "input": "credentials: user:pass",
+      "expected": "credentials: *****MASKED*****"
+    }
+  ]
+}

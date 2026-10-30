@@ -22,6 +22,16 @@ var (
 	ErrEventTypeUnknown = errors.New("the event type is not in the registry")
 )
 
+// === Masking ===
+
+var (
+	// ErrMaskPatternInvalid is returned for an extra pattern of the masker that is not a valid regular expression, so
+	// that the start fails instead of logging without the protection.
+	ErrMaskPatternInvalid = errors.New("an extra masking pattern is not a valid regular expression")
+	// ErrMaskRuleInvalid is returned for a rule of a class of fields that is not drop, redact or allow.
+	ErrMaskRuleInvalid = errors.New("the rule of a class of fields must be drop, redact or allow")
+)
+
 // #### VALUE OBJECT ERRORS
 
 // The sentinels of the value objects. Each one states the rule that the input broke. They are provisional: the
