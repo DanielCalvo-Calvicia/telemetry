@@ -1,0 +1,16 @@
+{
+  "description": "The durable mode needs a spool directory given by the consumer; the validation accepts the mode itself (the composition root refuses to start it without a spool port, T-03.9).",
+  "kind": "config",
+  "profile": "robotics",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    }
+  },
+  "problems": [
+    {
+      "field": "spool.directory",
+      "code": "config_field_invalid"
+    }
+  ]
+}

@@ -45,6 +45,16 @@ var (
 	ErrBatchLimitBelowEventLimit = errors.New("the batch limit must hold at least one event")
 )
 
+// === Configuration ===
+
+var (
+	// ErrConfigFieldInvalid is the sentinel of a field of the configuration that is not valid. The detail of the error
+	// names the field and the rule it broke, never the configured value.
+	ErrConfigFieldInvalid = errors.New("a field of the configuration is not valid")
+	// ErrDeliveryModeUnknown is returned for a delivery mode that is not best_effort, retry or durable.
+	ErrDeliveryModeUnknown = errors.New("the delivery mode is not best_effort, retry or durable")
+)
+
 // #### VALUE OBJECT ERRORS
 
 // The sentinels of the value objects. Each one states the rule that the input broke. They are provisional: the

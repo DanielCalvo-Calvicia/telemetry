@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/config/config.schema.json",
+  "title": "Configuration of the core",
+  "description": "The one logical model of the configuration of the core, shared by both languages (REQ-CFG-001). The library reads no file and no environment (ADR-004, REQ-ARC-007): the consumer loads these values with its own tool, using the names of x-env, and passes them in. The defaults and the profiles are code (the profile functions), not part of this schema, and an empty text means 'not set'. No field here is a secret (REQ-CFG-005); the settings of an adapter belong to the adapter, never an adapter name here (REQ-ARC-013). The order of the properties is the order in which a validation reports its problems.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "resource": {
+      "type": "object",
+      "description": "The identity of the emitting process (section 5.2 of PR-001).",
+      "additionalProperties": false,
+      "properties": {
+        "service_name": {
+          "type": "string",
+          "description": "Logical name of the service. Required.",
+          "x-env": "TELEMETRY_SERVICE_NAME"
+        },
+        "instance_id": {
+          "type": "string",
+          "description": "Instance id. When empty the core generates one at start with the identifier generator port.",
+          "x-env": "TELEMETRY_INSTANCE_ID"
+        },
+        "environment": {
+          "type": "string",
+          "description": "The environment (prod, staging, ...). Optional.",
+          "x-env": "TELEMETRY_ENVIRONMENT"
+        },
+        "service_version": {
+          "type": "string",
+          "description": "The version of the service. Optional.",
+          "x-env": "TELEMETRY_SERVICE_VERSION"
+        },
+        "host": {
+          "type": "string",
+          "description": "The host name. Optional.",
+          "x-env": "TELEMETRY_HOST"
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "IANA time zone of the source, for display only (ADR-012). Optional.",
+          "x-env": "TELEMETRY_TIME_ZONE"
+        }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "description": "How events leave the process (section 10 of PR-001).",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "The delivery mode: best_effort, retry or durable (contracts/enums/delivery_mode.json). The profile gives the default.",
+          "x-env": "TELEMETRY_DELIVERY_MODE"
+        },
+        "queue_size": {
+          "type": "integer",
+          "description": "Events held in the bounded queue (default 10000).",
+          "x-env": "TELEMETRY_QUEUE_SIZE",
+          "minimum": 1
+        },
+        "batch_size": {
+          "type": "integer",
+          "description": "Events in one batch (default 100). Not greater than queue_size.",
+          "x-env": "TELEMETRY_BATCH_SIZE",
+          "minimum": 1
+        },
+        "flush_interval_ms": {
+          "type": "integer",
+          "description": "Milliseconds between flushes (default 2000).",
+          "x-env": "TELEMETRY_FLUSH_INTERVAL_MS",
+          "minimum": 1
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "description": "Milliseconds before a network operation gives up (default 3000, REQ-DLV-004).",
+          "x-env": "TELEMETRY_TIMEOUT_MS",
+          "minimum": 1
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "description": "The size limits of T-03.5 (REQ-SEC-004, REQ-CTR-010).",
+      "additionalProperties": false,
+      "properties": {
+        "max_attribute_keys": {
+          "type": "integer",
+          "description": "Attribute keys per event (default 32).",
+          "x-env": "TELEMETRY_MAX_ATTRIBUTE_KEYS",
+          "minimum": 1
+        },
+        "max_attribute_key_chars": {
+          "type": "integer",
+          "description": "Characters of an attribute key (default 64).",
+          "x-env": "TELEMETRY_MAX_ATTRIBUTE_KEY_CHARS",
+          "minimum": 1
+        },
+        "max_attribute_value_chars": {
+          "type": "integer",
+          "description": "Characters of a string attribute value (default 256).",
+          "x-env": "TELEMETRY_MAX_ATTRIBUTE_VALUE_CHARS",
+          "minimum": 1
+        },
+        "max_event_bytes": {
+          "type": "integer",
+          "description": "Bytes of the canonical JSON of one event (default 65536).",
+          "x-env": "TELEMETRY_MAX_EVENT_BYTES",
+          "minimum": 1
+        },
+        "max_batch_bytes": {
+          "type": "integer",
+          "description": "Bytes of one HTTP batch (default 1048576). Not less than max_event_bytes.",
+          "x-env": "TELEMETRY_MAX_BATCH_BYTES",
+          "minimum": 1
+        }
+      }
+    },
+    "spool": {
+      "type": "object",
+      "description": "The local spool of the durable mode (section 10.4 of PR-001). The adapter is T-06.",
+      "additionalProperties": false,
+      "properties": {
+        "directory": {
+          "type": "string",
+          "description": "Directory of the spool. Required when the delivery mode is durable; the consumer gives it, there is no default.",
+          "x-env": "TELEMETRY_SPOOL_DIRECTORY"
+        },
+        "quota_bytes": {
+          "type": "integer",
+          "description": "Disk quota of the spool per destination (default 268435456, 256 MiB).",
+          "x-env": "TELEMETRY_SPOOL_QUOTA_BYTES",
+          "minimum": 1
+        }
+      }
+    },
+    "masking": {
+      "type": "object",
+      "description": "The options of the masking of T-03.4 (REQ-SEC-001 to REQ-SEC-003).",
+      "additionalProperties": false,
+      "properties": {
+        "extra_patterns": {
+          "type": "array",
+          "description": "Extra regular expressions whose matches are hidden. Keep to the subset common to Go and Python.",
+          "x-env": "TELEMETRY_MASK_EXTRA_PATTERNS",
+          "items": {
+            "type": "string"
+          }
+        },
+        "field_names": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "When set (even empty) it REPLACES the default list of sensitive field names; when not set the default list is used.",
+          "x-env": "TELEMETRY_MASK_FIELD_NAMES",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extra_field_names": {
+          "type": "array",
+          "description": "Field names added to the active list.",
+          "x-env": "TELEMETRY_MASK_EXTRA_FIELD_NAMES",
+          "items": {
+            "type": "string"
+          }
+        },
+        "field_classes": {
+          "type": "object",
+          "description": "Field name to class name.",
+          "x-env": "TELEMETRY_MASK_FIELD_CLASSES",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "class_rules": {
+          "type": "object",
+          "description": "Class name to rule: drop, redact or allow.",
+          "x-env": "TELEMETRY_MASK_CLASS_RULES",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

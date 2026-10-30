@@ -1,0 +1,21 @@
+{
+  "description": "An extra pattern that is not a regular expression is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "masking": {
+      "extra_patterns": [
+        "("
+      ]
+    }
+  },
+  "problems": [
+    {
+      "field": "masking.extra_patterns",
+      "code": "config_field_invalid"
+    }
+  ]
+}

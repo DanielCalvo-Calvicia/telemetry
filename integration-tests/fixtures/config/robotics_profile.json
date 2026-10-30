@@ -1,0 +1,14 @@
+{
+  "description": "The robotics profile is durable and needs a spool directory given by the consumer.",
+  "kind": "config",
+  "profile": "robotics",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "spool": {
+      "directory": "spool-dir"
+    }
+  },
+  "expected": "{\"delivery\":{\"batch_size\":100,\"flush_interval_ms\":2000,\"mode\":\"durable\",\"queue_size\":10000,\"timeout_ms\":3000},\"limits\":{\"max_attribute_key_chars\":64,\"max_attribute_keys\":32,\"max_attribute_value_chars\":256,\"max_batch_bytes\":1048576,\"max_event_bytes\":65536},\"masking\":{\"class_rules\":{},\"extra_field_names\":[],\"extra_patterns\":[],\"field_classes\":{},\"field_names\":null},\"resource\":{\"environment\":\"\",\"host\":\"\",\"instance_id\":\"\",\"service_name\":\"sensor-hub\",\"service_version\":\"\",\"time_zone\":\"\"},\"spool\":{\"directory\":\"spool-dir\",\"quota_bytes\":268435456}}"
+}

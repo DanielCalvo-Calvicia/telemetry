@@ -1,0 +1,19 @@
+{
+  "description": "A spool quota of zero is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "spool": {
+      "quota_bytes": 0
+    }
+  },
+  "problems": [
+    {
+      "field": "spool.quota_bytes",
+      "code": "config_field_invalid"
+    }
+  ]
+}

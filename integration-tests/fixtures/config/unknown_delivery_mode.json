@@ -1,0 +1,19 @@
+{
+  "description": "A delivery mode that is not best_effort, retry or durable has its own code.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "mode": "lazy"
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.mode",
+      "code": "delivery_mode_unknown"
+    }
+  ]
+}

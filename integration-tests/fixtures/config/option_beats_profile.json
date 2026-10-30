@@ -1,0 +1,15 @@
+{
+  "description": "An option given in code overrides the profile, which overrides the default (REQ-CFG-003): robotics with best_effort needs no directory.",
+  "kind": "config",
+  "profile": "robotics",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "mode": "best_effort",
+      "queue_size": 500
+    }
+  },
+  "expected": "{\"delivery\":{\"batch_size\":100,\"flush_interval_ms\":2000,\"mode\":\"best_effort\",\"queue_size\":500,\"timeout_ms\":3000},\"limits\":{\"max_attribute_key_chars\":64,\"max_attribute_keys\":32,\"max_attribute_value_chars\":256,\"max_batch_bytes\":1048576,\"max_event_bytes\":65536},\"masking\":{\"class_rules\":{},\"extra_field_names\":[],\"extra_patterns\":[],\"field_classes\":{},\"field_names\":null},\"resource\":{\"environment\":\"\",\"host\":\"\",\"instance_id\":\"\",\"service_name\":\"sensor-hub\",\"service_version\":\"\",\"time_zone\":\"\"},\"spool\":{\"directory\":\"\",\"quota_bytes\":268435456}}"
+}

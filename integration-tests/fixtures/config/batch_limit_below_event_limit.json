@@ -1,0 +1,20 @@
+{
+  "description": "A batch limit below the event limit holds not even one event.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "limits": {
+      "max_event_bytes": 100000,
+      "max_batch_bytes": 1000
+    }
+  },
+  "problems": [
+    {
+      "field": "limits.max_batch_bytes",
+      "code": "config_field_invalid"
+    }
+  ]
+}

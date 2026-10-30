@@ -11,3 +11,7 @@ class EnvelopeMaskingFailedError(Exception):
 
 class EnvelopeLimitsFailedError(Exception):
     """The size limits could not be applied. The cause is chained; the event is dropped, never sent unchecked."""
+
+
+class ConfigurationInstanceIdFailedError(Exception):
+    """The instance id could not be generated at start. The cause is chained."""

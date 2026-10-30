@@ -1,0 +1,17 @@
+{
+  "description": "A time zone with a space is not an IANA name.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub",
+      "time_zone": "Europe Madrid"
+    }
+  },
+  "problems": [
+    {
+      "field": "resource.time_zone",
+      "code": "config_field_invalid"
+    }
+  ]
+}

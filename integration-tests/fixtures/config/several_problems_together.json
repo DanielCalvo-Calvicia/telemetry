@@ -1,0 +1,41 @@
+{
+  "description": "Several problems are reported together, in the order of the schema.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "delivery": {
+      "mode": "x",
+      "queue_size": 0
+    },
+    "limits": {
+      "max_event_bytes": -1
+    },
+    "masking": {
+      "class_rules": {
+        "a": "no"
+      }
+    }
+  },
+  "problems": [
+    {
+      "field": "resource.service_name",
+      "code": "config_field_invalid"
+    },
+    {
+      "field": "delivery.mode",
+      "code": "delivery_mode_unknown"
+    },
+    {
+      "field": "delivery.queue_size",
+      "code": "config_field_invalid"
+    },
+    {
+      "field": "limits.max_event_bytes",
+      "code": "config_field_invalid"
+    },
+    {
+      "field": "masking.class_rules",
+      "code": "config_field_invalid"
+    }
+  ]
+}

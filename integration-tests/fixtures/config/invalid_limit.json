@@ -1,0 +1,19 @@
+{
+  "description": "A limit of zero is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "limits": {
+      "max_attribute_keys": 0
+    }
+  },
+  "problems": [
+    {
+      "field": "limits.max_attribute_keys",
+      "code": "config_field_invalid"
+    }
+  ]
+}

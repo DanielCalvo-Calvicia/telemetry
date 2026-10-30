@@ -37,6 +37,14 @@ var (
 	ErrEnvelopeLimitsFailed = errors.New("the limits could not be applied to the envelope")
 )
 
+// #### CONFIGURATION ERRORS
+
+var (
+	// ErrConfigurationInstanceIDFailed is returned, joined with its cause, when the configuration has no instance id and
+	// the identifier generator could not make one.
+	ErrConfigurationInstanceIDFailed = errors.New("the instance id of the resource could not be generated")
+)
+
 // #### ERROR COMPOSITION
 
 // JoinErrors joins the non-nil errors into one, so errors.Is finds each of them. It returns nil when there is none.

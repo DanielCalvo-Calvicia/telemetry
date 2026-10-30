@@ -50,3 +50,9 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 
 - An event is rejected above 64 KiB of canonical JSON and the attributes are bounded (32 keys, 64 and 256 characters), so a caller cannot make the library build an unbounded event. A batch for HTTP is bounded at 1 MiB by the batcher using `fits_in_batch`.
 - The limits are applied after masking, so a secret is never cut in half and left half visible. The counters and the error messages hold sizes and counts, never the cut text.
+
+## Configuration (built, T-03.6)
+
+- No field of the core configuration is a secret and none has a credential as default; the secrets of an adapter (a token, a password) are fields of that adapter, given by the consumer in code (REQ-CFG-005, REQ-SEC-007). `.env.example` holds fake values only.
+- The validation errors name the field and a fixed reason and **never the configured value**.
+- The library reads no environment and no file for its configuration; a test fails if a source mentions the environment.

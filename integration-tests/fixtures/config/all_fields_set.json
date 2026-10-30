@@ -1,0 +1,48 @@
+{
+  "description": "Every field set by the consumer.",
+  "kind": "config",
+  "profile": "worker",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub",
+      "instance_id": "hub-01",
+      "environment": "staging",
+      "service_version": "1.2.3",
+      "host": "host-a",
+      "time_zone": "Europe/Madrid"
+    },
+    "delivery": {
+      "mode": "retry",
+      "queue_size": 2000,
+      "batch_size": 50,
+      "flush_interval_ms": 500,
+      "timeout_ms": 1500
+    },
+    "limits": {
+      "max_attribute_keys": 16,
+      "max_attribute_key_chars": 32,
+      "max_attribute_value_chars": 128,
+      "max_event_bytes": 32768,
+      "max_batch_bytes": 524288
+    },
+    "spool": {
+      "directory": "spool-dir",
+      "quota_bytes": 1048576
+    },
+    "masking": {
+      "extra_patterns": [
+        "ID-[0-9]{4}"
+      ],
+      "extra_field_names": [
+        "ssn"
+      ],
+      "field_classes": {
+        "patient_name": "pii"
+      },
+      "class_rules": {
+        "pii": "drop"
+      }
+    }
+  },
+  "expected": "{\"delivery\":{\"batch_size\":50,\"flush_interval_ms\":500,\"mode\":\"retry\",\"queue_size\":2000,\"timeout_ms\":1500},\"limits\":{\"max_attribute_key_chars\":32,\"max_attribute_keys\":16,\"max_attribute_value_chars\":128,\"max_batch_bytes\":524288,\"max_event_bytes\":32768},\"masking\":{\"class_rules\":{\"pii\":\"drop\"},\"extra_field_names\":[\"ssn\"],\"extra_patterns\":[\"ID-[0-9]{4}\"],\"field_classes\":{\"patient_name\":\"pii\"},\"field_names\":null},\"resource\":{\"environment\":\"staging\",\"host\":\"host-a\",\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\",\"service_version\":\"1.2.3\",\"time_zone\":\"Europe/Madrid\"},\"spool\":{\"directory\":\"spool-dir\",\"quota_bytes\":1048576}}"
+}

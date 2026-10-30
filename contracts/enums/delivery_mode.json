@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/delivery_mode.json",
+  "title": "Delivery mode",
+  "description": "How a destination delivers events (section 10.1 of PR-001, REQ-CFG-004): best_effort keeps a bounded in-memory queue and sends once; retry adds retries with backoff; durable adds a persistent local spool and is at-least-once. Adding a value is a MINOR change of the contract (REQ-VER-003).",
+  "type": "string",
+  "enum": [
+    "best_effort",
+    "retry",
+    "durable"
+  ]
+}

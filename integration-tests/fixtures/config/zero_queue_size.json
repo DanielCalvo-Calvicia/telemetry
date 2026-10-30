@@ -1,0 +1,19 @@
+{
+  "description": "A queue of zero events is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "queue_size": 0
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.queue_size",
+      "code": "config_field_invalid"
+    }
+  ]
+}

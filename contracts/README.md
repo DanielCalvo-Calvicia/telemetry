@@ -10,7 +10,7 @@ The single source of truth between Go and Python ([PR-001](../docs/proposals/PR-
 | [enums/](enums/README.md) | the enums: severity, execution states and transitions, the values of the device and AI domains | T-02.2, T-07 to T-09 |
 | [events/](events/README.md) | the registry of event types (type, schema, capability, since which `schema_version`): `log.entry.recorded` is registered | T-02.3, then each capability |
 | [errors/](errors/README.md) | the catalog of error codes, identical in both languages (REQ-CNF-004): the validation and configuration codes are written | T-02.3, then each capability |
-| [config/](config/README.md) | the schema of the configuration: option names, defaults, profiles | T-03.6 |
+| [config/](config/README.md) | the schema of the configuration: option names, types, env names (the defaults and the profiles are code) | T-03.6 |
 | [capabilities/](capabilities/README.md) | `registry.yaml`: each capability with its API, schemas, ports, adapters, state in each language and the conformance test or the pending task of each requirement (**written**, checked by `tools/registry_check`) | T-02.7, then each capability |
 | [conventions/](conventions/naming.md) | `naming.md`: the mechanical rule for the names of both languages | this folder |
 | [storage/](storage/README.md) | the layouts of the files that a reader opens: the SQLite destination, the spool | T-06.1 |

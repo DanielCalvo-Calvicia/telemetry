@@ -1,0 +1,20 @@
+{
+  "description": "A batch of more events than the queue holds is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "queue_size": 10,
+      "batch_size": 11
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.batch_size",
+      "code": "config_field_invalid"
+    }
+  ]
+}

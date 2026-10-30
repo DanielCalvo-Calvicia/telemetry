@@ -13,6 +13,7 @@ from telemetry.internal.domain.base_value_objects.errors import (
 from telemetry.internal.domain.base_value_objects.errors import ValueObjectError as ValueObjectError
 from telemetry.internal.domain.value_objects.error_codes_generated import (
     ERROR_CODE_CONFIG_FIELD_INVALID,
+    ERROR_CODE_DELIVERY_MODE_UNKNOWN,
     ERROR_CODE_EVENT_SCHEMA_INVALID,
     ERROR_CODE_EVENT_TYPE_UNKNOWN,
     ERROR_CODE_LIMIT_EXCEEDED,
@@ -135,3 +136,16 @@ class EventTooLargeError(ClassifiedError):
     """An event is over the size limit after the cuts (code ``limit_exceeded``); the message has numbers only."""
 
     code = ERROR_CODE_LIMIT_EXCEEDED
+
+
+# The configuration (T-03.6).
+class DeliveryModeUnknownError(ClassifiedError):
+    """A delivery mode is not best_effort, retry or durable (code ``delivery_mode_unknown``)."""
+
+    code = ERROR_CODE_DELIVERY_MODE_UNKNOWN
+
+
+class ConfigFieldInvalidError(ClassifiedError):
+    """A field of the configuration is not valid (code ``config_field_invalid``)."""
+
+    code = ERROR_CODE_CONFIG_FIELD_INVALID

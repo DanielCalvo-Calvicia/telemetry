@@ -1,0 +1,19 @@
+{
+  "description": "A negative interval is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "flush_interval_ms": -1
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.flush_interval_ms",
+      "code": "config_field_invalid"
+    }
+  ]
+}

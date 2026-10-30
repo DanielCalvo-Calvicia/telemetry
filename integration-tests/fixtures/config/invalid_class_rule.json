@@ -1,0 +1,21 @@
+{
+  "description": "A class rule that is not drop, redact or allow is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "masking": {
+      "class_rules": {
+        "pii": "keep"
+      }
+    }
+  },
+  "problems": [
+    {
+      "field": "masking.class_rules",
+      "code": "config_field_invalid"
+    }
+  ]
+}

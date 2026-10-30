@@ -1,0 +1,16 @@
+{
+  "description": "A service name of spaces is not a name.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "   "
+    }
+  },
+  "problems": [
+    {
+      "field": "resource.service_name",
+      "code": "config_field_invalid"
+    }
+  ]
+}

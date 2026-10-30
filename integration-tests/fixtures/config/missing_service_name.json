@@ -1,0 +1,11 @@
+{
+  "description": "No service name: the one required field.",
+  "kind": "config",
+  "profile": "microservice",
+  "problems": [
+    {
+      "field": "resource.service_name",
+      "code": "config_field_invalid"
+    }
+  ]
+}

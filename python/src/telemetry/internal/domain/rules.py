@@ -111,3 +111,14 @@ DEFAULT_MAX_ATTRIBUTE_KEY_CHARS = 64  # characters (code points) of a key
 DEFAULT_MAX_ATTRIBUTE_VALUE_CHARS = 256  # characters (code points) of a text value
 DEFAULT_MAX_EVENT_BYTES = 65536  # 64 KiB of canonical JSON
 DEFAULT_MAX_BATCH_BYTES = 1048576  # 1 MiB of an HTTP batch
+
+
+# =============================================================================
+# Delivery and spool defaults (PR-001, Q03-5, Q07-11). A CONTRACT shared with Go.
+# =============================================================================
+
+DEFAULT_QUEUE_SIZE = 10000  # events held in the bounded queue
+DEFAULT_BATCH_SIZE = 100  # events in one batch
+DEFAULT_FLUSH_INTERVAL_MILLISECONDS = 2000  # milliseconds between flushes
+DEFAULT_TIMEOUT_MILLISECONDS = 3000  # milliseconds before a network operation gives up
+DEFAULT_SPOOL_QUOTA_BYTES = 268435456  # 256 MiB of disk per destination

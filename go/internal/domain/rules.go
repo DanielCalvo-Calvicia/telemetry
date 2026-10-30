@@ -81,6 +81,31 @@ const (
 	DefaultMaxBatchBytes = 1048576
 )
 
+// #### DELIVERY RULES
+
+// The default values of the delivery and the spool settings (PR-001, Q03-5, Q07-11). They are untyped; the profiles of
+// the configuration start from them and the consumer may change each one.
+
+// === Delivery ===
+
+const (
+	// DefaultQueueSize is the default number of events that the bounded queue holds.
+	DefaultQueueSize = 10000
+	// DefaultBatchSize is the default number of events in one batch.
+	DefaultBatchSize = 100
+	// DefaultFlushIntervalMilliseconds is the default time between two flushes, in milliseconds.
+	DefaultFlushIntervalMilliseconds = 2000
+	// DefaultTimeoutMilliseconds is the default time before a network operation gives up, in milliseconds.
+	DefaultTimeoutMilliseconds = 3000
+)
+
+// === Spool ===
+
+const (
+	// DefaultSpoolQuotaBytes is the default disk quota of the spool per destination: 256 MiB.
+	DefaultSpoolQuotaBytes = 268435456
+)
+
 // #### MASKING RULES
 
 // Everything sensitive is hidden behind MaskedText, wherever it appears: as the value of a field with a sensitive name,
