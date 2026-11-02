@@ -469,7 +469,16 @@ capabilities:
         pending: T-05.3
       # REQ-DLV-004: Destinations MUST have timeouts. No network operation MUST wait indefi...
       - id: REQ-DLV-004
-        pending: T-04.4
+        # the shared HTTP client has a timeout (3000 ms by default) and a server that never answers ends at it (T-04.4); the destinations that use it are T-04.5 and T-04.6
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
       # REQ-DLV-005: A failure of one destination MUST NOT interrupt the other destinations...
       - id: REQ-DLV-005
         pending: T-05.3
@@ -574,22 +583,58 @@ capabilities:
         pending: T-10.4
       # REQ-OUT-005: The HTTP adapter MUST support: configurable URL, method, configurable
       - id: REQ-OUT-005
-        pending: T-04.4
+        # URL, method, authentication, TLS verification, timeout, retry policy, batch limit and gzip, and no URL in the code (T-04.4); the destinations that use the client are T-04.5 and T-04.6
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
       # REQ-OUT-006: The shared HTTP infrastructure (client, TLS, authentication, retries,
       - id: REQ-OUT-006
-        pending: T-04.4
+        # written once per language: settings, body, authentication, classification, Retry-After and backoff (T-04.4); rate limiting is not built, Retry-After is honored
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
       # REQ-OUT-007: Adding a new adapter MUST require only implementing the corresponding
       - id: REQ-OUT-007
         pending: unassigned
       # REQ-OUT-008: The authentication of the HTTP destination MUST support a bearer token...
       - id: REQ-OUT-008
-        pending: T-04.4
+        # a bearer token and an API key in a header with a configurable name; the values come from the settings the consumer passes in (T-04.4)
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
       # REQ-OUT-009: The SQLite destination MUST write one events table: the whole envelope...
       - id: REQ-OUT-009
         pending: T-06.6
       # REQ-OUT-010: The body of an HTTP batch MUST be one JSON object {"schema_version": "...
       - id: REQ-OUT-010
-        pending: T-04.5
+        # the batch body {schema_version, events} in canonical JSON, same bytes in both languages, and optional gzip (T-04.4); the destination that sends it is T-04.5
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
 
   # --------------------------------------------------------------------------------------------------------------
   - id: executions
@@ -960,10 +1005,28 @@ capabilities:
           - { language: python, path: python/internal/tests/application/services/test_limits_shared_fixtures.py }
       # REQ-SEC-005: TLS verification MUST be on by default and turning it off MUST require...
       - id: REQ-SEC-005
-        pending: T-04.4
+        # TLS verification is on by default; a self-signed server is refused and only an explicit setting turns it off (T-04.4)
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
       # REQ-SEC-007: Configuration secrets (credentials, tokens) are supplied by the consum...
       - id: REQ-SEC-007
-        pending: T-04.4
+        # the token and the key come in the settings, have no default and never appear in an outcome or an error, even with a secret in the URL query (T-04.4)
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/client_server_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/env_tags_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
       # REQ-SEC-008: The security scope of v1 is minimal: redaction of secrets by field nam...
       - id: REQ-SEC-008
         pending: T-13.3

@@ -132,6 +132,9 @@ func Test_the_env_tags_of_config_are_the_names_of_the_schema_the_documents_and_t
 	line_pattern := regexp.MustCompile(`(?m)^#?\s*(TELEMETRY_[A-Z0-9_]+)=`)
 	example_names := map[string]bool{}
 	for _, match := range line_pattern.FindAllStringSubmatch(read_test_file(t, environment_example_file), -1) {
+		if strings.HasPrefix(match[1], "TELEMETRY_HTTP_") {
+			continue // the names of the shared HTTP client; the test of that package checks them
+		}
 		example_names[match[1]] = true
 	}
 	require_same_names(t, "the env tags of Config", tag_names, ".env.example", example_names)

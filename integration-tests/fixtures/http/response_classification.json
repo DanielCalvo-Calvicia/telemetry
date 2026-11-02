@@ -1,0 +1,175 @@
+{
+  "description": "The class of an HTTP status: success (2xx), permanent (other 4xx and any 3xx: do not retry, count a permanent rejection) or transient (408, 429, 5xx, and a status that is not a valid HTTP status: retry with a limit).",
+  "cases": [
+    {
+      "description": "2xx 200",
+      "status": 200,
+      "class": "success"
+    },
+    {
+      "description": "2xx 201",
+      "status": 201,
+      "class": "success"
+    },
+    {
+      "description": "2xx 202",
+      "status": 202,
+      "class": "success"
+    },
+    {
+      "description": "2xx 204",
+      "status": 204,
+      "class": "success"
+    },
+    {
+      "description": "2xx 299",
+      "status": 299,
+      "class": "success"
+    },
+    {
+      "description": "a redirect is never followed 300",
+      "status": 300,
+      "class": "permanent"
+    },
+    {
+      "description": "a redirect is never followed 301",
+      "status": 301,
+      "class": "permanent"
+    },
+    {
+      "description": "a redirect is never followed 302",
+      "status": 302,
+      "class": "permanent"
+    },
+    {
+      "description": "a redirect is never followed 304",
+      "status": 304,
+      "class": "permanent"
+    },
+    {
+      "description": "a redirect is never followed 399",
+      "status": 399,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 400",
+      "status": 400,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 401",
+      "status": 401,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 403",
+      "status": 403,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 404",
+      "status": 404,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 409",
+      "status": 409,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 410",
+      "status": 410,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 413",
+      "status": 413,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 415",
+      "status": 415,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 422",
+      "status": 422,
+      "class": "permanent"
+    },
+    {
+      "description": "4xx 499",
+      "status": 499,
+      "class": "permanent"
+    },
+    {
+      "description": "retryable 4xx 408",
+      "status": 408,
+      "class": "transient"
+    },
+    {
+      "description": "retryable 4xx 429",
+      "status": 429,
+      "class": "transient"
+    },
+    {
+      "description": "5xx 500",
+      "status": 500,
+      "class": "transient"
+    },
+    {
+      "description": "5xx 502",
+      "status": 502,
+      "class": "transient"
+    },
+    {
+      "description": "5xx 503",
+      "status": 503,
+      "class": "transient"
+    },
+    {
+      "description": "5xx 504",
+      "status": 504,
+      "class": "transient"
+    },
+    {
+      "description": "5xx 599",
+      "status": 599,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status 0",
+      "status": 0,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status -1",
+      "status": -1,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status 99",
+      "status": 99,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status 100",
+      "status": 100,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status 199",
+      "status": 199,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status 600",
+      "status": 600,
+      "class": "transient"
+    },
+    {
+      "description": "an invalid status 999",
+      "status": 999,
+      "class": "transient"
+    }
+  ]
+}

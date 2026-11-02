@@ -1,0 +1,117 @@
+{
+  "description": "The wait before attempt number `attempt` (0 for the first retry): ceiling = min(max, base * 2^attempt); delay = floor(ceiling / 2 + random * ceiling / 2) milliseconds, with random in [0, 1] (the equal jitter: half fixed, half random). The exact instants of the jitter may differ between languages in real use (section 13.1); the formula given the random is the same.",
+  "cases": [
+    {
+      "description": "attempt 0, base 200, max 30000, random 0",
+      "attempt": 0,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0,
+      "expected_ms": 100
+    },
+    {
+      "description": "attempt 0, base 200, max 30000, random 0.5",
+      "attempt": 0,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.5,
+      "expected_ms": 150
+    },
+    {
+      "description": "attempt 0, base 200, max 30000, random 1",
+      "attempt": 0,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 1,
+      "expected_ms": 200
+    },
+    {
+      "description": "attempt 1, base 200, max 30000, random 0.25",
+      "attempt": 1,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.25,
+      "expected_ms": 250
+    },
+    {
+      "description": "attempt 2, base 200, max 30000, random 0.75",
+      "attempt": 2,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.75,
+      "expected_ms": 700
+    },
+    {
+      "description": "attempt 3, base 200, max 30000, random 0.5",
+      "attempt": 3,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.5,
+      "expected_ms": 1200
+    },
+    {
+      "description": "attempt 7, base 200, max 30000, random 0",
+      "attempt": 7,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0,
+      "expected_ms": 12800
+    },
+    {
+      "description": "attempt 8, base 200, max 30000, random 1",
+      "attempt": 8,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 1,
+      "expected_ms": 30000
+    },
+    {
+      "description": "attempt 9, base 200, max 30000, random 0.5",
+      "attempt": 9,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.5,
+      "expected_ms": 22500
+    },
+    {
+      "description": "attempt 40, base 200, max 30000, random 0.5",
+      "attempt": 40,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.5,
+      "expected_ms": 22500
+    },
+    {
+      "description": "attempt 100, base 200, max 30000, random 0.25",
+      "attempt": 100,
+      "base_ms": 200,
+      "max_ms": 30000,
+      "random": 0.25,
+      "expected_ms": 18750
+    },
+    {
+      "description": "attempt 0, base 1, max 1, random 0.5",
+      "attempt": 0,
+      "base_ms": 1,
+      "max_ms": 1,
+      "random": 0.5,
+      "expected_ms": 0
+    },
+    {
+      "description": "attempt 5, base 1000, max 4000, random 0.5",
+      "attempt": 5,
+      "base_ms": 1000,
+      "max_ms": 4000,
+      "random": 0.5,
+      "expected_ms": 3000
+    },
+    {
+      "description": "attempt 3, base 100, max 100000, random 0.125",
+      "attempt": 3,
+      "base_ms": 100,
+      "max_ms": 100000,
+      "random": 0.125,
+      "expected_ms": 450
+    }
+  ]
+}

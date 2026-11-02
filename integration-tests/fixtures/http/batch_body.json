@@ -1,0 +1,74 @@
+{
+  "description": "The body of an HTTP batch (REQ-OUT-010): one JSON object { schema_version, events } in the canonical form, so both languages give the same bytes. The gzipped body is not compared byte for byte (two gzip encoders give different bytes): it must decompress to exactly this text and carry Content-Encoding: gzip.",
+  "cases": [
+    {
+      "description": "two events",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "m1"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "m2"
+          },
+          "attributes": {
+            "order": 7,
+            "ok": true
+          }
+        }
+      ],
+      "expected": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"m1\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"ok\":true,\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}"
+    },
+    {
+      "description": "no events",
+      "events": [],
+      "expected": "{\"events\":[],\"schema_version\":\"0.1\"}"
+    },
+    {
+      "description": "non ASCII text",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "señal",
+            "message": "température 😀"
+          }
+        }
+      ],
+      "expected": "{\"events\":[{\"data\":{\"category\":\"señal\",\"message\":\"température 😀\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+    }
+  ]
+}

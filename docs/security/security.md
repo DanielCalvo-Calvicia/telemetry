@@ -61,3 +61,11 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 
 - A message names a field path or an event type (cut to 64 characters, control characters replaced), never a value that the caller gave: a value may be a secret. A test in each language makes 29 real failures with a secret-looking value and fails if it appears in a message.
 - The cause of an error that a consumer's own adapter built is kept in the chain and may hold whatever that adapter put there: an adapter must not put a value in its errors.
+
+## The shared HTTP client (built, T-04.4)
+
+- **TLS verification is on by default.** A server with an untrusted certificate is refused; only the explicit setting `skip_tls_verification` (`TELEMETRY_HTTP_SKIP_TLS_VERIFICATION`) turns it off, and it is documented as leaving it unset.
+- **Tokens and keys.** The bearer token and the API key value come from the settings the consumer passes in, have no default, are never written in a versioned file (`.env.example` holds them empty) and never appear in an outcome, an error, a log or a diagnostic, even when the URL carries a secret in its query: transport errors are translated to fixed reasons. A value with a line break or a space is refused (header injection). A token is never sent over plain `http` except to `localhost`.
+- **A redirect is never followed**, so a response cannot send the token to another host. The client uses no proxy from the environment.
+- **A body over the batch limit is never sent** (1 MiB by default).
+- **The test certificate** of the Python TLS tests is generated at test time in a temporary directory with `openssl` and deleted; no key or certificate is committed.

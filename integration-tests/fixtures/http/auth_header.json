@@ -1,0 +1,31 @@
+{
+  "description": "The header that carries the authentication: a bearer token in Authorization, or an API key in a header with a configurable name. None when nothing is configured.",
+  "cases": [
+    {
+      "description": "a bearer token",
+      "settings": {
+        "bearer_token": "tok.en-1_2"
+      },
+      "expected": {
+        "name": "Authorization",
+        "value": "Bearer tok.en-1_2"
+      }
+    },
+    {
+      "description": "an API key",
+      "settings": {
+        "api_key_header": "X-Api-Key",
+        "api_key_value": "k3y"
+      },
+      "expected": {
+        "name": "X-Api-Key",
+        "value": "k3y"
+      }
+    },
+    {
+      "description": "nothing configured",
+      "settings": {},
+      "expected": null
+    }
+  ]
+}

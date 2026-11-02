@@ -88,3 +88,22 @@ The new core (`go/`, `python/`) has **one logical model of the configuration** (
 | `TELEMETRY_MASK_CLASS_RULES` | empty | `masking.class_rules` | `class:rule` pairs separated by `,`; the rule is `drop`, `redact` or `allow` |
 
 The adapters of the sinks (HTTP, file, spool, ...) add their own variables in their own modules (T-04 and later).
+
+
+## Shared HTTP client (built, T-04.4)
+
+The settings that every HTTP adapter shares ([contracts/config/http_client.schema.json](../../contracts/config/http_client.schema.json)). Like the core configuration, **the library never reads the environment**: the consumer loads these values with its own tool and passes them in. The names are for **one** HTTP destination; an adapter with several destinations gives each its own prefix. The defaults live in the code (a tag has no `default=`, see the core configuration above); **the two secrets (`TELEMETRY_HTTP_BEARER_TOKEN`, `TELEMETRY_HTTP_API_KEY_VALUE`) have no default, are never written in a versioned file and never appear in an error, a log or a diagnostic** (REQ-SEC-007, REQ-CFG-005). TLS verification is **on**; only an explicit `TELEMETRY_HTTP_SKIP_TLS_VERIFICATION=true` turns it off (REQ-SEC-005). A test in each language keeps the schema, the code, this table and `.env.example` equal.
+
+| Variable | Default | Field | Notes |
+|---|---|---|---|
+| `TELEMETRY_HTTP_URL` | none (required) | `url` | the destination; http or https; authentication over plain http only to localhost |
+| `TELEMETRY_HTTP_METHOD` | `POST` | `method` | `POST`, `PUT` or `PATCH` |
+| `TELEMETRY_HTTP_TIMEOUT_MS` | `3000` | `timeout_ms` | milliseconds |
+| `TELEMETRY_HTTP_COMPRESS` | `false` | `compress` | gzip with `Content-Encoding: gzip` |
+| `TELEMETRY_HTTP_SKIP_TLS_VERIFICATION` | `false` | `skip_tls_verification` | turns the TLS verification OFF: leave it unset |
+| `TELEMETRY_HTTP_BEARER_TOKEN` | none | `bearer_token` | a secret: the consumer gives it; never in a file of a repository |
+| `TELEMETRY_HTTP_API_KEY_HEADER` | none | `api_key_header` | the header name; needs the value |
+| `TELEMETRY_HTTP_API_KEY_VALUE` | none | `api_key_value` | a secret; needs the header name; not together with a bearer token |
+| `TELEMETRY_HTTP_MAX_ATTEMPTS` | `5` | `max_attempts` | attempts at most, the first included |
+| `TELEMETRY_HTTP_RETRY_BASE_DELAY_MS` | `200` | `retry_base_delay_ms` | milliseconds |
+| `TELEMETRY_HTTP_RETRY_MAX_DELAY_MS` | `30000` | `retry_max_delay_ms` | milliseconds; not below the base |

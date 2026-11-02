@@ -47,7 +47,9 @@ def documented_names() -> set[str]:
 def env_example_names() -> set[str]:
     """The names of the lines NAME= or # NAME= with the TELEMETRY_ prefix."""
     text = ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
-    return set(re.findall(r"^(?:#\s*)?(TELEMETRY_[A-Z0-9_]+)=", text, re.MULTILINE))
+    names = set(re.findall(r"^(?:#\s*)?(TELEMETRY_[A-Z0-9_]+)=", text, re.MULTILINE))
+    # The names of the shared HTTP client have their own test (outbound/shared/http_client/test_env_names.py).
+    return {name for name in names if not name.startswith("TELEMETRY_HTTP_")}
 
 
 class EnvironmentNamesTest(unittest.TestCase):

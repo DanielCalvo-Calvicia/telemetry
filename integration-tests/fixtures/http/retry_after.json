@@ -1,0 +1,89 @@
+{
+  "description": "The delay asked by a Retry-After header, in seconds, given the time now. A number of seconds or an HTTP date (IMF-fixdate or asctime). A date in the past is 0. More than 86400 seconds is cut to 86400 so a server cannot make the library wait for ever. Anything else (negative, text, empty) is null: no delay asked.",
+  "cases": [
+    {
+      "description": "seconds",
+      "header": "120",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 120
+    },
+    {
+      "description": "zero",
+      "header": "0",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 0
+    },
+    {
+      "description": "white space around",
+      "header": " 7 ",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 7
+    },
+    {
+      "description": "a day",
+      "header": "86400",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 86400
+    },
+    {
+      "description": "more than a day is cut",
+      "header": "99999999",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 86400
+    },
+    {
+      "description": "negative",
+      "header": "-5",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": null
+    },
+    {
+      "description": "not a number",
+      "header": "abc",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": null
+    },
+    {
+      "description": "empty",
+      "header": "",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": null
+    },
+    {
+      "description": "a decimal",
+      "header": "1.5",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": null
+    },
+    {
+      "description": "an HTTP date one minute ahead",
+      "header": "Wed, 21 Oct 2026 07:28:00 GMT",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 60
+    },
+    {
+      "description": "an HTTP date in the past",
+      "header": "Wed, 21 Oct 2026 07:20:00 GMT",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 0
+    },
+    {
+      "description": "an asctime date one minute ahead",
+      "header": "Wed Oct 21 07:28:00 2026",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 60
+    },
+    {
+      "description": "a date a week ahead is cut",
+      "header": "Wed, 28 Oct 2026 07:27:00 GMT",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": 86400
+    },
+    {
+      "description": "a broken date",
+      "header": "Wed, 99 Foo 2026 07:28:00 GMT",
+      "now": "2026-10-21T07:27:00Z",
+      "expected_seconds": null
+    }
+  ]
+}

@@ -99,6 +99,17 @@ const (
 	DefaultTimeoutMilliseconds = 3000
 )
 
+// === HTTP retries ===
+
+const (
+	// DefaultHTTPMaxAttempts is the default number of attempts at most for one HTTP batch, the first included.
+	DefaultHTTPMaxAttempts = 5
+	// DefaultRetryBaseDelayMilliseconds is the default base of the exponential backoff, in milliseconds.
+	DefaultRetryBaseDelayMilliseconds = 200
+	// DefaultRetryMaxDelayMilliseconds is the default ceiling of the exponential backoff, in milliseconds.
+	DefaultRetryMaxDelayMilliseconds = 30000
+)
+
 // === Spool ===
 
 const (

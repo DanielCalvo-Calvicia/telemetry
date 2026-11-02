@@ -1,0 +1,259 @@
+{
+  "description": "The settings of the shared HTTP client: the effective settings (the defaults, then the given ones) as exact canonical JSON, or the problems, each with its field and code, in the order of the schema (contracts/config/http_client.schema.json). A secret is never in a message.",
+  "cases": [
+    {
+      "description": "the minimum: an https url",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest"
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"\",\"compress\":false,\"max_attempts\":5,\"method\":\"POST\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000,\"url\":\"https://logs.example.invalid/ingest\"}"
+    },
+    {
+      "description": "a bearer token over https",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "bearer_token": "tok.en-1_2"
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"tok.en-1_2\",\"compress\":false,\"max_attempts\":5,\"method\":\"POST\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000,\"url\":\"https://logs.example.invalid/ingest\"}"
+    },
+    {
+      "description": "an API key over plain http to localhost",
+      "settings": {
+        "url": "http://localhost:3000/logs",
+        "api_key_header": "X-Api-Key",
+        "api_key_value": "k3y"
+      },
+      "expected": "{\"api_key_header\":\"X-Api-Key\",\"api_key_value\":\"k3y\",\"bearer_token\":\"\",\"compress\":false,\"max_attempts\":5,\"method\":\"POST\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000,\"url\":\"http://localhost:3000/logs\"}"
+    },
+    {
+      "description": "plain http without authentication",
+      "settings": {
+        "url": "http://logs.example.invalid/ingest"
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"\",\"compress\":false,\"max_attempts\":5,\"method\":\"POST\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000,\"url\":\"http://logs.example.invalid/ingest\"}"
+    },
+    {
+      "description": "every field set",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "method": "PUT",
+        "timeout_ms": 1500,
+        "compress": true,
+        "skip_tls_verification": true,
+        "api_key_header": "X-Api-Key",
+        "api_key_value": "k3y",
+        "max_attempts": 3,
+        "retry_base_delay_ms": 100,
+        "retry_max_delay_ms": 5000
+      },
+      "expected": "{\"api_key_header\":\"X-Api-Key\",\"api_key_value\":\"k3y\",\"bearer_token\":\"\",\"compress\":true,\"max_attempts\":3,\"method\":\"PUT\",\"retry_base_delay_ms\":100,\"retry_max_delay_ms\":5000,\"skip_tls_verification\":true,\"timeout_ms\":1500,\"url\":\"https://logs.example.invalid/ingest\"}"
+    },
+    {
+      "description": "no url (the library fixes none)",
+      "settings": {},
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a scheme that is not http or https",
+      "settings": {
+        "url": "ftp://logs.example.invalid/x"
+      },
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a url without host",
+      "settings": {
+        "url": "https:///path"
+      },
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a token over plain http to another host is refused",
+      "settings": {
+        "url": "http://logs.example.invalid/ingest",
+        "bearer_token": "tok"
+      },
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a method that is not POST, PUT or PATCH",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "method": "GET"
+      },
+      "problems": [
+        {
+          "field": "method",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a zero timeout",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "timeout_ms": 0
+      },
+      "problems": [
+        {
+          "field": "timeout_ms",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a bearer token with a line break",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "bearer_token": "tok\nX-Evil: 1"
+      },
+      "problems": [
+        {
+          "field": "bearer_token",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a bearer token with a space",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "bearer_token": "tok en"
+      },
+      "problems": [
+        {
+          "field": "bearer_token",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "an API key header without its value",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "api_key_header": "X-Api-Key"
+      },
+      "problems": [
+        {
+          "field": "api_key_value",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "an API key value without its header",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "api_key_value": "k3y"
+      },
+      "problems": [
+        {
+          "field": "api_key_header",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "an API key header with a space",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "api_key_header": "X Api Key",
+        "api_key_value": "k3y"
+      },
+      "problems": [
+        {
+          "field": "api_key_header",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "two authentications",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "bearer_token": "tok",
+        "api_key_header": "X-Api-Key",
+        "api_key_value": "k3y"
+      },
+      "problems": [
+        {
+          "field": "api_key_header",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "zero attempts",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "max_attempts": 0
+      },
+      "problems": [
+        {
+          "field": "max_attempts",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a maximum delay below the base delay",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "retry_base_delay_ms": 1000,
+        "retry_max_delay_ms": 500
+      },
+      "problems": [
+        {
+          "field": "retry_max_delay_ms",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "several problems together, in the order of the schema",
+      "settings": {
+        "method": "GET",
+        "timeout_ms": -1,
+        "max_attempts": 0
+      },
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "method",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "timeout_ms",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "max_attempts",
+          "code": "config_field_invalid"
+        }
+      ]
+    }
+  ]
+}

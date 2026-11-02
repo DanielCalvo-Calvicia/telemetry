@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/config/http_client.schema.json",
+  "title": "Settings of the shared HTTP client",
+  "description": "The settings that every HTTP adapter shares (T-04.4, REQ-OUT-005, REQ-OUT-008). An adapter embeds them in its own configuration; the names below are for ONE HTTP destination, an adapter with several destinations gives each its own prefix. The library reads no file and no environment (ADR-004): the consumer loads the values and passes them in. No URL is fixed in code and no secret has a default (REQ-CFG-005). An empty text means 'not set'. The order of the properties is the order in which a validation reports its problems.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "The URL of the destination, http or https. Required. Authentication over plain http is refused except to localhost.",
+      "x-env": "TELEMETRY_HTTP_URL"
+    },
+    "method": {
+      "type": "string",
+      "description": "POST (the default), PUT or PATCH.",
+      "x-env": "TELEMETRY_HTTP_METHOD"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "description": "Milliseconds before a request gives up (default 3000, REQ-DLV-004).",
+      "x-env": "TELEMETRY_HTTP_TIMEOUT_MS",
+      "minimum": 1
+    },
+    "compress": {
+      "type": "boolean",
+      "description": "Send the body gzipped with Content-Encoding: gzip (default false, REQ-OUT-010).",
+      "x-env": "TELEMETRY_HTTP_COMPRESS"
+    },
+    "skip_tls_verification": {
+      "type": "boolean",
+      "description": "Turn the verification of the TLS certificate OFF. It is on by default and turning it off needs this explicit setting (REQ-SEC-005).",
+      "x-env": "TELEMETRY_HTTP_SKIP_TLS_VERIFICATION"
+    },
+    "bearer_token": {
+      "type": "string",
+      "description": "A bearer token for the Authorization header. A secret: the consumer gives it, it has no default and it never appears in an error, a log or a diagnostic (REQ-SEC-007). Not together with an API key.",
+      "x-env": "TELEMETRY_HTTP_BEARER_TOKEN"
+    },
+    "api_key_header": {
+      "type": "string",
+      "description": "The name of the header that carries an API key. Needs api_key_value.",
+      "x-env": "TELEMETRY_HTTP_API_KEY_HEADER"
+    },
+    "api_key_value": {
+      "type": "string",
+      "description": "The API key. A secret, like the bearer token. Needs api_key_header.",
+      "x-env": "TELEMETRY_HTTP_API_KEY_VALUE"
+    },
+    "max_attempts": {
+      "type": "integer",
+      "description": "Attempts at most for one batch, the first included (default 5). Which destination uses the retries is decided by the delivery mode (T-05.3).",
+      "x-env": "TELEMETRY_HTTP_MAX_ATTEMPTS",
+      "minimum": 1
+    },
+    "retry_base_delay_ms": {
+      "type": "integer",
+      "description": "Base of the exponential backoff in milliseconds (default 200).",
+      "x-env": "TELEMETRY_HTTP_RETRY_BASE_DELAY_MS",
+      "minimum": 1
+    },
+    "retry_max_delay_ms": {
+      "type": "integer",
+      "description": "Ceiling of the backoff in milliseconds (default 30000). Not below the base.",
+      "x-env": "TELEMETRY_HTTP_RETRY_MAX_DELAY_MS",
+      "minimum": 1
+    }
+  }
+}

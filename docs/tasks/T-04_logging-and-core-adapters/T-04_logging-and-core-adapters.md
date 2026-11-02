@@ -25,7 +25,7 @@ Logging on the new standard (`log.entry.recorded`), the three adapters of the co
 | Order | Task | Status |
 |---|---|---|
 | 1 | [T-04.1 Logger and the `log.entry.recorded` event](T-04.1_logger-and-the-log-entry-recorded-event.md) | done (2026-11-02) |
-| 2 | [T-04.4 Shared HTTP infrastructure](T-04.4_shared-http-infrastructure.md) | todo |
+| 2 | [T-04.4 Shared HTTP infrastructure](T-04.4_shared-http-infrastructure.md) | done (2026-11-03) |
 | 3 | [T-04.2 Console adapter](T-04.2_console-adapter.md) | todo |
 | 4 | [T-04.3 File adapter](T-04.3_file-adapter.md) | todo |
 | 5 | [T-04.5 HTTP destination](T-04.5_http-destination.md) | todo |

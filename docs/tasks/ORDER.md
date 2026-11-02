@@ -52,7 +52,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 28 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | Done | done (2026-11-02) | T-03.9 | 2026-10-28 |
 | 29 | [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | Todo | todo | T-04.1 | 2026-10-28 |
 | 30 | [T-04.3](T-04_logging-and-core-adapters/T-04.3_file-adapter.md) | File adapter | code | Todo | todo | T-04.1 | 2026-10-28 |
-| 31 | [T-04.4](T-04_logging-and-core-adapters/T-04.4_shared-http-infrastructure.md) | Shared HTTP infrastructure | code | Todo | todo | T-03.5, T-03.6 | 2026-10-28 |
+| 31 | [T-04.4](T-04_logging-and-core-adapters/T-04.4_shared-http-infrastructure.md) | Shared HTTP infrastructure | code | Done | done (2026-11-03) | T-03.5, T-03.6 | 2026-10-28 |
 | 32 | [T-04.5](T-04_logging-and-core-adapters/T-04.5_http-destination.md) | HTTP destination | code | Todo | todo | T-04.4 | 2026-10-28 |
 | 33 | [T-04.6](T-04_logging-and-core-adapters/T-04.6_aws-http-adapter.md) | AWS HTTP adapter | code | Todo | todo | T-04.4 | 2026-10-28 |
 | 34 | [T-04.7](T-04_logging-and-core-adapters/T-04.7_replace-and-remove-the-old-library.md) | Replace and remove the old library | code | Todo | todo | T-04.1 to T-04.6 | 2026-10-28 |
