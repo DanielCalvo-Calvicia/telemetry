@@ -30,6 +30,14 @@ def log_event(message: str = "started") -> telemetry.NewEventInput:
 
 
 class NewCoreTest(unittest.TestCase):
+    def test_the_core_has_a_logger_that_delivers_to_the_log_sinks(self):
+        sink = FakeLogSink()
+        core = telemetry.new(config_for(), telemetry.with_log_sink(sink))
+        self.assertIsInstance(core.logger, telemetry.Logger)
+        self.assertIs(core.logger, core.logger)
+        core.logger.warn(telemetry.LogEntry(category="http", message="slow"))
+        self.assertEqual(sink.batches[0][0].severity, telemetry.Severity.WARN)
+
     def test_new_returns_a_telemetry_that_delivers_one_event(self):
         sink = FakeLogSink()
         core = telemetry.new(config_for(), telemetry.with_log_sink(sink))

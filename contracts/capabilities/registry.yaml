@@ -379,7 +379,17 @@ capabilities:
         pending: T-04.2
       # REQ-LOG-002: MUST integrate with native logging: log/slog in Go and logging in Pyth...
       - id: REQ-LOG-002
-        pending: T-04.1
+        # the log/slog handler and the logging handler give the same events as a direct call (T-04.1)
+        tests:
+          - { language: go, path: go/internal/tests/e2e/logging_shared_cases_test.go }
+          - { language: go, path: go/internal/tests/e2e/logger_test.go }
+          - { language: go, path: go/internal/tests/application/services/log_fields_test.go }
+          - { language: go, path: go/internal/tests/application/services/logger_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/inbound/sdk/slog_handler_test.go }
+          - { language: python, path: python/internal/tests/e2e/test_logging_shared_cases.py }
+          - { language: python, path: python/internal/tests/application/services/test_log_fields.py }
+          - { language: python, path: python/internal/tests/application/services/test_logger_service.py }
+          - { language: python, path: python/internal/tests/infrastructure/inbound/sdk/test_logging_handler.py }
       # REQ-LOG-003: MUST support configurable field redaction and level filtering.
       - id: REQ-LOG-003
         pending: T-04.2
@@ -388,13 +398,43 @@ capabilities:
         pending: unassigned
       # REQ-LOG-005: MUST attach trace_id, span_id and execution_id when they exist in the
       - id: REQ-LOG-005
-        pending: T-04.1
+        # the trace, span, execution and correlation ids of the call context are attached to a log event (T-03.8, T-03.9, T-04.1)
+        tests:
+          - { language: go, path: go/internal/tests/e2e/logging_shared_cases_test.go }
+          - { language: go, path: go/internal/tests/e2e/logger_test.go }
+          - { language: go, path: go/internal/tests/application/services/log_fields_test.go }
+          - { language: go, path: go/internal/tests/application/services/logger_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/inbound/sdk/slog_handler_test.go }
+          - { language: python, path: python/internal/tests/e2e/test_logging_shared_cases.py }
+          - { language: python, path: python/internal/tests/application/services/test_log_fields.py }
+          - { language: python, path: python/internal/tests/application/services/test_logger_service.py }
+          - { language: python, path: python/internal/tests/infrastructure/inbound/sdk/test_logging_handler.py }
       # REQ-LOG-006: By default MUST NOT record request bodies or arbitrary payloads.
       - id: REQ-LOG-006
-        pending: T-04.1
+        # a log call records only what the caller passes: no body, no payload, no traceback by itself (T-04.1)
+        tests:
+          - { language: go, path: go/internal/tests/e2e/logging_shared_cases_test.go }
+          - { language: go, path: go/internal/tests/e2e/logger_test.go }
+          - { language: go, path: go/internal/tests/application/services/log_fields_test.go }
+          - { language: go, path: go/internal/tests/application/services/logger_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/inbound/sdk/slog_handler_test.go }
+          - { language: python, path: python/internal/tests/e2e/test_logging_shared_cases.py }
+          - { language: python, path: python/internal/tests/application/services/test_log_fields.py }
+          - { language: python, path: python/internal/tests/application/services/test_logger_service.py }
+          - { language: python, path: python/internal/tests/infrastructure/inbound/sdk/test_logging_handler.py }
       # REQ-LOG-007: A log call MUST produce a log.entry.recorded event whose data holds th...
       - id: REQ-LOG-007
-        pending: T-04.1
+        # a log call is a log.entry.recorded event with the category, the function and the message in data (T-04.1)
+        tests:
+          - { language: go, path: go/internal/tests/e2e/logging_shared_cases_test.go }
+          - { language: go, path: go/internal/tests/e2e/logger_test.go }
+          - { language: go, path: go/internal/tests/application/services/log_fields_test.go }
+          - { language: go, path: go/internal/tests/application/services/logger_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/inbound/sdk/slog_handler_test.go }
+          - { language: python, path: python/internal/tests/e2e/test_logging_shared_cases.py }
+          - { language: python, path: python/internal/tests/application/services/test_log_fields.py }
+          - { language: python, path: python/internal/tests/application/services/test_logger_service.py }
+          - { language: python, path: python/internal/tests/infrastructure/inbound/sdk/test_logging_handler.py }
 
   # --------------------------------------------------------------------------------------------------------------
   - id: delivery

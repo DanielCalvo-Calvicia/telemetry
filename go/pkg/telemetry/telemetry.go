@@ -10,21 +10,24 @@ package telemetry
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/call_context"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/inbound"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/outbound"
 	config_options "github.com/DanielCalvo-Calvicia/telemetry/go/internal/composition_root/config"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/composition_root/containers"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/base_value_objects"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 	infra_config "github.com/DanielCalvo-Calvicia/telemetry/go/internal/infrastructure/config"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/infrastructure/inbound/sdk"
 )
 
 // ----- TYPES: THE CORE AND ITS CONFIGURATION --------------------------------
 
-// Telemetry is the core of one project, built by New. Its methods are Emit and Shutdown.
+// Telemetry is the core of one project, built by New. Its methods are Emit, Logger and Shutdown.
 type Telemetry = containers.Core
 
 // Config is the configuration of the core, in plain values. The project chooses a profile and sets what it wants.
@@ -114,6 +117,16 @@ type CallContext = call_context.CallContext
 // CallContextOption sets a field of a CallContext.
 type CallContextOption = call_context.Option
 
+// ----- TYPES: THE LOGGER ----------------------------------------------------
+
+// Logger is the logger of the core: Trace, Debug, Info, Warn, Error and Critical, each with a context and a LogEntry and
+// no return value, because a log call never fails the caller. Get it from Telemetry.Logger.
+type Logger = inbound.LoggerPort
+
+// LogEntry is one log line: the category, the optional function, the message and the extra fields, which become the
+// attributes of the event. No request body is recorded unless the caller passes it in the fields.
+type LogEntry = dtos.LogEntryInput
+
 // ----- TYPES: PORTS ---------------------------------------------------------
 
 // ClockPort is the port of the clock; a project may pass its own with WithClock.
@@ -150,6 +163,14 @@ type LocalSpoolPort = outbound.LocalSpoolPort
 // start uses context.Background(). Nothing is read from the environment.
 func New(config Config, options ...Option) (*Telemetry, error) {
 	return containers.NewCore(context.Background(), config, options...)
+}
+
+// ----- THE SLOG HANDLER -----------------------------------------------------
+
+// NewSlogHandler returns a log/slog handler that records each record as a log event through the logger, with
+// default_category for a record that has no category attribute. The level is not filtered by the handler.
+func NewSlogHandler(logger Logger, default_category string) slog.Handler {
+	return sdk.NewSlogHandler(logger, default_category)
 }
 
 // ----- PROFILES -------------------------------------------------------------

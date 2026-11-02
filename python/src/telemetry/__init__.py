@@ -7,7 +7,11 @@ uses are passed in code with the ``with_*`` options; no environment is read and 
 
     core = telemetry.new(telemetry.microservice(), telemetry.with_log_sink(my_sink))
     result = core.emit(telemetry.NewEventInput(...))
+    core.logger.info(telemetry.LogEntry(category="http", message="request done", fields={"order": 7}))
     core.shutdown()
+
+``core.logger`` is a ``Logger``: one method per severity, each call one ``log.entry.recorded`` event, and it never
+raises. ``LoggingHandler`` sends the records of the standard ``logging`` to it.
 """
 
 from telemetry.internal.application.call_context.call_context import (
@@ -18,9 +22,11 @@ from telemetry.internal.application.call_context.call_context import (
 )
 from telemetry.internal.application.call_context.new_call_context import new_call_context
 from telemetry.internal.application.dtos.emit_result import EmitResult
+from telemetry.internal.application.dtos.log_entry import LogEntry
 from telemetry.internal.application.dtos.new_event_input import NewEventInput
 from telemetry.internal.application.dtos.send_result import SendResult
 from telemetry.internal.application.dtos.shutdown_result import ShutdownResult
+from telemetry.internal.application.ports.inbound.logger_port import LoggerPort as Logger
 from telemetry.internal.application.ports.outbound.ai_telemetry_sink_port import AITelemetrySinkPort
 from telemetry.internal.application.ports.outbound.clock_port import ClockPort
 from telemetry.internal.application.ports.outbound.device_telemetry_sink_port import DeviceTelemetrySinkPort
@@ -58,6 +64,7 @@ from telemetry.internal.infrastructure.config.config import (
 )
 from telemetry.internal.infrastructure.config.errors import ConfigurationError
 from telemetry.internal.infrastructure.config.profiles import cronjob, microservice, offline_device, robotics, worker
+from telemetry.internal.infrastructure.inbound.sdk.logging_handler import LoggingHandler
 
 __all__ = [
     "AITelemetrySinkPort",
@@ -75,7 +82,10 @@ __all__ = [
     "IDGeneratorPort",
     "LimitsConfig",
     "LocalSpoolPort",
+    "LogEntry",
     "LogSinkPort",
+    "Logger",
+    "LoggingHandler",
     "MaskingConfig",
     "MetricsSinkPort",
     "NewEventInput",

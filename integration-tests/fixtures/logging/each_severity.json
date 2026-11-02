@@ -1,0 +1,75 @@
+{
+  "description": "One method per severity of the contract; each call is one log.entry.recorded event with the category and the message in data.",
+  "kind": "log",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001",
+    "01900000-0000-7000-8000-000000000002",
+    "01900000-0000-7000-8000-000000000003",
+    "01900000-0000-7000-8000-000000000004",
+    "01900000-0000-7000-8000-000000000005",
+    "01900000-0000-7000-8000-000000000006"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "calls": [
+    {
+      "method": "trace",
+      "category": "http",
+      "message": "started trace"
+    },
+    {
+      "method": "debug",
+      "category": "http",
+      "message": "started debug"
+    },
+    {
+      "method": "info",
+      "category": "http",
+      "message": "started info"
+    },
+    {
+      "method": "warn",
+      "category": "http",
+      "message": "started warn"
+    },
+    {
+      "method": "error",
+      "category": "http",
+      "message": "started error"
+    },
+    {
+      "method": "critical",
+      "category": "http",
+      "message": "started critical"
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "log": [
+        [
+          "{\"data\":{\"category\":\"http\",\"message\":\"started trace\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"TRACE\"}",
+          "{\"data\":{\"category\":\"http\",\"message\":\"started debug\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"DEBUG\"}",
+          "{\"data\":{\"category\":\"http\",\"message\":\"started info\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}",
+          "{\"data\":{\"category\":\"http\",\"message\":\"started warn\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}",
+          "{\"data\":{\"category\":\"http\",\"message\":\"started error\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"ERROR\"}",
+          "{\"data\":{\"category\":\"http\",\"message\":\"started critical\"},\"event_id\":\"01900000-0000-7000-8000-000000000006\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"CRITICAL\"}"
+        ]
+      ]
+    }
+  }
+}

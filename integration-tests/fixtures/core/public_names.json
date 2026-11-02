@@ -170,6 +170,14 @@
     {
       "go": "LocalSpoolPort",
       "python": "LocalSpoolPort"
+    },
+    {
+      "go": "Logger",
+      "python": "Logger"
+    },
+    {
+      "go": "LogEntry",
+      "python": "LogEntry"
     }
   ]
 }

@@ -86,13 +86,13 @@ internal/composition_root/  containers/ and dependencies/ (the only place that w
 internal/tests/             mirrors the code tree; black-box tests; e2e/
 examples/aws_http_smoke/    sample service
 docs/                       the documentation (index in docs/README.md)
-go/                         the Go core of the new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md)): a module of its own, only the empty layers so far
+go/                         the Go core of the new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md)): a module of its own; `pkg/telemetry` is its public entry point, the layers are in `internal/`
 go.work                     joins the root module, go/ and tools/contract_generator for local work and CI
 tools/contract_generator/   the generator: turns contracts/ into the Go and Python code (its own module; see its README to regenerate)
 tools/registry_check/       the check that every requirement of the specification has a conformance test or a pending task (its own module)
 contracts/                  the contract between Go and Python: the envelope, the first event type, the registry, the error codes; the code generated from it is in go/ and python/
-python/                     the Python implementation (only the skeleton: an installable package with the empty layers and one test)
-integration-tests/          the cross-language fixtures and tests (planned, empty)
+python/                     the Python implementation of the same core: an installable package `telemetry` (the public entry point is `telemetry/__init__.py`)
+integration-tests/          the cross-language fixtures that both implementations read (`fixtures/`) and the seed of the runner (T-12)
 ```
 
 ## Checks

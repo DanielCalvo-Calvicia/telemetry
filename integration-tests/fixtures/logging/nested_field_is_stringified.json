@@ -1,0 +1,54 @@
+{
+  "description": "A field that is not a scalar or a list of scalars is written as its canonical JSON text, so no payload is lost and none is structured (REQ-CTR-010).",
+  "kind": "log",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "calls": [
+    {
+      "method": "info",
+      "category": "c",
+      "message": "m",
+      "fields": {
+        "user": {
+          "name": "bob",
+          "id": 1
+        },
+        "rows": [
+          {
+            "a": 1
+          },
+          [
+            2
+          ]
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "log": [
+        [
+          "{\"attributes\":{\"rows\":\"[{\\\"a\\\":1},[2]]\",\"user\":\"{\\\"id\\\":1,\\\"name\\\":\\\"bob\\\"}\"},\"data\":{\"category\":\"c\",\"message\":\"m\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    }
+  }
+}

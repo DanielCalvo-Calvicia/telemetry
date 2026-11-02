@@ -1,0 +1,78 @@
+{
+  "description": "The severity of a native level. Go slog: below -4 TRACE, -4 to -1 DEBUG, 0 to 3 INFO, 4 to 7 WARN, 8 to 11 ERROR, 12 and above CRITICAL. Python logging: below 10 TRACE, 10 to 19 DEBUG, 20 to 29 INFO, 30 to 39 WARN, 40 to 49 ERROR, 50 and above CRITICAL. Each row gives the level of each language; both languages must map the row to the same severity.",
+  "kind": "levels",
+  "cases": [
+    {
+      "description": "TRACE at -8 / 5",
+      "go_level": -8,
+      "python_level": 5,
+      "severity": "TRACE"
+    },
+    {
+      "description": "TRACE at -5 / 9",
+      "go_level": -5,
+      "python_level": 9,
+      "severity": "TRACE"
+    },
+    {
+      "description": "DEBUG at -4 / 10",
+      "go_level": -4,
+      "python_level": 10,
+      "severity": "DEBUG"
+    },
+    {
+      "description": "DEBUG at -1 / 19",
+      "go_level": -1,
+      "python_level": 19,
+      "severity": "DEBUG"
+    },
+    {
+      "description": "INFO at 0 / 20",
+      "go_level": 0,
+      "python_level": 20,
+      "severity": "INFO"
+    },
+    {
+      "description": "INFO at 3 / 29",
+      "go_level": 3,
+      "python_level": 29,
+      "severity": "INFO"
+    },
+    {
+      "description": "WARN at 4 / 30",
+      "go_level": 4,
+      "python_level": 30,
+      "severity": "WARN"
+    },
+    {
+      "description": "WARN at 7 / 39",
+      "go_level": 7,
+      "python_level": 39,
+      "severity": "WARN"
+    },
+    {
+      "description": "ERROR at 8 / 40",
+      "go_level": 8,
+      "python_level": 40,
+      "severity": "ERROR"
+    },
+    {
+      "description": "ERROR at 11 / 49",
+      "go_level": 11,
+      "python_level": 49,
+      "severity": "ERROR"
+    },
+    {
+      "description": "CRITICAL at 12 / 50",
+      "go_level": 12,
+      "python_level": 50,
+      "severity": "CRITICAL"
+    },
+    {
+      "description": "CRITICAL at 20 / 60",
+      "go_level": 20,
+      "python_level": 60,
+      "severity": "CRITICAL"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "description": "The category and the message may be empty, as in the old library; the keys are always present.",
+  "kind": "log",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "calls": [
+    {
+      "method": "info",
+      "category": "",
+      "message": ""
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "log": [
+        [
+          "{\"data\":{\"category\":\"\",\"message\":\"\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    }
+  }
+}

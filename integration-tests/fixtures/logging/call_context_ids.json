@@ -1,0 +1,46 @@
+{
+  "description": "The call context of the caller gives the event its trace, span, execution and correlation ids (REQ-LOG-005).",
+  "kind": "log",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "call_context": {
+    "trace_id": "0af7651916cd43dd8448eb211c80319c",
+    "span_id": "b7ad6b7169203331",
+    "execution_id": "run-7",
+    "correlation_id": "order-9"
+  },
+  "calls": [
+    {
+      "method": "info",
+      "category": "c",
+      "message": "m"
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "log": [
+        [
+          "{\"context\":{\"correlation_id\":\"order-9\",\"execution_id\":\"run-7\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"},\"data\":{\"category\":\"c\",\"message\":\"m\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    }
+  }
+}

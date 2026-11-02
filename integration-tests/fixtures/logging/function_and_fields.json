@@ -1,0 +1,51 @@
+{
+  "description": "The function goes in data and the extra fields in the attributes: strings, numbers, booleans and lists of scalars are kept.",
+  "kind": "log",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "calls": [
+    {
+      "method": "info",
+      "category": "http",
+      "function": "serve",
+      "message": "request done",
+      "fields": {
+        "order": 7,
+        "ok": true,
+        "ratio": 0.5,
+        "tags": [
+          "a",
+          "b"
+        ],
+        "name": "bob"
+      }
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "log": [
+        [
+          "{\"attributes\":{\"name\":\"bob\",\"ok\":true,\"order\":7,\"ratio\":0.5,\"tags\":[\"a\",\"b\"]},\"data\":{\"category\":\"http\",\"function\":\"serve\",\"message\":\"request done\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    }
+  }
+}

@@ -3,47 +3,20 @@
 The same files are run by the Go half; the expected values were computed independently of both implementations.
 """
 
-import datetime
 import json
 import pathlib
 import unittest
 from typing import Any
 
 import telemetry
-from internal.tests.fakes import (
-    FakeAiTelemetrySink,
-    FakeClock,
-    FakeDeviceTelemetrySink,
-    FakeEventSink,
-    FakeIdGenerator,
-    FakeLocalSpool,
-    FakeLogSink,
-    FakeMetricsSink,
-    FakeTraceSink,
-)
+from internal.tests.e2e.case_helpers import build_options, parse_time
 from internal.tests.infrastructure.config.helpers import merged_config
 from telemetry.internal.domain.operations.canonical_json.canonical_json import canonical_json
-from telemetry.internal.domain.value_objects.event_id import EventId
 from telemetry.internal.domain.value_objects.utc_instant import UtcInstant
 
 CORE_FOLDER = pathlib.Path(__file__).resolve().parents[4] / "integration-tests" / "fixtures" / "core"
 SKIPPED_FILES = ("public_names.json",)
 KNOWN_KINDS = ("core",)
-
-# The key of a fixture, the fake of its port and the option that adds it, in one place.
-SINK_KINDS = {
-    "log": (FakeLogSink, telemetry.with_log_sink),
-    "event": (FakeEventSink, telemetry.with_event_sink),
-    "metrics": (FakeMetricsSink, telemetry.with_metrics_sink),
-    "trace": (FakeTraceSink, telemetry.with_trace_sink),
-    "device_telemetry": (FakeDeviceTelemetrySink, telemetry.with_device_telemetry_sink),
-    "ai_telemetry": (FakeAiTelemetrySink, telemetry.with_ai_telemetry_sink),
-}
-
-
-def parse_time(text: str) -> datetime.datetime:
-    """Parse an ISO time with an offset and return it in UTC."""
-    return datetime.datetime.fromisoformat(text).astimezone(datetime.timezone.utc)
 
 
 def load_cases() -> list[tuple[str, dict[str, Any]]]:
@@ -60,27 +33,6 @@ def load_cases() -> list[tuple[str, dict[str, Any]]]:
             raise AssertionError(f"{path.name}: unknown kind {case.get('kind')!r}")
         cases.append((path.name, case))
     return cases
-
-
-def build_options(case: dict[str, Any]) -> tuple[list, dict[str, list]]:
-    """Return the options of the case and the fake sinks it builds, by kind."""
-    clock = FakeClock(wall_time=parse_time(case["clock"]["wall_time"]))
-    event_ids = [EventId(text) for text in case["event_ids"]]
-    options = [telemetry.with_clock(clock), telemetry.with_id_generator(FakeIdGenerator(event_ids))]
-    sinks: dict[str, list] = {}
-    for kind, entries in case["sinks"].items():
-        fake_class, with_sink = SINK_KINDS[kind]
-        sinks[kind] = []
-        for entry in entries:
-            sink = fake_class()
-            result = entry.get("result")
-            if result is not None:
-                sink.set_result(telemetry.SendResult(**result))
-            sinks[kind].append(sink)
-            options.append(with_sink(sink))
-    if case.get("spool"):
-        options.append(telemetry.with_local_spool(FakeLocalSpool()))
-    return options, sinks
 
 
 def build_event(emit: dict[str, Any]) -> telemetry.NewEventInput:

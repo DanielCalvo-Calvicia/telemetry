@@ -1,0 +1,38 @@
+{
+  "description": "A log call with no log sink given does nothing and does not fail.",
+  "kind": "log",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "event": [
+      {}
+    ]
+  },
+  "calls": [
+    {
+      "method": "info",
+      "category": "c",
+      "message": "m"
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "event": [
+        []
+      ]
+    }
+  }
+}

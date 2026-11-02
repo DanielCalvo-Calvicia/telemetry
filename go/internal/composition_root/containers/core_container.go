@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/inbound"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/services"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/composition_root/config"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/composition_root/dependencies"
@@ -22,6 +23,7 @@ import (
 // two cores in one process share nothing, and it is safe for concurrent use.
 type Core struct {
 	pipeline *services.EventPipelineService
+	logger   inbound.LoggerPort
 }
 
 // ----- CONSTRUCTORS ---------------------------------------------------------
@@ -71,7 +73,7 @@ func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Opt
 		services.NewLimitsService(configuration.Limits),
 		applied_options.Destinations,
 	)
-	return &Core{pipeline: pipeline}, nil
+	return &Core{pipeline: pipeline, logger: services.NewLoggerService(pipeline)}, nil
 }
 
 // ----- METHODS --------------------------------------------------------------
@@ -83,6 +85,15 @@ func (core *Core) Emit(ctx context.Context, input dtos.NewEventInput) dtos.EmitR
 		return dtos.EmitResult{Dropped: 1, Reason: value_objects.ErrorCodeEventBuildFailed}
 	}
 	return core.pipeline.Emit(ctx, input)
+}
+
+// Logger returns the logger of the core: one method per severity, each call one log.entry.recorded event through the
+// pipeline. It never returns nil: a nil *Core, or one that was not built by NewCore, returns a logger that does nothing.
+func (core *Core) Logger() inbound.LoggerPort {
+	if core == nil || core.logger == nil {
+		return (*services.LoggerService)(nil)
+	}
+	return core.logger
 }
 
 // Shutdown closes the core. It is a stub: it returns the zero result and does nothing, because the core has no queue to

@@ -1,0 +1,47 @@
+{
+  "description": "A native record becomes the same event as a direct call: the attributes category and function are the data, the others go to the attributes.",
+  "kind": "handler",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "default_category": "app",
+  "records": [
+    {
+      "go_level": 4,
+      "python_level": 30,
+      "message": "disk low",
+      "attrs": {
+        "category": "storage",
+        "function": "check",
+        "order": 7,
+        "ok": true
+      }
+    }
+  ],
+  "expected": {
+    "deliveries": {
+      "log": [
+        [
+          "{\"attributes\":{\"ok\":true,\"order\":7},\"data\":{\"category\":\"storage\",\"function\":\"check\",\"message\":\"disk low\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}"
+        ]
+      ]
+    }
+  }
+}

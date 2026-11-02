@@ -3,9 +3,11 @@
 from telemetry.internal.application.dtos.emit_result import EmitResult
 from telemetry.internal.application.dtos.new_event_input import NewEventInput
 from telemetry.internal.application.dtos.shutdown_result import ShutdownResult
+from telemetry.internal.application.ports.inbound.logger_port import LoggerPort
 from telemetry.internal.application.services.event_builder_service import EventBuilderService
 from telemetry.internal.application.services.event_pipeline_service import Destinations, EventPipelineService
 from telemetry.internal.application.services.limits_service import LimitsService
+from telemetry.internal.application.services.logger_service import LoggerService
 from telemetry.internal.application.services.masking_service import MaskingService
 from telemetry.internal.composition_root.config.options import Option, Options
 from telemetry.internal.composition_root.dependencies.system_clock_dependencies import new_system_clock
@@ -40,9 +42,15 @@ class Core:
     from many threads.
     """
 
-    def __init__(self, pipeline: EventPipelineService) -> None:
-        """Keep the pipeline; build a core with ``new_core``."""
+    def __init__(self, pipeline: EventPipelineService, logger: LoggerPort) -> None:
+        """Keep the pipeline and the logger over it; build a core with ``new_core``."""
         self._pipeline = pipeline
+        self._logger = logger
+
+    @property
+    def logger(self) -> LoggerPort:
+        """The logger of this core: one method per severity, each call one ``log.entry.recorded`` event; no raise."""
+        return self._logger
 
     def emit(self, new_event: NewEventInput) -> EmitResult:
         """Turn one input into one masked, limited, valid event delivered to the sinks; it never raises (ADR-005)."""
@@ -90,4 +98,5 @@ def new_core(config: Config, *options: Option) -> Core:
         device_telemetry=tuple(applied.device_telemetry_sinks),
         ai_telemetry=tuple(applied.ai_telemetry_sinks),
     )
-    return Core(EventPipelineService(builder, masking, limits, destinations))
+    pipeline = EventPipelineService(builder, masking, limits, destinations)
+    return Core(pipeline, LoggerService(pipeline))
