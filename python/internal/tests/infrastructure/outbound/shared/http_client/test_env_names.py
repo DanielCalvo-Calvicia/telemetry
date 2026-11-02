@@ -14,6 +14,8 @@ SCHEMA_PATH = REPOSITORY_ROOT / "contracts" / "config" / "http_client.schema.jso
 DOCUMENT_PATH = REPOSITORY_ROOT / "docs" / "configuration" / "environment-variables.md"
 ENV_EXAMPLE_PATH = REPOSITORY_ROOT / ".env.example"
 DOCUMENT_SECTION = "## Shared HTTP client"
+ENV_BLOCK_START = "Shared HTTP client of the new standard"
+ENV_BLOCK_MARKER = "of the new standard"
 
 
 def schema_names() -> dict[str, str]:
@@ -29,9 +31,23 @@ def documented_names() -> set[str]:
     return {match.group(1) for match in re.finditer(r"^\| `(TELEMETRY_HTTP_[A-Z0-9_]+)`", section, re.MULTILINE)}
 
 
+def env_example_block() -> str:
+    """The block of the shared client of .env.example: from its comment line up to the next block of an adapter.
+
+    The HTTP destination adds TELEMETRY_HTTP_MINIMUM_SEVERITY under the same prefix, in its own block.
+    """
+    lines = ENV_EXAMPLE_PATH.read_text(encoding="utf-8").splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("#") and ENV_BLOCK_START in line)
+    end = next(
+        (i for i in range(start + 1, len(lines)) if lines[i].startswith("#") and ENV_BLOCK_MARKER in lines[i]),
+        len(lines),
+    )
+    return "\n".join(lines[start:end])
+
+
 def env_example_names() -> set[str]:
-    """The names of the lines NAME= or # NAME= with the TELEMETRY_HTTP_ prefix."""
-    text = ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
+    """The names of the lines NAME= or # NAME= with the TELEMETRY_HTTP_ prefix, in the block of the shared client."""
+    text = env_example_block()
     return set(re.findall(r"^(?:#\s*)?(TELEMETRY_HTTP_[A-Z0-9_]+)=", text, re.MULTILINE))
 
 

@@ -122,7 +122,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | done (2026-11-03) |
 | [T-04.3](T-04_logging-and-core-adapters/T-04.3_file-adapter.md) | File adapter | code | done (2026-11-03) |
 | [T-04.4](T-04_logging-and-core-adapters/T-04.4_shared-http-infrastructure.md) | Shared HTTP infrastructure | code | done (2026-11-03) |
-| [T-04.5](T-04_logging-and-core-adapters/T-04.5_http-destination.md) | HTTP destination | code | todo |
+| [T-04.5](T-04_logging-and-core-adapters/T-04.5_http-destination.md) | HTTP destination | code | done (2026-11-03) |
 | [T-04.6](T-04_logging-and-core-adapters/T-04.6_aws-http-adapter.md) | AWS HTTP adapter | code | todo |
 | [T-04.7](T-04_logging-and-core-adapters/T-04.7_replace-and-remove-the-old-library.md) | Replace and remove the old library | code | todo |
 | [T-04.8](T-04_logging-and-core-adapters/T-04.8_fake-receiver-for-tests.md) | Fake receiver for tests | test | todo |

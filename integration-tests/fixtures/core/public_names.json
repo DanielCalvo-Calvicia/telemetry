@@ -178,6 +178,10 @@
     {
       "go": "LogEntry",
       "python": "LogEntry"
+    },
+    {
+      "go": "Limits",
+      "python": "Limits"
     }
   ]
 }

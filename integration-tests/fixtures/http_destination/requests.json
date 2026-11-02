@@ -1,0 +1,637 @@
+{
+  "description": "What the HTTP destination sends to a local receiver and the result it returns. settings are overrides of the settings of the destination (the url is the local receiver, which the test fills in); the receiver answers server_status; expected_body is the exact canonical batch body (decompressed when the request says Content-Encoding: gzip); expected_headers are headers the request must carry; expected_no_request means the receiver must get no request. The result: events below the minimum severity count as accepted; a 2xx accepts the sent events; 408, 429 and 5xx fail them (transient, reason status_<code>); any other status drops them (permanent, reason status_<code>).",
+  "cases": [
+    {
+      "name": "two_events_accepted",
+      "description": "Two events arrive at the receiver as the batch body of REQ-OUT-010 and the result says both were accepted.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 200,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 2,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    },
+    {
+      "name": "below_the_minimum_is_not_sent",
+      "description": "An event below the minimum severity is not sent and counts as accepted; the others are sent in one batch.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "a"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "b"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000003",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "ERROR",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "c"
+          }
+        }
+      ],
+      "minimum_severity": "WARN",
+      "server_status": 200,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"b\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"},{\"data\":{\"category\":\"http\",\"message\":\"c\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"ERROR\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 3,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    },
+    {
+      "name": "everything_filtered_sends_nothing",
+      "description": "When every event is below the minimum no request is made.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "a"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "DEBUG",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "b"
+          }
+        }
+      ],
+      "minimum_severity": "CRITICAL",
+      "server_status": 200,
+      "expected_no_request": true,
+      "expected_result": {
+        "accepted": 2,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    },
+    {
+      "name": "no_events_sends_nothing",
+      "description": "An empty batch makes no request and the result is empty.",
+      "events": [],
+      "server_status": 200,
+      "expected_no_request": true,
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    },
+    {
+      "name": "server_503_is_a_transient_failure",
+      "description": "A 5xx is a transient failure: the events are failed (the worker may retry them, T-05.3) with the reason status_503.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 503,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 0,
+        "failed": 2,
+        "reason": "status_503"
+      }
+    },
+    {
+      "name": "server_429_is_a_transient_failure",
+      "description": "A 429 is a transient failure.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 429,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 0,
+        "failed": 2,
+        "reason": "status_429"
+      }
+    },
+    {
+      "name": "server_408_is_a_transient_failure",
+      "description": "A 408 is a transient failure.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 408,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 0,
+        "failed": 2,
+        "reason": "status_408"
+      }
+    },
+    {
+      "name": "server_400_is_a_permanent_rejection",
+      "description": "Any other 4xx is a permanent rejection: the events are dropped (not retried) with the reason status_400.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 400,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 2,
+        "failed": 0,
+        "reason": "status_400"
+      }
+    },
+    {
+      "name": "server_404_is_a_permanent_rejection",
+      "description": "A 404 is a permanent rejection.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 404,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 2,
+        "failed": 0,
+        "reason": "status_404"
+      }
+    },
+    {
+      "name": "a_redirect_is_a_permanent_rejection",
+      "description": "A redirect is never followed: it is a permanent rejection with the reason status_302.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "server_status": 302,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_result": {
+        "accepted": 0,
+        "dropped": 2,
+        "failed": 0,
+        "reason": "status_302"
+      }
+    },
+    {
+      "name": "the_bearer_token_is_sent",
+      "description": "The token the consumer configured travels in the Authorization header.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "settings": {
+        "bearer_token": "token-value-1"
+      },
+      "server_status": 200,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_headers": {
+        "Authorization": "Bearer token-value-1"
+      },
+      "expected_result": {
+        "accepted": 2,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    },
+    {
+      "name": "the_api_key_is_sent",
+      "description": "An API key travels in the header whose name the consumer configured.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "settings": {
+        "api_key_header": "X-Api-Key",
+        "api_key_value": "key-value-1"
+      },
+      "server_status": 200,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_headers": {
+        "X-Api-Key": "key-value-1"
+      },
+      "expected_result": {
+        "accepted": 2,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    },
+    {
+      "name": "a_gzipped_body",
+      "description": "With compression the body is gzipped and says so; decompressed it is the same batch body.",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "first"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "second"
+          },
+          "attributes": {
+            "order": 7
+          }
+        }
+      ],
+      "settings": {
+        "compress": true
+      },
+      "server_status": 200,
+      "expected_body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"first\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"attributes\":{\"order\":7},\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}],\"schema_version\":\"0.1\"}",
+      "expected_headers": {
+        "Content-Encoding": "gzip"
+      },
+      "expected_result": {
+        "accepted": 2,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    }
+  ]
+}

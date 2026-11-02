@@ -131,3 +131,12 @@ The settings of the file destination ([contracts/config/file.schema.json](../../
 | `TELEMETRY_FILE_MAX_FILE_BYTES` | `10485760` | `max_file_bytes` | rotate when the next line would pass it |
 | `TELEMETRY_FILE_MAX_FILES` | `5` | `max_files` | the current file included |
 | `TELEMETRY_FILE_QUOTA_BYTES` | `52428800` | `quota_bytes` | all the files together; not below the file size; the oldest rotated files are deleted first |
+
+
+## HTTP destination (built, T-04.5)
+
+The HTTP destination is **the shared client** (the section "Shared HTTP client" above: `TELEMETRY_HTTP_URL` and the others) plus one setting of its own ([contracts/config/http_destination.schema.json](../../contracts/config/http_destination.schema.json)). The library never reads the environment: the consumer loads the values and passes them in; the URL is always required and no URL is fixed in code.
+
+| Variable | Default | Field | Notes |
+|---|---|---|---|
+| `TELEMETRY_HTTP_MINIMUM_SEVERITY` | `INFO` | `minimum_severity` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL`, in upper case; an event below it is not sent |

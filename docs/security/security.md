@@ -82,3 +82,9 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 - **No path from the library.** The directory comes from the consumer; the library fixes no path. The file name may not hold a path separator, so a setting cannot leave the directory.
 - **A start error never shows a path.** A directory that cannot be written is reported as one problem on `directory` with a fixed text, no path and no operating system message.
 - **The quota bounds the disk use** (50 MiB by default), so a flood of events cannot fill the disk through this destination.
+
+## The HTTP destination (built, T-04.5)
+
+- It sends only the masked events, after the masking and the limits of the chain, to the URL the consumer configured: **no URL is fixed in the code and none appears in the repository** (the tests use `127.0.0.1` and `logs.example.invalid`).
+- The token and the key are those of the shared client: they never appear in a result, an outcome, an error or a diagnostic, even when the URL carries a secret in its query. TLS verification is on by default; a redirect is never followed, so a response cannot send the token to another host.
+- A receiver that answers a permanent rejection (another 4xx) makes the batch **dropped**, never retried in a loop; a transient failure is bounded by the retry policy (T-05.3) and the queue (T-05.1).

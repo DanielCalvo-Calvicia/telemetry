@@ -17,6 +17,7 @@ const (
 	http_environment_file       = "../../../../../../../docs/configuration/environment-variables.md"
 	http_example_file           = "../../../../../../../.env.example"
 	http_environment_title      = "## Shared HTTP client"
+	http_example_block_marker   = "Shared HTTP client of the new standard"
 	http_environment_name_start = "TELEMETRY_HTTP_"
 )
 
@@ -147,8 +148,21 @@ func Test_the_tags_of_settings_are_the_names_of_the_schema_the_document_and_the_
 
 	// The example file.
 	line_pattern := regexp.MustCompile(`(?m)^#?\s*(` + http_environment_name_start + `[A-Z0-9_]+)=`)
+	// Only the block of the shared client: the destinations that sit on it have their own blocks (and the HTTP
+	// destination adds TELEMETRY_HTTP_MINIMUM_SEVERITY under the same prefix).
+	example_text := read_file_text(t, http_example_file)
+	_, example_block, found_block := strings.Cut(example_text, http_example_block_marker)
+	if !found_block {
+		t.Fatalf("the marker %q is not in .env.example", http_example_block_marker)
+	}
+	for _, block_line := range strings.Split(example_block, "\n")[1:] {
+		if strings.HasPrefix(block_line, "#") && strings.Contains(block_line, "of the new standard") {
+			example_block = example_block[:strings.Index(example_block, block_line)]
+			break
+		}
+	}
 	example_names := map[string]bool{}
-	for _, match := range line_pattern.FindAllStringSubmatch(read_file_text(t, http_example_file), -1) {
+	for _, match := range line_pattern.FindAllStringSubmatch(example_block, -1) {
 		example_names[match[1]] = true
 	}
 	require_same_set(t, "the env tags of Settings", tag_names, ".env.example", example_names)

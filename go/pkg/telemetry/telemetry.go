@@ -42,6 +42,21 @@ type DeliveryConfig = infra_config.DeliveryConfig
 // LimitsConfig is the size limits of an event and of a batch.
 type LimitsConfig = infra_config.LimitsConfig
 
+// Limits are the size limits of an event and of a batch as the adapters take them (the sink adapters that cap a batch,
+// such as the HTTP destination, receive them). Get them with DefaultLimits or NewLimits; the zero value is not valid.
+type Limits = value_objects.Limits
+
+// DefaultLimits returns the default limits: 32 attributes, a key of 64 characters, a value of 256 characters, an event
+// of 64 KiB and a batch of 1 MiB.
+func DefaultLimits() Limits { return value_objects.DefaultLimits() }
+
+// NewLimits returns the Limits of the numbers: the attributes of an event, the characters of a key, the characters of a
+// text value, the bytes of an event and the bytes of a batch. Every number must be greater than zero and the batch limit
+// not below the event limit, otherwise it returns an error.
+func NewLimits(max_attribute_keys int, max_attribute_key_chars int, max_attribute_value_chars int, max_event_bytes int, max_batch_bytes int) (Limits, error) {
+	return value_objects.NewLimits(max_attribute_keys, max_attribute_key_chars, max_attribute_value_chars, max_event_bytes, max_batch_bytes)
+}
+
 // SpoolConfig is the local spool of the durable delivery mode.
 type SpoolConfig = infra_config.SpoolConfig
 

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/config/http_destination.schema.json",
+  "title": "Settings of the HTTP destination (what it adds to the shared client)",
+  "description": "The settings of the HTTP destination (T-04.5) are the settings of the shared HTTP client (http_client.schema.json: url, method, timeout, compression, TLS verification, authentication and the retry policy) followed by the ones below. The names are for ONE HTTP destination. The library reads no file and no environment (ADR-004). The order of the problems is that of http_client.schema.json and then of this one.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "minimum_severity": {
+      "type": "string",
+      "description": "The lowest severity that is sent: TRACE, DEBUG, INFO (the default), WARN, ERROR or CRITICAL. An event below it is not sent.",
+      "x-env": "TELEMETRY_HTTP_MINIMUM_SEVERITY"
+    }
+  }
+}

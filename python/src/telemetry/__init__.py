@@ -54,6 +54,7 @@ from telemetry.internal.domain.value_objects.actor_identity import ActorIdentity
 from telemetry.internal.domain.value_objects.enums_generated import Severity
 from telemetry.internal.domain.value_objects.envelope_generated import Envelope
 from telemetry.internal.domain.value_objects.event_attributes import EventAttributes
+from telemetry.internal.domain.value_objects.limits import Limits
 from telemetry.internal.infrastructure.config.config import (
     Config,
     DeliveryConfig,
@@ -80,6 +81,7 @@ __all__ = [
     "EventAttributes",
     "EventSinkPort",
     "IDGeneratorPort",
+    "Limits",
     "LimitsConfig",
     "LocalSpoolPort",
     "LogEntry",

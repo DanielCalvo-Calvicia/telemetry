@@ -1,0 +1,23 @@
+{
+  "description": "The public names of the HTTP destination (go/pkg/logging/http and telemetry.logging.http).",
+  "functions": [
+    {
+      "go": "DefaultSettings",
+      "python": "default_settings"
+    },
+    {
+      "go": "NewDestination",
+      "python": "new_destination"
+    }
+  ],
+  "types": [
+    {
+      "go": "Settings",
+      "python": "Settings"
+    },
+    {
+      "go": "Destination",
+      "python": "Destination"
+    }
+  ]
+}

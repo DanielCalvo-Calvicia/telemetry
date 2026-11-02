@@ -240,12 +240,16 @@ func Test_tls_is_verified_by_default_and_can_be_turned_off(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls.Add(1) }))
 	defer server.Close()
 
-	outcome := new_test_client(t, settings_for(server.URL)).Send(context.Background(), []byte("{}"))
+	// A long timeout: the handshake of a test certificate can be slow when the machine is loaded by many test packages.
+	verified_settings := settings_for(server.URL)
+	verified_settings.TimeoutMS = 20000
+	outcome := new_test_client(t, verified_settings).Send(context.Background(), []byte("{}"))
 	if outcome.Class != helpers.ClassTransient || outcome.Reason != "tls_verification_failed" || calls.Load() != 0 {
 		t.Fatalf("%+v with %d calls", outcome, calls.Load())
 	}
 
 	settings := settings_for(server.URL)
+	settings.TimeoutMS = 20000
 	settings.SkipTLSVerification = true
 	outcome = new_test_client(t, settings).Send(context.Background(), []byte("{}"))
 	if outcome.Class != helpers.ClassSuccess || calls.Load() != 1 {

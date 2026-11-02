@@ -1,0 +1,59 @@
+{
+  "description": "The settings of the HTTP destination are the settings of the shared client (contracts/config/http_client.schema.json) followed by minimum_severity (contracts/config/http_destination.schema.json). Only the cases that touch the destination's own rule are here; the rules of the client are in integration-tests/fixtures/http/settings.json. The effective settings as exact canonical JSON (all twelve fields) or the problems in the order of the schemas.",
+  "cases": [
+    {
+      "description": "the minimum: an https url",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest"
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"\",\"compress\":false,\"max_attempts\":5,\"method\":\"POST\",\"minimum_severity\":\"INFO\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000,\"url\":\"https://logs.example.invalid/ingest\"}"
+    },
+    {
+      "description": "a minimum severity of ERROR",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "minimum_severity": "ERROR"
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"\",\"compress\":false,\"max_attempts\":5,\"method\":\"POST\",\"minimum_severity\":\"ERROR\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000,\"url\":\"https://logs.example.invalid/ingest\"}"
+    },
+    {
+      "description": "no url",
+      "settings": {},
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a severity that does not exist",
+      "settings": {
+        "url": "https://logs.example.invalid/ingest",
+        "minimum_severity": "info"
+      },
+      "problems": [
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "both problems, the url first (the order of the schema)",
+      "settings": {
+        "minimum_severity": "LOUD"
+      },
+      "problems": [
+        {
+          "field": "url",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    }
+  ]
+}

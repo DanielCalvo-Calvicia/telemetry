@@ -271,8 +271,8 @@ capabilities:
           - { language: python, path: python/internal/tests/e2e/test_core_shared_cases.py }
       # REQ-ARC-014: The adapters of the core (console, file, HTTP) live in the core module...
       - id: REQ-ARC-014
-        # the console adapter lives in internal/infrastructure/outbound/logging/console/ with external/, error/ and helpers/; the file adapter lives in .../logging/file/ (T-04.3); the HTTP adapter (T-04.5) completes the requirement
-        pending: T-04.5
+        # the console, file and HTTP adapters live in internal/infrastructure/outbound/logging/{console,file,http}/ with external/, error/ and helpers/ (T-04.2, T-04.3, T-04.5); the optional adapters as modules of their own start with the AWS adapter (T-04.6)
+        pending: T-04.6
       # REQ-DST-001: Go MUST be distributed as one core module (github.com/DanielCalvo-Calv...
       - id: REQ-DST-001
         pending: T-04.6
@@ -359,7 +359,7 @@ capabilities:
     status: planned
     description: "The logger, the log.entry.recorded event, the integration with log/slog and logging, redaction and level filtering, and independent destinations."
     public_api:
-      - "built: the logger of the core, the slog and logging handlers (T-04.1), the public packages logging/console (T-04.2) and logging/file (T-04.3)"
+      - "built: the logger of the core, the slog and logging handlers (T-04.1), the public packages logging/console (T-04.2), logging/file (T-04.3) and logging/http (T-04.5)"
     schemas:
       - "contracts/schemas/log/entry_recorded.schema.json"
     configuration:
@@ -368,7 +368,7 @@ capabilities:
     ports:
       - "planned: the destination port (T-03.2)"
     adapters:
-      - "built: console (T-04.2), file (T-04.3); planned: HTTP (T-04.5), AWS (T-04.6)"
+      - "built: console (T-04.2), file (T-04.3), HTTP (T-04.5); planned: AWS (T-04.6)"
     languages:
       go:
         state: todo
@@ -595,7 +595,16 @@ capabilities:
           - { language: python, path: python/internal/tests/application/ports/test_fakes.py }
       # REQ-OUT-002: HTTP is the default destination: it is in the core and the profiles us...
       - id: REQ-OUT-002
-        pending: T-04.5
+        # the HTTP destination is in the core, always needs its URL (a start error names the field) and a failing receiver never stops another destination (T-04.5); the profiles do not select adapters (ADR-013: the project passes them in code), so "the profiles use it" is read as: it is the destination the core is built for, to confirm with the maintainer
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/http/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/http/http_destination_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/http/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/http/env_tags_test.go }
+          - { language: go, path: go/internal/tests/e2e/http_destination_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/http/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/http/test_http_destination.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/http/test_env_names.py }
       # REQ-OUT-003: Each capability MUST be routable to different destinations and to seve...
       - id: REQ-OUT-003
         pending: T-11.2
