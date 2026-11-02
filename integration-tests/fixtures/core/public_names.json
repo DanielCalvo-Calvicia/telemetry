@@ -1,0 +1,175 @@
+{
+  "description": "The public names that both languages export (REQ-ARC-010): Go exports `go` from go/pkg/telemetry and Python exports `python` from the package `telemetry`; a function of Go is a snake_case function of Python, a type has the same name. Each language may export more (Go the Severity constants, Python the members of the enum and the context managers of the call context); these are the ones both must have. Every exported identifier has a doc comment or docstring that starts with its own name or says what it is.",
+  "functions": [
+    {
+      "go": "New",
+      "python": "new"
+    },
+    {
+      "go": "Microservice",
+      "python": "microservice"
+    },
+    {
+      "go": "Cronjob",
+      "python": "cronjob"
+    },
+    {
+      "go": "Worker",
+      "python": "worker"
+    },
+    {
+      "go": "Robotics",
+      "python": "robotics"
+    },
+    {
+      "go": "OfflineDevice",
+      "python": "offline_device"
+    },
+    {
+      "go": "WithLogSink",
+      "python": "with_log_sink"
+    },
+    {
+      "go": "WithEventSink",
+      "python": "with_event_sink"
+    },
+    {
+      "go": "WithMetricsSink",
+      "python": "with_metrics_sink"
+    },
+    {
+      "go": "WithTraceSink",
+      "python": "with_trace_sink"
+    },
+    {
+      "go": "WithDeviceTelemetrySink",
+      "python": "with_device_telemetry_sink"
+    },
+    {
+      "go": "WithAITelemetrySink",
+      "python": "with_ai_telemetry_sink"
+    },
+    {
+      "go": "WithLocalSpool",
+      "python": "with_local_spool"
+    },
+    {
+      "go": "WithClock",
+      "python": "with_clock"
+    },
+    {
+      "go": "WithIDGenerator",
+      "python": "with_id_generator"
+    },
+    {
+      "go": "NewCallContext",
+      "python": "new_call_context"
+    }
+  ],
+  "types": [
+    {
+      "go": "Telemetry",
+      "python": "Telemetry"
+    },
+    {
+      "go": "Config",
+      "python": "Config"
+    },
+    {
+      "go": "ResourceConfig",
+      "python": "ResourceConfig"
+    },
+    {
+      "go": "DeliveryConfig",
+      "python": "DeliveryConfig"
+    },
+    {
+      "go": "LimitsConfig",
+      "python": "LimitsConfig"
+    },
+    {
+      "go": "SpoolConfig",
+      "python": "SpoolConfig"
+    },
+    {
+      "go": "MaskingConfig",
+      "python": "MaskingConfig"
+    },
+    {
+      "go": "Option",
+      "python": "Option"
+    },
+    {
+      "go": "NewEventInput",
+      "python": "NewEventInput"
+    },
+    {
+      "go": "EmitResult",
+      "python": "EmitResult"
+    },
+    {
+      "go": "ShutdownResult",
+      "python": "ShutdownResult"
+    },
+    {
+      "go": "SendResult",
+      "python": "SendResult"
+    },
+    {
+      "go": "Envelope",
+      "python": "Envelope"
+    },
+    {
+      "go": "Severity",
+      "python": "Severity"
+    },
+    {
+      "go": "EventAttributes",
+      "python": "EventAttributes"
+    },
+    {
+      "go": "ActorIdentity",
+      "python": "ActorIdentity"
+    },
+    {
+      "go": "CallContext",
+      "python": "CallContext"
+    },
+    {
+      "go": "ClockPort",
+      "python": "ClockPort"
+    },
+    {
+      "go": "IDGeneratorPort",
+      "python": "IDGeneratorPort"
+    },
+    {
+      "go": "LogSinkPort",
+      "python": "LogSinkPort"
+    },
+    {
+      "go": "EventSinkPort",
+      "python": "EventSinkPort"
+    },
+    {
+      "go": "MetricsSinkPort",
+      "python": "MetricsSinkPort"
+    },
+    {
+      "go": "TraceSinkPort",
+      "python": "TraceSinkPort"
+    },
+    {
+      "go": "DeviceTelemetrySinkPort",
+      "python": "DeviceTelemetrySinkPort"
+    },
+    {
+      "go": "AITelemetrySinkPort",
+      "python": "AITelemetrySinkPort"
+    },
+    {
+      "go": "LocalSpoolPort",
+      "python": "LocalSpoolPort"
+    }
+  ]
+}

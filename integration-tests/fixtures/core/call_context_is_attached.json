@@ -1,0 +1,62 @@
+{
+  "description": "The call context of the caller gives the envelope its trace, span, execution and correlation ids (REQ-LOG-005).",
+  "kind": "core",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "call_context": {
+    "trace_id": "0af7651916cd43dd8448eb211c80319c",
+    "span_id": "b7ad6b7169203331",
+    "execution_id": "run-7",
+    "correlation_id": "order-9"
+  },
+  "emits": [
+    {
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "data": {
+        "category": "http",
+        "message": "started"
+      }
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    ],
+    "deliveries": {
+      "log": [
+        [
+          "{\"context\":{\"correlation_id\":\"order-9\",\"execution_id\":\"run-7\",\"span_id\":\"b7ad6b7169203331\",\"trace_id\":\"0af7651916cd43dd8448eb211c80319c\"},\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    },
+    "shutdown": {
+      "sent": 0,
+      "spooled": 0,
+      "dropped": 0
+    }
+  }
+}

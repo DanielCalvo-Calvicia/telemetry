@@ -1,0 +1,51 @@
+{
+  "description": "An event type that is not in the registry is dropped with event_type_unknown.",
+  "kind": "core",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "emits": [
+    {
+      "event_type": "nothing.here.recorded",
+      "severity": "INFO",
+      "data": {}
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "accepted": 0,
+        "dropped": 1,
+        "failed": 0,
+        "reason": "event_type_unknown"
+      }
+    ],
+    "deliveries": {
+      "log": [
+        []
+      ]
+    },
+    "shutdown": {
+      "sent": 0,
+      "spooled": 0,
+      "dropped": 0
+    }
+  }
+}

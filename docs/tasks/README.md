@@ -1,6 +1,6 @@
 # Tasks
 
-Hierarchical task plan used to build the whole telemetry standard of [PR-001](../proposals/PR-001-telemetry-standard-go-python.md): **T-01 repository foundation, T-02 the contract and the generator, T-03 core domain and application, T-04 logging and the core adapters, T-05 delivery, T-06 the spool and the SQLite destination, T-07 executions, faults, reports and health, T-08 devices, T-09 AI agents, T-10 metrics and traces, T-11 audit, T-12 cross-language conformance, T-13 documentation, examples and release**. Nothing of it is built: T-01.1 to T-01.4 (the acceptance of PR-001, the repository layout, the Python skeleton and the architecture tests) are done and every other task is `todo`; two pilot runs and a few decisions wait for the maintainer.
+Hierarchical task plan used to build the whole telemetry standard of [PR-001](../proposals/PR-001-telemetry-standard-go-python.md): **T-01 repository foundation, T-02 the contract and the generator, T-03 core domain and application, T-04 logging and the core adapters, T-05 delivery, T-06 the spool and the SQLite destination, T-07 executions, faults, reports and health, T-08 devices, T-09 AI agents, T-10 metrics and traces, T-11 audit, T-12 cross-language conformance, T-13 documentation, examples and release**. **The core is built (2026-11-02): T-01 (T-01.5, the CI, waits for a run on GitHub), T-02 and T-03 are done**; the adapters and the capabilities (T-04 to T-11), the cross-language runner (T-12) and the release (T-13) are `todo`; two pilot runs and a few decisions wait for the maintainer.
 
 The status of every task is on the board in section 5 (and in [ORDER.md](ORDER.md)).
 
@@ -107,7 +107,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-02.6](T-02_contract-and-generator/T-02.6_validation-at-the-source.md) | Validation at the source | code | done (2026-10-29) |
 | [T-02.7](T-02_contract-and-generator/T-02.7_capabilities-registry-and-its-check.md) | Capabilities registry and its check | code | done (2026-10-29) |
 | [T-02.8](T-02_contract-and-generator/T-02.8_shared-fixtures.md) | Shared fixtures | test | done (2026-10-29) |
-| [T-03](T-03_core-domain-and-application/T-03_core-domain-and-application.md) | **Core domain and application** | epic | todo |
+| [T-03](T-03_core-domain-and-application/T-03_core-domain-and-application.md) | **Core domain and application** | epic | done (T-03.1 to T-03.9, 2026-10-29 to 2026-11-02) |
 | [T-03.1](T-03_core-domain-and-application/T-03.1_value-objects-and-base-value-objects.md) | Value objects and base value objects | code | done (2026-10-29) |
 | [T-03.2](T-03_core-domain-and-application/T-03.2_ports.md) | Ports | code | done (2026-10-29) |
 | [T-03.3](T-03_core-domain-and-application/T-03.3_building-an-event.md) | Building an event | code | done (2026-10-29) |
@@ -116,7 +116,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-03.6](T-03_core-domain-and-application/T-03.6_configuration-and-profiles.md) | Configuration and profiles | code | done (2026-10-30) |
 | [T-03.7](T-03_core-domain-and-application/T-03.7_error-model.md) | Error model | code | done (2026-10-30) |
 | [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | done (2026-10-30) |
-| [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | todo |
+| [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | done (2026-11-02) |
 | [T-04](T-04_logging-and-core-adapters/T-04_logging-and-core-adapters.md) | **Logging and the core adapters** | epic | todo |
 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | todo |
 | [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | todo |

@@ -30,6 +30,12 @@ type ValidationError struct {
 	Problems []Problem
 }
 
+// NewValidationError returns the *ValidationError of the problems, in the order given. The composition root uses it to
+// report together the problems of the configuration and the ones that only it can see (a durable mode with no spool).
+func NewValidationError(problems []Problem) *ValidationError {
+	return &ValidationError{Problems: append([]Problem(nil), problems...)}
+}
+
 // Error returns one line per problem: "field: reason (code)".
 func (validation_error *ValidationError) Error() string {
 	lines := make([]string, 0, len(validation_error.Problems))

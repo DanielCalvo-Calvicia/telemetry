@@ -59,6 +59,14 @@ var (
 	ErrCallContextIDFailed = errors.New("the correlation id of the request could not be generated")
 )
 
+// #### IDENTIFIER GENERATION ERRORS
+
+var (
+	// ErrIDGenerationFailed is returned, joined with its cause, when an identifier could not be generated. There is no
+	// fallback to a weaker source of randomness: the caller decides what to do without an identifier.
+	ErrIDGenerationFailed = errors.New("an identifier could not be generated")
+)
+
 // #### ERROR COMPOSITION
 
 // JoinErrors joins the non-nil errors into one, so errors.Is finds each of them. It returns nil when there is none.

@@ -1,0 +1,72 @@
+{
+  "description": "Two events are delivered in the order they were emitted, with the event ids in the order of the generator.",
+  "kind": "core",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001",
+    "01900000-0000-7000-8000-000000000002"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "emits": [
+    {
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "data": {
+        "category": "http",
+        "message": "started"
+      }
+    },
+    {
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "data": {
+        "category": "http",
+        "message": "second"
+      }
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      },
+      {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    ],
+    "deliveries": {
+      "log": [
+        [
+          "{\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}",
+          "{\"data\":{\"category\":\"http\",\"message\":\"second\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    },
+    "shutdown": {
+      "sent": 0,
+      "spooled": 0,
+      "dropped": 0
+    }
+  }
+}

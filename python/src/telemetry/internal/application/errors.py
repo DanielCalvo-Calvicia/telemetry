@@ -51,6 +51,12 @@ class CallContextIdFailedError(ClassifiedError):
     code = ERROR_CODE_EVENT_BUILD_FAILED
 
 
+class IdGenerationFailedError(ClassifiedError):
+    """An identifier could not be generated (code ``event_build_failed``); the cause is chained, never a fallback."""
+
+    code = ERROR_CODE_EVENT_BUILD_FAILED
+
+
 class ConfigurationInstanceIdFailedError(ClassifiedError):
     """The instance id could not be generated at start (code ``instance_id_unavailable``); raised at start only."""
 

@@ -1,0 +1,60 @@
+{
+  "description": "The durable mode starts when a spool port is given (delivery to the sinks is direct until T-06 gives the spool its behavior).",
+  "kind": "core",
+  "config": {
+    "profile": "robotics",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      },
+      "spool": {
+        "directory": "spool-dir"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "spool": true,
+  "emits": [
+    {
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "data": {
+        "category": "http",
+        "message": "started"
+      }
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    ],
+    "deliveries": {
+      "log": [
+        [
+          "{\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    },
+    "shutdown": {
+      "sent": 0,
+      "spooled": 0,
+      "dropped": 0
+    }
+  }
+}

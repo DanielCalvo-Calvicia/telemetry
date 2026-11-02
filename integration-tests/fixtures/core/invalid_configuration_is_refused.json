@@ -1,0 +1,35 @@
+{
+  "description": "An invalid configuration makes the start fail with every problem, naming the field and the code.",
+  "kind": "core",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "delivery": {
+        "queue_size": 0
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "new_error": {
+    "problems": [
+      {
+        "field": "resource.service_name",
+        "code": "config_field_invalid"
+      },
+      {
+        "field": "delivery.queue_size",
+        "code": "config_field_invalid"
+      }
+    ]
+  }
+}

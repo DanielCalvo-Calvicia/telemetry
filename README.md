@@ -26,7 +26,7 @@ Released as `v0.1.0` (2026-10-19) and `v0.2.0` (2026-10-20). The API may change 
 | Runnable sample (`examples/aws_http_smoke`) and a test that sends one line to a deployed aws_microservice | Implemented |
 | CI (format, vet, build, tests and a coverage gate of 95%, for every Go module and for Python 3.10 and 3.11) | Written on 2026-10-28 and checked locally (98.6% for `go/`, 98.0% for the old module); not yet run on GitHub, it needs a pull request |
 | Metrics (`internal/metrics`, `pkg/metrics`) | Planned |
-| The new telemetry standard (one contract for Go and Python, device and AI modules, a queue and a spool): [PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md), [ADR-011](docs/decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) to [ADR-013](docs/decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | Accepted (2026-10-28), nothing built |
+| The new telemetry standard (one contract for Go and Python, device and AI modules, a queue and a spool): [PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md), [ADR-011](docs/decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) to [ADR-013](docs/decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | Accepted (2026-10-28), nothing built. **The core is built (T-03, 2026-11-02): the contract and its generator, the domain, the ports, the event builder, masking, limits, configuration and profiles, errors, the call context and the entry point `go/pkg/telemetry` / `telemetry.new`, with no adapter for a real sink yet (T-04); nothing is tagged and the quick start below is still the old library's.** |
 | Deployment | None, by design: it is a library ([ADR-010](docs/decisions/ADR-010-no-deployment-release-by-tags.md)) |
 
 ## Requirements

@@ -1,0 +1,57 @@
+{
+  "description": "An occurred_at given by the caller is kept; recorded_at is the clock.",
+  "kind": "core",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "emits": [
+    {
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "data": {
+        "category": "http",
+        "message": "started"
+      },
+      "occurred_at": "2026-10-28T09:59:59.5+00:00"
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0,
+        "reason": ""
+      }
+    ],
+    "deliveries": {
+      "log": [
+        [
+          "{\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T09:59:59.500000Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}"
+        ]
+      ]
+    },
+    "shutdown": {
+      "sent": 0,
+      "spooled": 0,
+      "dropped": 0
+    }
+  }
+}

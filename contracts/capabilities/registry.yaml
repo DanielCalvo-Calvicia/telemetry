@@ -222,10 +222,18 @@ capabilities:
         pending: unassigned
       # REQ-ARC-005: The core MUST have a minimal set of external dependencies. Every adapt...
       - id: REQ-ARC-005
-        pending: T-03.9
+        # the core has no third-party dependency: a test reads go.mod and pyproject.toml (T-03.9; the uuid is written by hand in both languages)
+        tests:
+          - { language: go, path: go/internal/tests/composition_root/source_rules_test.go }
+          - { language: python, path: python/internal/tests/composition_root/test_source_rules.py }
       # REQ-ARC-006: The library MUST NOT use mutable global state. If a convenience global...
       - id: REQ-ARC-006
-        pending: T-03.9
+        # no mutable package or module state (a source test with a short explicit allow-list) and two cores share nothing (T-03.9); the optional convenience global is not built
+        tests:
+          - { language: go, path: go/internal/tests/composition_root/source_rules_test.go }
+          - { language: go, path: go/internal/tests/composition_root/core_test.go }
+          - { language: python, path: python/internal/tests/composition_root/test_source_rules.py }
+          - { language: python, path: python/internal/tests/composition_root/test_core.py }
       # REQ-ARC-007: The library MUST NOT read environment variables or configuration files...
       - id: REQ-ARC-007
         # no source of the library mentions the environment (a test reads the sources in both languages) and the ConfigurationPort hands in what the consumer passed (T-03.6)
@@ -255,7 +263,12 @@ capabilities:
         pending: T-08.2
       # REQ-ARC-013: The project MUST choose its adapters by importing them and passing the...
       - id: REQ-ARC-013
-        pending: T-03.9
+        # the adapters are passed in code with options, there is no init() and no registration by import (T-03.9)
+        tests:
+          - { language: go, path: go/internal/tests/composition_root/source_rules_test.go }
+          - { language: go, path: go/internal/tests/e2e/core_shared_cases_test.go }
+          - { language: python, path: python/internal/tests/composition_root/test_source_rules.py }
+          - { language: python, path: python/internal/tests/e2e/test_core_shared_cases.py }
       # REQ-ARC-014: The adapters of the core (console, file, HTTP) live in the core module...
       - id: REQ-ARC-014
         pending: T-04.2
@@ -861,8 +874,16 @@ capabilities:
     requirements:
       # REQ-SEC-001: MUST offer configurable redaction (by field name and by pattern) appli...
       - id: REQ-SEC-001
-        # the masker, the options by name and by pattern and the masking service exist and are tested; "before any output" is true only once the chain is wired in T-03.9 (the spying-sink test builds the chain inside the test)
-        pending: T-03.9
+        # the masker, the options by name and by pattern, and the chain wired in the core (T-03.9): a spy sink proves that no sink of any kind receives a secret from data, attributes or context
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/masking/shared_tables_test.go }
+          - { language: go, path: go/internal/tests/application/services/masking_spy_test.go }
+          - { language: go, path: go/internal/tests/application/services/event_pipeline_service_test.go }
+          - { language: go, path: go/internal/tests/e2e/core_shared_cases_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/masking/test_shared_tables.py }
+          - { language: python, path: python/internal/tests/application/services/test_masking_spy.py }
+          - { language: python, path: python/internal/tests/application/services/test_event_pipeline_service.py }
+          - { language: python, path: python/internal/tests/e2e/test_core_shared_cases.py }
       # REQ-SEC-002: There MUST be a default redaction list (for example password, token, a...
       - id: REQ-SEC-002
         # the default list and the six detectors of ADR-006, ported unchanged and checked against the old library as oracle (T-03.4)

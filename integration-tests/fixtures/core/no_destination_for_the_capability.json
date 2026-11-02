@@ -1,0 +1,54 @@
+{
+  "description": "A log event with no log sink given is dropped with the reason no_destination; a sink of another port does not receive it.",
+  "kind": "core",
+  "config": {
+    "profile": "microservice",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "event": [
+      {}
+    ]
+  },
+  "emits": [
+    {
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "data": {
+        "category": "http",
+        "message": "started"
+      }
+    }
+  ],
+  "expected": {
+    "results": [
+      {
+        "accepted": 0,
+        "dropped": 1,
+        "failed": 0,
+        "reason": "no_destination"
+      }
+    ],
+    "deliveries": {
+      "event": [
+        []
+      ]
+    },
+    "shutdown": {
+      "sent": 0,
+      "spooled": 0,
+      "dropped": 0
+    }
+  }
+}

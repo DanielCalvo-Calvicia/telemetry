@@ -38,7 +38,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 14 | [T-02.6](T-02_contract-and-generator/T-02.6_validation-at-the-source.md) | Validation at the source | code | Done | done (2026-10-29) | T-02.4 | 2026-10-28 |
 | 15 | [T-02.7](T-02_contract-and-generator/T-02.7_capabilities-registry-and-its-check.md) | Capabilities registry and its check | code | Done | done (2026-10-29) | T-02.1 | 2026-10-28 |
 | 16 | [T-02.8](T-02_contract-and-generator/T-02.8_shared-fixtures.md) | Shared fixtures | test | Done | done (2026-10-29) | T-02.5 | 2026-10-28 |
-| 17 | [T-03](T-03_core-domain-and-application/T-03_core-domain-and-application.md) | Core domain and application | epic | Todo | todo | T-02 | 2026-10-28 |
+| 17 | [T-03](T-03_core-domain-and-application/T-03_core-domain-and-application.md) | Core domain and application | epic | Done | done (T-03.1 to T-03.9, 2026-10-29 to 2026-11-02) | T-02 | 2026-10-28 |
 | 18 | [T-03.1](T-03_core-domain-and-application/T-03.1_value-objects-and-base-value-objects.md) | Value objects and base value objects | code | Done | done (2026-10-29) | T-02.4 | 2026-10-28 |
 | 19 | [T-03.2](T-03_core-domain-and-application/T-03.2_ports.md) | Ports | code | Done | done (2026-10-29) | T-03.1 | 2026-10-28 |
 | 20 | [T-03.3](T-03_core-domain-and-application/T-03.3_building-an-event.md) | Building an event | code | Done | done (2026-10-29) | T-03.2 | 2026-10-28 |
@@ -47,7 +47,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 23 | [T-03.6](T-03_core-domain-and-application/T-03.6_configuration-and-profiles.md) | Configuration and profiles | code | Done | done (2026-10-30) | T-02.4 | 2026-10-28 |
 | 24 | [T-03.7](T-03_core-domain-and-application/T-03.7_error-model.md) | Error model | code | Done | done (2026-10-30) | T-02.3 | 2026-10-28 |
 | 25 | [T-03.8](T-03_core-domain-and-application/T-03.8_call-context.md) | Call context | code | Done | done (2026-10-30) | T-03.2 | 2026-10-28 |
-| 26 | [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | Todo | todo | T-03.2 to T-03.8 | 2026-10-28 |
+| 26 | [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | Done | done (2026-11-02) | T-03.2 to T-03.8 | 2026-10-28 |
 | 27 | [T-04](T-04_logging-and-core-adapters/T-04_logging-and-core-adapters.md) | Logging and the core adapters | epic | Todo | todo | T-03 | 2026-10-28 |
 | 28 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | Todo | todo | T-03.9 | 2026-10-28 |
 | 29 | [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | Todo | todo | T-04.1 | 2026-10-28 |

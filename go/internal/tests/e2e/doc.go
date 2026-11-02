@@ -1,2 +1,3 @@
-// Package e2e will hold the end-to-end tests of the core. It has no test yet; the task that needs a test replaces this file.
+// Package e2e holds the end-to-end tests of the core: they build it through the public package with fakes, emit events and
+// compare what the sinks receive with the shared cases of integration-tests/fixtures/core.
 package e2e
