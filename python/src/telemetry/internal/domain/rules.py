@@ -127,3 +127,14 @@ DEFAULT_SPOOL_QUOTA_BYTES = 268435456  # 256 MiB of disk per destination
 DEFAULT_HTTP_MAX_ATTEMPTS = 5  # attempts at most for one batch, the first included
 DEFAULT_RETRY_BASE_DELAY_MILLISECONDS = 200  # base of the exponential backoff
 DEFAULT_RETRY_MAX_DELAY_MILLISECONDS = 30000  # ceiling of the backoff
+
+
+# =============================================================================
+# The console destination (T-04.2). A CONTRACT shared with Go (contracts/config/console.schema.json).
+# =============================================================================
+
+CONSOLE_FORMAT_JSON = "json"  # the canonical JSON of the envelope, one per line
+CONSOLE_FORMAT_TEXT = "text"  # a readable line: time, severity, category, function, message and the attributes
+CONSOLE_FORMATS = (CONSOLE_FORMAT_JSON, CONSOLE_FORMAT_TEXT)
+DEFAULT_CONSOLE_FORMAT = CONSOLE_FORMAT_JSON
+DEFAULT_CONSOLE_MINIMUM_SEVERITY = "INFO"  # the lowest severity that is written

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/config/console.schema.json",
+  "title": "Settings of the console destination",
+  "description": "The settings of the console destination (T-04.2, REQ-LOG-001, REQ-LOG-003). The library reads no file and no environment (ADR-004): the consumer passes the values in; the level does not follow APP_ENV any more, the consumer chooses it. The order of the properties is the order in which a validation reports its problems.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "type": "string",
+      "description": "json (the default): the canonical JSON of the envelope, one per line; or text: a readable line (time, severity, category, function, message and the attributes).",
+      "x-env": "TELEMETRY_CONSOLE_FORMAT"
+    },
+    "minimum_severity": {
+      "type": "string",
+      "description": "The lowest severity that is written (contracts/enums/severity.json): TRACE, DEBUG, INFO (the default), WARN, ERROR or CRITICAL. An event below it is not written.",
+      "x-env": "TELEMETRY_CONSOLE_MINIMUM_SEVERITY"
+    }
+  }
+}

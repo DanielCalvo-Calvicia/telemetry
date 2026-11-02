@@ -37,3 +37,19 @@ func ValidateSeverity(text string) error {
 	}
 	return nil
 }
+
+// ----- ORDER ----------------------------------------------------------------
+
+// SeverityRank returns the position of the severity in the order of SeverityValues() (TRACE 0 up to CRITICAL 5), so a
+// destination can compare two severities. A text that is not a severity ranks -1. The order is the one of the
+// contract; this function never repeats the values.
+func SeverityRank(severity Severity) int {
+	return slices.Index(SeverityValues(), severity)
+}
+
+// SeverityAtLeast tells whether the severity is the minimum or above it. It is false when either is not a severity.
+func SeverityAtLeast(severity Severity, minimum Severity) bool {
+	severity_rank := SeverityRank(severity)
+	minimum_rank := SeverityRank(minimum)
+	return severity_rank >= 0 && minimum_rank >= 0 && severity_rank >= minimum_rank
+}

@@ -50,7 +50,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 26 | [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | Done | done (2026-11-02) | T-03.2 to T-03.8 | 2026-10-28 |
 | 27 | [T-04](T-04_logging-and-core-adapters/T-04_logging-and-core-adapters.md) | Logging and the core adapters | epic | Todo | todo | T-03 | 2026-10-28 |
 | 28 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | Done | done (2026-11-02) | T-03.9 | 2026-10-28 |
-| 29 | [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | Todo | todo | T-04.1 | 2026-10-28 |
+| 29 | [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | Done | done (2026-11-03) | T-04.1 | 2026-10-28 |
 | 30 | [T-04.3](T-04_logging-and-core-adapters/T-04.3_file-adapter.md) | File adapter | code | Todo | todo | T-04.1 | 2026-10-28 |
 | 31 | [T-04.4](T-04_logging-and-core-adapters/T-04.4_shared-http-infrastructure.md) | Shared HTTP infrastructure | code | Done | done (2026-11-03) | T-03.5, T-03.6 | 2026-10-28 |
 | 32 | [T-04.5](T-04_logging-and-core-adapters/T-04.5_http-destination.md) | HTTP destination | code | Todo | todo | T-04.4 | 2026-10-28 |

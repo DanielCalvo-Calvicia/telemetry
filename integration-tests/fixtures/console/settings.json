@@ -1,0 +1,103 @@
+{
+  "description": "The settings of the console destination: the effective settings (the defaults, then the given ones) as exact canonical JSON, or the problems with their field and code in the order of the schema (contracts/config/console.schema.json).",
+  "cases": [
+    {
+      "description": "the defaults",
+      "settings": {},
+      "expected": "{\"format\":\"json\",\"minimum_severity\":\"INFO\"}"
+    },
+    {
+      "description": "text and a minimum of DEBUG",
+      "settings": {
+        "format": "text",
+        "minimum_severity": "DEBUG"
+      },
+      "expected": "{\"format\":\"text\",\"minimum_severity\":\"DEBUG\"}"
+    },
+    {
+      "description": "json and CRITICAL",
+      "settings": {
+        "format": "json",
+        "minimum_severity": "CRITICAL"
+      },
+      "expected": "{\"format\":\"json\",\"minimum_severity\":\"CRITICAL\"}"
+    },
+    {
+      "description": "a format that does not exist",
+      "settings": {
+        "format": "xml"
+      },
+      "problems": [
+        {
+          "field": "format",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "an empty format",
+      "settings": {
+        "format": ""
+      },
+      "problems": [
+        {
+          "field": "format",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a lower case severity",
+      "settings": {
+        "minimum_severity": "info"
+      },
+      "problems": [
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a severity that does not exist",
+      "settings": {
+        "minimum_severity": "VERBOSE"
+      },
+      "problems": [
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "an empty severity",
+      "settings": {
+        "minimum_severity": ""
+      },
+      "problems": [
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "both invalid, in the order of the schema",
+      "settings": {
+        "format": "TEXT",
+        "minimum_severity": "warn"
+      },
+      "problems": [
+        {
+          "field": "format",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    }
+  ]
+}

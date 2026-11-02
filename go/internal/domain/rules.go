@@ -239,3 +239,18 @@ const (
 	// run on its text, and maps and lists are still walked).
 	MaskRuleAllow = "allow"
 )
+
+// #### CONSOLE DESTINATION RULES
+
+// The raw values of the rules of the console destination (T-04.2). They are untyped.
+
+const (
+	// ConsoleFormatJSON is the format of one canonical JSON object per line.
+	ConsoleFormatJSON = "json"
+	// ConsoleFormatText is the format of a readable line.
+	ConsoleFormatText = "text"
+	// DefaultConsoleFormat is the format of the console when the consumer does not choose one.
+	DefaultConsoleFormat = ConsoleFormatJSON
+	// DefaultConsoleMinimumSeverity is the lowest severity that the console writes when the consumer does not choose one.
+	DefaultConsoleMinimumSeverity = "INFO"
+)

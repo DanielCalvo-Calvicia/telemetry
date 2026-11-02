@@ -1,0 +1,23 @@
+{
+  "description": "The public names of the console destination (REQ-ARC-012: go/pkg/logging/console in Go and telemetry.logging.console in Python). Each language may export more.",
+  "functions": [
+    {
+      "go": "DefaultSettings",
+      "python": "default_settings"
+    },
+    {
+      "go": "NewDestination",
+      "python": "new_destination"
+    },
+    {
+      "go": "NewDestinationWithWriter",
+      "python": "new_destination_with_writer"
+    }
+  ],
+  "types": [
+    {
+      "go": "Settings",
+      "python": "Settings"
+    }
+  ]
+}

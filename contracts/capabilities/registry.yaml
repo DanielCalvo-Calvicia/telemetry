@@ -271,7 +271,8 @@ capabilities:
           - { language: python, path: python/internal/tests/e2e/test_core_shared_cases.py }
       # REQ-ARC-014: The adapters of the core (console, file, HTTP) live in the core module...
       - id: REQ-ARC-014
-        pending: T-04.2
+        # the console adapter lives in internal/infrastructure/outbound/logging/console/ with external/, error/ and helpers/; the file (T-04.3) and HTTP (T-04.5) adapters complete the requirement
+        pending: T-04.5
       # REQ-DST-001: Go MUST be distributed as one core module (github.com/DanielCalvo-Calv...
       - id: REQ-DST-001
         pending: T-04.6
@@ -376,7 +377,17 @@ capabilities:
     requirements:
       # REQ-LOG-001: MUST offer structured logging with JSON output and human-readable cons...
       - id: REQ-LOG-001
-        pending: T-04.2
+        # the console destination writes the canonical JSON line or a readable line, the same in both languages (T-04.2)
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/console_destination_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/env_tags_test.go }
+          - { language: go, path: go/internal/tests/e2e/console_destination_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_console_destination.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_env_names.py }
       # REQ-LOG-002: MUST integrate with native logging: log/slog in Go and logging in Pyth...
       - id: REQ-LOG-002
         # the log/slog handler and the logging handler give the same events as a direct call (T-04.1)
@@ -392,7 +403,17 @@ capabilities:
           - { language: python, path: python/internal/tests/infrastructure/inbound/sdk/test_logging_handler.py }
       # REQ-LOG-003: MUST support configurable field redaction and level filtering.
       - id: REQ-LOG-003
-        pending: T-04.2
+        # field redaction (T-03.4) and a minimum severity per destination (T-04.2)
+        tests:
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/shared_cases_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/helpers_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/console_destination_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/logging/console/env_tags_test.go }
+          - { language: go, path: go/internal/tests/e2e/console_destination_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_shared_cases.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_helpers.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_console_destination.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/console/test_env_names.py }
       # REQ-LOG-004: MUST allow several independent destinations at the same time (section
       - id: REQ-LOG-004
         pending: unassigned

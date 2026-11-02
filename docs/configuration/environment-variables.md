@@ -107,3 +107,13 @@ The settings that every HTTP adapter shares ([contracts/config/http_client.schem
 | `TELEMETRY_HTTP_MAX_ATTEMPTS` | `5` | `max_attempts` | attempts at most, the first included |
 | `TELEMETRY_HTTP_RETRY_BASE_DELAY_MS` | `200` | `retry_base_delay_ms` | milliseconds |
 | `TELEMETRY_HTTP_RETRY_MAX_DELAY_MS` | `30000` | `retry_max_delay_ms` | milliseconds; not below the base |
+
+
+## Console destination (built, T-04.2)
+
+The settings of the console destination ([contracts/config/console.schema.json](../../contracts/config/console.schema.json)). The library never reads the environment: the consumer loads these values and passes them in; the defaults live in the code. **The level does not follow `APP_ENV` any more** (ADR-007 is for the old library): the consumer chooses the minimum severity of each destination.
+
+| Variable | Default | Field | Notes |
+|---|---|---|---|
+| `TELEMETRY_CONSOLE_FORMAT` | `json` | `format` | `json` (the canonical JSON of the envelope, one per line) or `text` (a readable line) |
+| `TELEMETRY_CONSOLE_MINIMUM_SEVERITY` | `INFO` | `minimum_severity` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL`, in upper case; an event below it is not written |

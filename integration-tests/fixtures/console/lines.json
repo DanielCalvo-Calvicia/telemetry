@@ -1,0 +1,687 @@
+{
+  "description": "The output of the console destination for a list of events given to one Send: the exact bytes written and the result (each event counted once: a filtered event counts as accepted).",
+  "cases": [
+    {
+      "name": "json_one_event",
+      "description": "The JSON format writes the canonical JSON of the envelope and a line feed: the same bytes in both languages.",
+      "format": "json",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "started"
+          }
+        }
+      ],
+      "expected_output": "{\"data\":{\"category\":\"http\",\"message\":\"started\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+      "expected_result": {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "json_two_events_non_ascii",
+      "description": "One line per event, in order; characters outside ASCII and outside the BMP are kept.",
+      "format": "json",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "señal",
+            "message": "température 😀"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "slow",
+            "function": "serve"
+          },
+          "attributes": {
+            "order": 7,
+            "ok": true
+          }
+        }
+      ],
+      "expected_output": "{\"data\":{\"category\":\"señal\",\"message\":\"température 😀\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"attributes\":{\"ok\":true,\"order\":7},\"data\":{\"category\":\"http\",\"function\":\"serve\",\"message\":\"slow\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}\n",
+      "expected_result": {
+        "accepted": 2,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "text_basic",
+      "description": "The readable line: the time, the severity padded to 8, the category in brackets and the message.",
+      "format": "text",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "started"
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z INFO     [http] started\n",
+      "expected_result": {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "text_function_and_attributes",
+      "description": "With a function the line shows 'function:'; the attributes follow sorted by key, each value in its JSON form (a string is quoted, a list is kept).",
+      "format": "text",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "http",
+            "message": "request done",
+            "function": "serve"
+          },
+          "attributes": {
+            "tags": [
+              "a",
+              "b"
+            ],
+            "order": 7,
+            "ok": true,
+            "name": "bob",
+            "note": "say \"hi\"",
+            "ratio": 0.5
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z WARN     [http] serve: request done name=\"bob\" note=\"say \\\"hi\\\"\" ok=true order=7 ratio=0.5 tags=[\"a\",\"b\"]\n",
+      "expected_result": {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "text_control_characters_are_escaped",
+      "description": "A line break, a carriage return, a tab, the escape character or any control character in the category, the function, the message or an attribute key never splits or colors the line: it is written as an escape.",
+      "format": "text",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "ERROR",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "ht\ntp",
+            "message": "line1\nline2\r\u001b[31mred\tend",
+            "function": "se\nrve"
+          },
+          "attributes": {
+            "k\ney": "v\nw"
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z ERROR    [ht\\ntp] se\\nrve: line1\\nline2\\r\\u001b[31mred\\t\\u007fend k\\ney=\"v\\nw\"\n",
+      "expected_result": {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "text_non_ascii",
+      "description": "Characters outside ASCII are kept in the readable line.",
+      "format": "text",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "CRITICAL",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "señal",
+            "message": "température 😀 <ok>"
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z CRITICAL [señal] température 😀 <ok>\n",
+      "expected_result": {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "text_event_that_is_not_a_log_entry",
+      "description": "An event of another type shows its type and its data as canonical JSON.",
+      "format": "text",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "device.measurement.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "name": "temp",
+            "value": 21.5
+          },
+          "attributes": {
+            "unit": "C"
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z INFO     device.measurement.recorded {\"name\":\"temp\",\"value\":21.5} unit=\"C\"\n",
+      "expected_result": {
+        "accepted": 1,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "minimum_severity_warn",
+      "description": "An event below the minimum severity is not written; it counts as accepted (the destination took it and its policy decided not to write it).",
+      "format": "json",
+      "minimum_severity": "WARN",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "TRACE",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m TRACE"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "DEBUG",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m DEBUG"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000003",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m INFO"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000004",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m WARN"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000005",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "ERROR",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m ERROR"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000006",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "CRITICAL",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m CRITICAL"
+          }
+        }
+      ],
+      "expected_output": "{\"data\":{\"category\":\"c\",\"message\":\"m WARN\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}\n{\"data\":{\"category\":\"c\",\"message\":\"m ERROR\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"ERROR\"}\n{\"data\":{\"category\":\"c\",\"message\":\"m CRITICAL\"},\"event_id\":\"01900000-0000-7000-8000-000000000006\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"CRITICAL\"}\n",
+      "expected_result": {
+        "accepted": 6,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "minimum_severity_trace_writes_all",
+      "description": "With the minimum TRACE every event is written.",
+      "format": "text",
+      "minimum_severity": "TRACE",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "TRACE",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m TRACE"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "DEBUG",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m DEBUG"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000003",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m INFO"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000004",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m WARN"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000005",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "ERROR",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m ERROR"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000006",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "CRITICAL",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m CRITICAL"
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z TRACE    [c] m TRACE\n2026-10-28T10:00:00.123456Z DEBUG    [c] m DEBUG\n2026-10-28T10:00:00.123456Z INFO     [c] m INFO\n2026-10-28T10:00:00.123456Z WARN     [c] m WARN\n2026-10-28T10:00:00.123456Z ERROR    [c] m ERROR\n2026-10-28T10:00:00.123456Z CRITICAL [c] m CRITICAL\n",
+      "expected_result": {
+        "accepted": 6,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "minimum_severity_critical",
+      "description": "With the minimum CRITICAL only the CRITICAL events are written.",
+      "format": "text",
+      "minimum_severity": "CRITICAL",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "TRACE",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m TRACE"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "DEBUG",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m DEBUG"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000003",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m INFO"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000004",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m WARN"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000005",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "ERROR",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m ERROR"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000006",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "CRITICAL",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m CRITICAL"
+          }
+        }
+      ],
+      "expected_output": "2026-10-28T10:00:00.123456Z CRITICAL [c] m CRITICAL\n",
+      "expected_result": {
+        "accepted": 6,
+        "dropped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "default_minimum_is_info",
+      "description": "Without a minimum severity the default INFO applies.",
+      "format": "json",
+      "events": [
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000001",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "TRACE",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m TRACE"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000002",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "DEBUG",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m DEBUG"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000003",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "INFO",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m INFO"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000004",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "WARN",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m WARN"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000005",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "ERROR",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m ERROR"
+          }
+        },
+        {
+          "schema_version": "0.1",
+          "event_id": "01900000-0000-7000-8000-000000000006",
+          "event_type": "log.entry.recorded",
+          "occurred_at": "2026-10-28T10:00:00.123456Z",
+          "recorded_at": "2026-10-28T10:00:00.123456Z",
+          "severity": "CRITICAL",
+          "resource": {
+            "service_name": "sensor-hub",
+            "instance_id": "hub-01"
+          },
+          "data": {
+            "category": "c",
+            "message": "m CRITICAL"
+          }
+        }
+      ],
+      "expected_output": "{\"data\":{\"category\":\"c\",\"message\":\"m INFO\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"c\",\"message\":\"m WARN\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}\n{\"data\":{\"category\":\"c\",\"message\":\"m ERROR\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"ERROR\"}\n{\"data\":{\"category\":\"c\",\"message\":\"m CRITICAL\"},\"event_id\":\"01900000-0000-7000-8000-000000000006\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"CRITICAL\"}\n",
+      "expected_result": {
+        "accepted": 6,
+        "dropped": 0,
+        "failed": 0
+      }
+    }
+  ]
+}

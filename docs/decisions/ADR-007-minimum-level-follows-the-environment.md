@@ -11,6 +11,8 @@ A level variable per service is one more setting to forget, and a production ser
 
 There is no log-level variable. `app_env` (an argument of `New` and `NewWithSinks`) selects the minimum level: `development` lets DEBUG and above through, `production` lets INFO and above through. TRACE is never sent. An `app_env` with no level is an error at construction.
 
+> **Update 2026-11-03 (T-04.2):** in the new core the minimum level does **not** follow the environment: each destination has its own `minimum_severity` setting (the console's default is `INFO`) that the consumer passes in, and the library still reads no environment (ADR-004). A project that wants "DEBUG in development" reads its own `APP_ENV` and passes the level. The old library keeps this ADR until T-04.7 removes it.
+
 ## Consequences
 
 - Positive: production is quiet by default and development is verbose by default, with nothing to configure.

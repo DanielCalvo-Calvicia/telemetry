@@ -15,6 +15,7 @@ SCHEMA_PATH = REPOSITORY_ROOT / "contracts" / "config" / "config.schema.json"
 DOCUMENT_PATH = REPOSITORY_ROOT / "docs" / "configuration" / "environment-variables.md"
 ENV_EXAMPLE_PATH = REPOSITORY_ROOT / ".env.example"
 DOCUMENT_SECTION = "## Core configuration of the new standard"
+ADAPTERS_MARKER = "the settings of each adapter start here"
 
 
 def schema_names() -> dict[str, str]:
@@ -45,11 +46,13 @@ def documented_names() -> set[str]:
 
 
 def env_example_names() -> set[str]:
-    """The names of the lines NAME= or # NAME= with the TELEMETRY_ prefix."""
+    """The names of the lines NAME= or # NAME= with the TELEMETRY_ prefix, up to the marker of the adapters."""
     text = ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
-    names = set(re.findall(r"^(?:#\s*)?(TELEMETRY_[A-Z0-9_]+)=", text, re.MULTILINE))
-    # The names of the shared HTTP client have their own test (outbound/shared/http_client/test_env_names.py).
-    return {name for name in names if not name.startswith("TELEMETRY_HTTP_")}
+    # The settings of each adapter have their own schema and their own test (outbound/**/test_env_names.py): the file
+    # keeps them after this marker, so a new adapter block never needs an edit here.
+    marker_line = next(line for line in text.splitlines() if ADAPTERS_MARKER in line)
+    core_text = text.split(marker_line, 1)[0]
+    return set(re.findall(r"^(?:#\s*)?(TELEMETRY_[A-Z0-9_]+)=", core_text, re.MULTILINE))
 
 
 class EnvironmentNamesTest(unittest.TestCase):

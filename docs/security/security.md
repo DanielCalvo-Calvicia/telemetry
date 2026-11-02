@@ -69,3 +69,8 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 - **A redirect is never followed**, so a response cannot send the token to another host. The client uses no proxy from the environment.
 - **A body over the batch limit is never sent** (1 MiB by default).
 - **The test certificate** of the Python TLS tests is generated at test time in a temporary directory with `openssl` and deleted; no key or certificate is committed.
+
+## The console destination (built, T-04.2)
+
+- **No log injection.** In the readable format a line break, a carriage return, a tab, the escape character and any other control character of the category, the function, the message or an attribute key are written as escapes, and the attribute values in their JSON form: one event cannot split a line, forge another or colour the terminal.
+- **It writes only what the masked event holds.** The destination sits after the masking of the chain (ADR-006) and prints no resource or id that is not in the event line.

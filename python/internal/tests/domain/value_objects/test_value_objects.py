@@ -13,7 +13,7 @@ from telemetry.internal.domain.value_objects.enums_generated import ActorKind, S
 from telemetry.internal.domain.value_objects.event_attributes import EventAttributes
 from telemetry.internal.domain.value_objects.event_id import EventId
 from telemetry.internal.domain.value_objects.resource_identity import ResourceIdentity, validate_time_zone
-from telemetry.internal.domain.value_objects.severity import parse_severity
+from telemetry.internal.domain.value_objects.severity import parse_severity, severity_at_least, severity_rank
 from telemetry.internal.domain.value_objects.utc_instant import UtcInstant
 
 UTC = datetime.timezone.utc
@@ -81,6 +81,32 @@ class EnumTest(unittest.TestCase):
         for member in Severity:
             with self.subTest(member=member):
                 self.assertIs(parse_severity(member.value), member)
+
+    def test_severity_rank_follows_the_order_of_the_contract(self):
+        expected = {"TRACE": 0, "DEBUG": 1, "INFO": 2, "WARN": 3, "ERROR": 4, "CRITICAL": 5}
+        for text, rank in expected.items():
+            with self.subTest(severity=text):
+                self.assertEqual(severity_rank(Severity(text)), rank)
+        self.assertEqual(len(expected), len(Severity))
+
+    def test_an_unknown_severity_ranks_minus_one(self):
+        for unknown in ("info", "VERBOSE", "", None, 3):
+            with self.subTest(severity=unknown):
+                self.assertEqual(severity_rank(unknown), -1)
+
+    def test_severity_at_least_is_a_table_over_every_pair(self):
+        members = list(Severity)
+        for severity in members:
+            for minimum in members:
+                with self.subTest(severity=severity.value, minimum=minimum.value):
+                    self.assertEqual(
+                        severity_at_least(severity, minimum), members.index(severity) >= members.index(minimum)
+                    )
+
+    def test_severity_at_least_is_false_when_either_one_is_unknown(self):
+        self.assertFalse(severity_at_least("VERBOSE", Severity.TRACE))
+        self.assertFalse(severity_at_least(Severity.CRITICAL, "VERBOSE"))
+        self.assertFalse(severity_at_least(None, None))
 
     def test_parse_actor_kind_covers_every_member(self):
         for member in ActorKind:

@@ -337,3 +337,39 @@ func TestTheSeveritiesAreListedOnce(test *testing.T) {
 		test.Errorf("repeated severity in %v", values)
 	}
 }
+
+func TestSeverityRankFollowsTheOrderOfTheContract(test *testing.T) {
+	expected_ranks := map[value_objects.Severity]int{
+		value_objects.SeverityTrace: 0, value_objects.SeverityDebug: 1, value_objects.SeverityInfo: 2,
+		value_objects.SeverityWarn: 3, value_objects.SeverityError: 4, value_objects.SeverityCritical: 5,
+		"info": -1, "": -1, "VERBOSE": -1,
+	}
+	for severity, expected_rank := range expected_ranks {
+		if got_rank := value_objects.SeverityRank(severity); got_rank != expected_rank {
+			test.Errorf("%q: rank %d, expected %d", severity, got_rank, expected_rank)
+		}
+	}
+}
+
+func TestSeverityAtLeastComparesBySeverityRank(test *testing.T) {
+	for _, severity := range value_objects.SeverityValues() {
+		for _, minimum := range value_objects.SeverityValues() {
+			expected := value_objects.SeverityRank(severity) >= value_objects.SeverityRank(minimum)
+			if got := value_objects.SeverityAtLeast(severity, minimum); got != expected {
+				test.Errorf("%s at least %s: got %v, expected %v", severity, minimum, got, expected)
+			}
+		}
+	}
+	unknown_cases := [][2]value_objects.Severity{
+		{"nope", value_objects.SeverityTrace}, {value_objects.SeverityCritical, "nope"}, {"nope", "nope"}, {"", ""},
+	}
+	for _, unknown_case := range unknown_cases {
+		if value_objects.SeverityAtLeast(unknown_case[0], unknown_case[1]) {
+			test.Errorf("%q at least %q must be false", unknown_case[0], unknown_case[1])
+		}
+	}
+	if !value_objects.SeverityAtLeast(value_objects.SeverityError, value_objects.SeverityWarn) ||
+		value_objects.SeverityAtLeast(value_objects.SeverityWarn, value_objects.SeverityError) {
+		test.Error("ERROR is above WARN and WARN is not above ERROR")
+	}
+}

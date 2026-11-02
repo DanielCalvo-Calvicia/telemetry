@@ -119,7 +119,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-03.9](T-03_core-domain-and-application/T-03.9_core-composition-root-and-the-public-entry-point.md) | Core composition root and the public entry point | code | done (2026-11-02) |
 | [T-04](T-04_logging-and-core-adapters/T-04_logging-and-core-adapters.md) | **Logging and the core adapters** | epic | todo |
 | [T-04.1](T-04_logging-and-core-adapters/T-04.1_logger-and-the-log-entry-recorded-event.md) | Logger and the `log.entry.recorded` event | code | done (2026-11-02) |
-| [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | todo |
+| [T-04.2](T-04_logging-and-core-adapters/T-04.2_console-adapter.md) | Console adapter | code | done (2026-11-03) |
 | [T-04.3](T-04_logging-and-core-adapters/T-04.3_file-adapter.md) | File adapter | code | todo |
 | [T-04.4](T-04_logging-and-core-adapters/T-04.4_shared-http-infrastructure.md) | Shared HTTP infrastructure | code | done (2026-11-03) |
 | [T-04.5](T-04_logging-and-core-adapters/T-04.5_http-destination.md) | HTTP destination | code | todo |

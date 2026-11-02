@@ -17,6 +17,8 @@ const (
 	environment_variables_file  = "../../../../../docs/configuration/environment-variables.md"
 	environment_example_file    = "../../../../../.env.example"
 	environment_variables_title = "## Core configuration of the new standard"
+	// adapter_settings_marker is in the line of .env.example after which the settings of each adapter start.
+	adapter_settings_marker = "the settings of each adapter start here"
 )
 
 // tags_of_config returns the env tags of Config by the path of the field (the json tags, as in the schema).
@@ -131,10 +133,16 @@ func Test_the_env_tags_of_config_are_the_names_of_the_schema_the_documents_and_t
 	// The example file.
 	line_pattern := regexp.MustCompile(`(?m)^#?\s*(TELEMETRY_[A-Z0-9_]+)=`)
 	example_names := map[string]bool{}
-	for _, match := range line_pattern.FindAllStringSubmatch(read_test_file(t, environment_example_file), -1) {
-		if strings.HasPrefix(match[1], "TELEMETRY_HTTP_") {
-			continue // the names of the shared HTTP client; the test of that package checks them
-		}
+	example_text := read_test_file(t, environment_example_file)
+	core_part, _, has_marker := strings.Cut(example_text, adapter_settings_marker)
+	if !has_marker {
+		t.Fatalf("the marker %q is not in .env.example", adapter_settings_marker)
+	}
+	// The core part ends at the line of the marker: the blocks of the adapters come after it and have their own tests.
+	if last_line_break := strings.LastIndex(core_part, "\n"); last_line_break >= 0 {
+		core_part = core_part[:last_line_break+1]
+	}
+	for _, match := range line_pattern.FindAllStringSubmatch(core_part, -1) {
 		example_names[match[1]] = true
 	}
 	require_same_names(t, "the env tags of Config", tag_names, ".env.example", example_names)
