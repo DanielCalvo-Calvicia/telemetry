@@ -254,3 +254,23 @@ const (
 	// DefaultConsoleMinimumSeverity is the lowest severity that the console writes when the consumer does not choose one.
 	DefaultConsoleMinimumSeverity = "INFO"
 )
+
+// #### FILE DESTINATION RULES
+
+// The raw values of the rules of the file destination (T-04.3). They are untyped.
+
+const (
+	// DefaultFileName is the name of the current file of the file destination when the consumer does not choose one.
+	DefaultFileName = "telemetry.jsonl"
+	// DefaultFileMaxFileBytes is the size at which the file rotates when the consumer does not choose one: 10 MiB.
+	DefaultFileMaxFileBytes = 10485760
+	// DefaultFileMaxFiles is how many files are kept, the current one included, when the consumer does not choose a
+	// number.
+	DefaultFileMaxFiles = 5
+	// DefaultFileQuotaBytes is the most that all the files together may use when the consumer does not choose a
+	// quota: 50 MiB.
+	DefaultFileQuotaBytes = 52428800
+	// DefaultFileMinimumSeverity is the lowest severity that the file destination writes when the consumer does not
+	// choose one.
+	DefaultFileMinimumSeverity = DefaultConsoleMinimumSeverity
+)

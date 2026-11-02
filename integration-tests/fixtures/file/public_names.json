@@ -1,0 +1,27 @@
+{
+  "description": "The public names of the file destination (go/pkg/logging/file and telemetry.logging.file).",
+  "functions": [
+    {
+      "go": "DefaultSettings",
+      "python": "default_settings"
+    },
+    {
+      "go": "NewDestination",
+      "python": "new_destination"
+    }
+  ],
+  "types": [
+    {
+      "go": "Settings",
+      "python": "Settings"
+    },
+    {
+      "go": "Destination",
+      "python": "Destination"
+    },
+    {
+      "go": "Counters",
+      "python": "Counters"
+    }
+  ]
+}

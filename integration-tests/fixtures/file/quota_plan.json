@@ -1,0 +1,94 @@
+{
+  "description": "The rotated files to delete, in order, so that the total size fits the quota: the highest index (the oldest) first, never the current file, and only while the total is over the quota. sizes holds the files that exist among base and base.1 ... base.(max_files - 1).",
+  "cases": [
+    {
+      "description": "under the quota",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 100,
+        "app.jsonl.1": 100
+      },
+      "quota_bytes": 1000,
+      "expected_delete": []
+    },
+    {
+      "description": "exactly at the quota",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 500,
+        "app.jsonl.1": 500
+      },
+      "quota_bytes": 1000,
+      "expected_delete": []
+    },
+    {
+      "description": "one byte over: the oldest goes",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 500,
+        "app.jsonl.1": 300,
+        "app.jsonl.2": 201
+      },
+      "quota_bytes": 1000,
+      "expected_delete": [
+        "app.jsonl.2"
+      ]
+    },
+    {
+      "description": "two files go, the oldest first",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 400,
+        "app.jsonl.1": 400,
+        "app.jsonl.2": 400,
+        "app.jsonl.3": 400
+      },
+      "quota_bytes": 900,
+      "expected_delete": [
+        "app.jsonl.3",
+        "app.jsonl.2"
+      ]
+    },
+    {
+      "description": "the current file is never deleted",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 5000,
+        "app.jsonl.1": 100
+      },
+      "quota_bytes": 1000,
+      "expected_delete": [
+        "app.jsonl.1"
+      ]
+    },
+    {
+      "description": "only the current file and over the quota",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 5000
+      },
+      "quota_bytes": 1000,
+      "expected_delete": []
+    },
+    {
+      "description": "a gap in the indexes",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "sizes": {
+        "app.jsonl": 100,
+        "app.jsonl.1": 600,
+        "app.jsonl.3": 600
+      },
+      "quota_bytes": 700,
+      "expected_delete": [
+        "app.jsonl.3"
+      ]
+    }
+  ]
+}

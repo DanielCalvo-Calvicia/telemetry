@@ -1,0 +1,948 @@
+{
+  "description": "End to end: the events of each batch are given to one send each; the expected result is the content of every file of the directory and the counters (rotations and files deleted for the quota). A line is the canonical JSON of the envelope and a line feed. Computed with a reference simulation in Node.js, independent of both implementations.",
+  "line_bytes": 321,
+  "cases": [
+    {
+      "name": "no_rotation_three_lines",
+      "description": "Three events in one file, one canonical JSON line each.",
+      "settings": {
+        "max_file_bytes": 1073741824,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m1\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m3\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 0,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "two_batches_append",
+      "description": "A second send appends to the same file: the file is opened for each send and nothing is lost.",
+      "settings": {
+        "max_file_bytes": 1073741824,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          }
+        ],
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m1\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m3\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m4\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 0,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "filtered_events_are_not_written",
+      "description": "An event below the minimum severity is not written.",
+      "settings": {
+        "max_file_bytes": 1073741824,
+        "quota_bytes": 1073741824,
+        "minimum_severity": "WARN"
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "WARN",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "DEBUG",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "CRITICAL",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"WARN\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m4\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"CRITICAL\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 0,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "rotation_keeps_max_files",
+      "description": "When the next line would pass max_file_bytes the file rotates: base.jsonl becomes base.jsonl.1, and so on; at most max_files files (the current one and max_files - 1 rotated).",
+      "settings": {
+        "max_file_bytes": 652,
+        "max_files": 3,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000005",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m5"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl.2": "{\"data\":{\"category\":\"http\",\"message\":\"m1\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl.1": "{\"data\":{\"category\":\"http\",\"message\":\"m3\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m4\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m5\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 2,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "oldest_rotated_file_is_removed",
+      "description": "The oldest rotated file is removed when the rotation would pass max_files: its lines are gone.",
+      "settings": {
+        "max_file_bytes": 652,
+        "max_files": 3,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000005",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m5"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000006",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m6"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000007",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m7"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000008",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m8"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000009",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m9"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl.2": "{\"data\":{\"category\":\"http\",\"message\":\"m5\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m6\"},\"event_id\":\"01900000-0000-7000-8000-000000000006\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl.1": "{\"data\":{\"category\":\"http\",\"message\":\"m7\"},\"event_id\":\"01900000-0000-7000-8000-000000000007\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m8\"},\"event_id\":\"01900000-0000-7000-8000-000000000008\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m9\"},\"event_id\":\"01900000-0000-7000-8000-000000000009\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 4,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "quota_deletes_the_oldest_first",
+      "description": "When the total size of the files passes quota_bytes the oldest rotated files are deleted until it fits; the current file is never deleted.",
+      "settings": {
+        "max_file_bytes": 652,
+        "max_files": 5,
+        "quota_bytes": 973
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000005",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m5"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000006",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m6"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000007",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m7"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000008",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m8"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m7\"},\"event_id\":\"01900000-0000-7000-8000-000000000007\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m8\"},\"event_id\":\"01900000-0000-7000-8000-000000000008\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 3,
+        "files_deleted_for_quota": 3
+      }
+    },
+    {
+      "name": "one_file_rotation_truncates",
+      "description": "With max_files 1 there is no rotated file: the rotation removes the file and starts a new one.",
+      "settings": {
+        "max_file_bytes": 652,
+        "max_files": 1,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000005",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m5"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m5\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 2,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "a_line_larger_than_the_file_is_still_written",
+      "description": "A line larger than max_file_bytes is written to an empty file (never lost); the next event rotates.",
+      "settings": {
+        "max_file_bytes": 311,
+        "max_files": 3,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl.2": "{\"data\":{\"category\":\"http\",\"message\":\"m1\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl.1": "{\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m3\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 2,
+        "files_deleted_for_quota": 0
+      }
+    },
+    {
+      "name": "rotation_across_batches",
+      "description": "The rotation state is the directory itself: a second send continues where the first stopped.",
+      "settings": {
+        "max_file_bytes": 652,
+        "max_files": 3,
+        "quota_bytes": 1073741824
+      },
+      "batches": [
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000001",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m1"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000002",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m2"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000003",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m3"
+            }
+          }
+        ],
+        [
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000004",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m4"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000005",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m5"
+            }
+          },
+          {
+            "schema_version": "0.1",
+            "event_id": "01900000-0000-7000-8000-000000000006",
+            "event_type": "log.entry.recorded",
+            "occurred_at": "2026-10-28T10:00:00.123456Z",
+            "recorded_at": "2026-10-28T10:00:00.123456Z",
+            "severity": "INFO",
+            "resource": {
+              "service_name": "sensor-hub",
+              "instance_id": "hub-01"
+            },
+            "data": {
+              "category": "http",
+              "message": "m6"
+            }
+          }
+        ]
+      ],
+      "expected_files": {
+        "telemetry.jsonl.2": "{\"data\":{\"category\":\"http\",\"message\":\"m1\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m2\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl.1": "{\"data\":{\"category\":\"http\",\"message\":\"m3\"},\"event_id\":\"01900000-0000-7000-8000-000000000003\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m4\"},\"event_id\":\"01900000-0000-7000-8000-000000000004\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n",
+        "telemetry.jsonl": "{\"data\":{\"category\":\"http\",\"message\":\"m5\"},\"event_id\":\"01900000-0000-7000-8000-000000000005\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n{\"data\":{\"category\":\"http\",\"message\":\"m6\"},\"event_id\":\"01900000-0000-7000-8000-000000000006\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}\n"
+      },
+      "expected_counters": {
+        "files_rotated": 2,
+        "files_deleted_for_quota": 0
+      }
+    }
+  ]
+}

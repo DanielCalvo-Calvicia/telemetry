@@ -1,0 +1,192 @@
+{
+  "description": "The settings of the file destination: the effective settings (the defaults, then the given ones) as exact canonical JSON, or the problems with their field and code in the order of the schema (contracts/config/file.schema.json). Whether the directory can be written is checked when the destination is built, against the real file system (not in this table).",
+  "cases": [
+    {
+      "description": "the minimum: a directory",
+      "settings": {
+        "directory": "logs"
+      },
+      "expected": "{\"directory\":\"logs\",\"file_name\":\"telemetry.jsonl\",\"max_file_bytes\":10485760,\"max_files\":5,\"minimum_severity\":\"INFO\",\"quota_bytes\":52428800}"
+    },
+    {
+      "description": "every field set",
+      "settings": {
+        "directory": "logs/app",
+        "file_name": "events.jsonl",
+        "minimum_severity": "DEBUG",
+        "max_file_bytes": 1048576,
+        "max_files": 3,
+        "quota_bytes": 4194304
+      },
+      "expected": "{\"directory\":\"logs/app\",\"file_name\":\"events.jsonl\",\"max_file_bytes\":1048576,\"max_files\":3,\"minimum_severity\":\"DEBUG\",\"quota_bytes\":4194304}"
+    },
+    {
+      "description": "a quota equal to the size of a file",
+      "settings": {
+        "directory": "logs",
+        "max_file_bytes": 1000,
+        "quota_bytes": 1000
+      },
+      "expected": "{\"directory\":\"logs\",\"file_name\":\"telemetry.jsonl\",\"max_file_bytes\":1000,\"max_files\":5,\"minimum_severity\":\"INFO\",\"quota_bytes\":1000}"
+    },
+    {
+      "description": "no directory (the library picks no path)",
+      "settings": {},
+      "problems": [
+        {
+          "field": "directory",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a file name with a slash",
+      "settings": {
+        "directory": "logs",
+        "file_name": "a/b.jsonl"
+      },
+      "problems": [
+        {
+          "field": "file_name",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a file name with a backslash",
+      "settings": {
+        "directory": "logs",
+        "file_name": "a\\b.jsonl"
+      },
+      "problems": [
+        {
+          "field": "file_name",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a file name that is a dot",
+      "settings": {
+        "directory": "logs",
+        "file_name": ".."
+      },
+      "problems": [
+        {
+          "field": "file_name",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "an empty file name",
+      "settings": {
+        "directory": "logs",
+        "file_name": ""
+      },
+      "problems": [
+        {
+          "field": "file_name",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a severity that does not exist",
+      "settings": {
+        "directory": "logs",
+        "minimum_severity": "info"
+      },
+      "problems": [
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a zero file size",
+      "settings": {
+        "directory": "logs",
+        "max_file_bytes": 0
+      },
+      "problems": [
+        {
+          "field": "max_file_bytes",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "zero files",
+      "settings": {
+        "directory": "logs",
+        "max_files": 0
+      },
+      "problems": [
+        {
+          "field": "max_files",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a negative quota",
+      "settings": {
+        "directory": "logs",
+        "quota_bytes": -1
+      },
+      "problems": [
+        {
+          "field": "quota_bytes",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a quota smaller than one file",
+      "settings": {
+        "directory": "logs",
+        "max_file_bytes": 2000,
+        "quota_bytes": 1000
+      },
+      "problems": [
+        {
+          "field": "quota_bytes",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "several problems together, in the order of the schema",
+      "settings": {
+        "file_name": "x/y",
+        "minimum_severity": "LOUD",
+        "max_files": 0,
+        "quota_bytes": 0
+      },
+      "problems": [
+        {
+          "field": "directory",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "file_name",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "minimum_severity",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "max_files",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "quota_bytes",
+          "code": "config_field_invalid"
+        }
+      ]
+    }
+  ]
+}

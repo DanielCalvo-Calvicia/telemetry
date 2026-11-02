@@ -138,3 +138,13 @@ CONSOLE_FORMAT_TEXT = "text"  # a readable line: time, severity, category, funct
 CONSOLE_FORMATS = (CONSOLE_FORMAT_JSON, CONSOLE_FORMAT_TEXT)
 DEFAULT_CONSOLE_FORMAT = CONSOLE_FORMAT_JSON
 DEFAULT_CONSOLE_MINIMUM_SEVERITY = "INFO"  # the lowest severity that is written
+
+
+# =============================================================================
+# The file destination (T-04.3). A CONTRACT shared with Go (contracts/config/file.schema.json).
+# =============================================================================
+
+DEFAULT_FILE_NAME = "telemetry.jsonl"  # the name of the current file
+DEFAULT_FILE_MAX_FILE_BYTES = 10485760  # 10 MiB: the file rotates when the next line would pass this size
+DEFAULT_FILE_MAX_FILES = 5  # the files kept, the current one included
+DEFAULT_FILE_QUOTA_BYTES = 52428800  # 50 MiB: the most that all the files together may use

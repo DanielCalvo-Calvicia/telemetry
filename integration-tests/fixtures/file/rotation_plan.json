@@ -1,0 +1,199 @@
+{
+  "description": "The steps of a rotation, in order, given the names that exist: remove the oldest rotated file (index max_files - 1), then shift the others one up from the highest, then rename the current file to .1. With max_files 1 the current file is removed. Only the names base and base.1 ... base.(max_files - 1) count.",
+  "cases": [
+    {
+      "description": "only the current file",
+      "base": "app.jsonl",
+      "max_files": 3,
+      "existing": [
+        "app.jsonl"
+      ],
+      "expected_steps": [
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    },
+    {
+      "description": "a current file and one rotated",
+      "base": "app.jsonl",
+      "max_files": 3,
+      "existing": [
+        "app.jsonl",
+        "app.jsonl.1"
+      ],
+      "expected_steps": [
+        {
+          "op": "rename",
+          "from": "app.jsonl.1",
+          "to": "app.jsonl.2"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    },
+    {
+      "description": "all files exist: the last one is removed",
+      "base": "app.jsonl",
+      "max_files": 3,
+      "existing": [
+        "app.jsonl",
+        "app.jsonl.1",
+        "app.jsonl.2"
+      ],
+      "expected_steps": [
+        {
+          "op": "remove",
+          "from": "app.jsonl.2"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl.1",
+          "to": "app.jsonl.2"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    },
+    {
+      "description": "a gap in the rotated files",
+      "base": "app.jsonl",
+      "max_files": 4,
+      "existing": [
+        "app.jsonl",
+        "app.jsonl.2"
+      ],
+      "expected_steps": [
+        {
+          "op": "rename",
+          "from": "app.jsonl.2",
+          "to": "app.jsonl.3"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    },
+    {
+      "description": "a bigger set",
+      "base": "app.jsonl",
+      "max_files": 5,
+      "existing": [
+        "app.jsonl",
+        "app.jsonl.1",
+        "app.jsonl.2",
+        "app.jsonl.3",
+        "app.jsonl.4"
+      ],
+      "expected_steps": [
+        {
+          "op": "remove",
+          "from": "app.jsonl.4"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl.3",
+          "to": "app.jsonl.4"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl.2",
+          "to": "app.jsonl.3"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl.1",
+          "to": "app.jsonl.2"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    },
+    {
+      "description": "max_files 1 removes the current file",
+      "base": "app.jsonl",
+      "max_files": 1,
+      "existing": [
+        "app.jsonl"
+      ],
+      "expected_steps": [
+        {
+          "op": "remove",
+          "from": "app.jsonl"
+        }
+      ]
+    },
+    {
+      "description": "max_files 2",
+      "base": "app.jsonl",
+      "max_files": 2,
+      "existing": [
+        "app.jsonl",
+        "app.jsonl.1"
+      ],
+      "expected_steps": [
+        {
+          "op": "remove",
+          "from": "app.jsonl.1"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    },
+    {
+      "description": "no current file",
+      "base": "app.jsonl",
+      "max_files": 3,
+      "existing": [
+        "app.jsonl.1"
+      ],
+      "expected_steps": [
+        {
+          "op": "rename",
+          "from": "app.jsonl.1",
+          "to": "app.jsonl.2"
+        }
+      ]
+    },
+    {
+      "description": "files that are not ours are ignored",
+      "base": "app.jsonl",
+      "max_files": 3,
+      "existing": [
+        "app.jsonl",
+        "app.jsonl.1",
+        "other.log",
+        "app.jsonl.9",
+        "app.jsonl.bak"
+      ],
+      "expected_steps": [
+        {
+          "op": "rename",
+          "from": "app.jsonl.1",
+          "to": "app.jsonl.2"
+        },
+        {
+          "op": "rename",
+          "from": "app.jsonl",
+          "to": "app.jsonl.1"
+        }
+      ]
+    }
+  ]
+}

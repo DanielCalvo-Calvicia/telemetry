@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/config/file.schema.json",
+  "title": "Settings of the file destination",
+  "description": "The settings of the file destination (T-04.3, section 7.2 of PR-001): events appended as JSON Lines to a file, with rotation by size and a quota on the total space. The library never picks a path: the directory comes from the consumer, who passes the values in (ADR-004). Files: the current file and, when it rotates, file_name.1 (the newest) ... file_name.(max_files - 1) (the oldest). When the total passes the quota the oldest rotated files are deleted first; the current file is never deleted. The order of the properties is the order in which a validation reports its problems.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "directory": {
+      "type": "string",
+      "description": "The directory of the files. Required: the library picks no path. It is created (owner only) if it does not exist and must be writable, which is checked when the destination is built.",
+      "x-env": "TELEMETRY_FILE_DIRECTORY"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "The name of the current file (default telemetry.jsonl); no path separator.",
+      "x-env": "TELEMETRY_FILE_NAME"
+    },
+    "minimum_severity": {
+      "type": "string",
+      "description": "The lowest severity that is written: TRACE, DEBUG, INFO (the default), WARN, ERROR or CRITICAL.",
+      "x-env": "TELEMETRY_FILE_MINIMUM_SEVERITY"
+    },
+    "max_file_bytes": {
+      "type": "integer",
+      "description": "The file rotates when the next line would pass this size (default 10485760, 10 MiB). A line larger than this is still written, to an empty file.",
+      "x-env": "TELEMETRY_FILE_MAX_FILE_BYTES",
+      "minimum": 1
+    },
+    "max_files": {
+      "type": "integer",
+      "description": "How many files are kept, the current one included (default 5). With 1 the rotation removes the file and starts again.",
+      "x-env": "TELEMETRY_FILE_MAX_FILES",
+      "minimum": 1
+    },
+    "quota_bytes": {
+      "type": "integer",
+      "description": "The most that all the files together may use (default 52428800, 50 MiB). Not below max_file_bytes.",
+      "x-env": "TELEMETRY_FILE_QUOTA_BYTES",
+      "minimum": 1
+    }
+  }
+}

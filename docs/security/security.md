@@ -74,3 +74,11 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 
 - **No log injection.** In the readable format a line break, a carriage return, a tab, the escape character and any other control character of the category, the function, the message or an attribute key are written as escapes, and the attribute values in their JSON form: one event cannot split a line, forge another or colour the terminal.
 - **It writes only what the masked event holds.** The destination sits after the masking of the chain (ADR-006) and prints no resource or id that is not in the event line.
+
+## The file destination (built, T-04.3)
+
+- **Permissions.** The files are created readable and writable by the owner only (`0600`) and the directory it creates `0700`. The mode is set when the file is created: an existing directory or file keeps its own mode (the project owns it).
+- **What the file holds.** Masked events only, as canonical JSON: the destination sits after the masking of the chain (ADR-006). A project that ships the file must treat it as it treats its logs.
+- **No path from the library.** The directory comes from the consumer; the library fixes no path. The file name may not hold a path separator, so a setting cannot leave the directory.
+- **A start error never shows a path.** A directory that cannot be written is reported as one problem on `directory` with a fixed text, no path and no operating system message.
+- **The quota bounds the disk use** (50 MiB by default), so a flood of events cannot fill the disk through this destination.

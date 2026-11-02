@@ -117,3 +117,17 @@ The settings of the console destination ([contracts/config/console.schema.json](
 |---|---|---|---|
 | `TELEMETRY_CONSOLE_FORMAT` | `json` | `format` | `json` (the canonical JSON of the envelope, one per line) or `text` (a readable line) |
 | `TELEMETRY_CONSOLE_MINIMUM_SEVERITY` | `INFO` | `minimum_severity` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL`, in upper case; an event below it is not written |
+
+
+## File destination (built, T-04.3)
+
+The settings of the file destination ([contracts/config/file.schema.json](../../contracts/config/file.schema.json)): events appended as JSON Lines with rotation by size and a quota. The library never picks a path and never reads the environment: the consumer passes the directory and the values in. The files are created **readable by the owner only** (0600; the directory 0700) and hold masked events only.
+
+| Variable | Default | Field | Notes |
+|---|---|---|---|
+| `TELEMETRY_FILE_DIRECTORY` | none (required) | `directory` | created if missing; must be writable |
+| `TELEMETRY_FILE_NAME` | `telemetry.jsonl` | `file_name` | no path separator |
+| `TELEMETRY_FILE_MINIMUM_SEVERITY` | `INFO` | `minimum_severity` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL`, in upper case |
+| `TELEMETRY_FILE_MAX_FILE_BYTES` | `10485760` | `max_file_bytes` | rotate when the next line would pass it |
+| `TELEMETRY_FILE_MAX_FILES` | `5` | `max_files` | the current file included |
+| `TELEMETRY_FILE_QUOTA_BYTES` | `52428800` | `quota_bytes` | all the files together; not below the file size; the oldest rotated files are deleted first |

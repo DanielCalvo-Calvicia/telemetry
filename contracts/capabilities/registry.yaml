@@ -271,7 +271,7 @@ capabilities:
           - { language: python, path: python/internal/tests/e2e/test_core_shared_cases.py }
       # REQ-ARC-014: The adapters of the core (console, file, HTTP) live in the core module...
       - id: REQ-ARC-014
-        # the console adapter lives in internal/infrastructure/outbound/logging/console/ with external/, error/ and helpers/; the file (T-04.3) and HTTP (T-04.5) adapters complete the requirement
+        # the console adapter lives in internal/infrastructure/outbound/logging/console/ with external/, error/ and helpers/; the file adapter lives in .../logging/file/ (T-04.3); the HTTP adapter (T-04.5) completes the requirement
         pending: T-04.5
       # REQ-DST-001: Go MUST be distributed as one core module (github.com/DanielCalvo-Calv...
       - id: REQ-DST-001
@@ -359,16 +359,16 @@ capabilities:
     status: planned
     description: "The logger, the log.entry.recorded event, the integration with log/slog and logging, redaction and level filtering, and independent destinations."
     public_api:
-      - "planned: the logger of the core and the slog and logging handlers (T-04.1)"
+      - "built: the logger of the core, the slog and logging handlers (T-04.1), the public packages logging/console (T-04.2) and logging/file (T-04.3)"
     schemas:
       - "contracts/schemas/log/entry_recorded.schema.json"
     configuration:
-      - "planned: level, redaction fields (T-03.6)"
+      - "built: the redaction options (T-03.4, T-03.6) and the settings of the console (T-04.2) and the file (T-04.3), each with its own schema in contracts/config/"
     errors: []
     ports:
       - "planned: the destination port (T-03.2)"
     adapters:
-      - "planned: console (T-04.2), file (T-04.3)"
+      - "built: console (T-04.2), file (T-04.3); planned: HTTP (T-04.5), AWS (T-04.6)"
     languages:
       go:
         state: todo
