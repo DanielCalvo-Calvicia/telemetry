@@ -12,6 +12,7 @@ from typing import Any
 import telemetry
 from internal.tests.application.services.masking_helpers import envelope_from_json
 from internal.tests.fakes import FakeClock, FakeIdGenerator
+from internal.tests.fakes.fake_receiver import Answer, Receiver
 from internal.tests.infrastructure.config.helpers import merged_config
 from internal.tests.infrastructure.outbound.shared.http_client.server_helpers import Reply, StubServer, free_port
 from telemetry.internal.application.dtos.send_result import SendResult
@@ -341,16 +342,18 @@ class TwoDestinationsTest(unittest.TestCase):
         return stream.getvalue(), result
 
     def test_a_receiver_that_answers_503_does_not_stop_the_console(self):
-        with StubServer(lambda received: Reply(503)) as server:
-            output, result = self.run_core(server.url())
-            received = list(server.requests)
+        with Receiver() as receiver:
+            receiver.script(Answer(status=503), Answer(status=503))
+            output, result = self.run_core(receiver.url())
+            received = receiver.requests()
         self.assertEqual(len(output.strip().split("\n")), 2)
         self.assertIn('"message":"first"', output)
         self.assertEqual((result.accepted, result.dropped, result.failed, result.reason), (1, 0, 1, "status_503"))
         self.assertEqual(len(received), 2)
-        body = json.loads(received[1].body)
-        self.assertEqual(body["schema_version"], "0.1")
-        self.assertEqual(body["events"][0]["data"]["message"], "second")
+        self.assertEqual([item.answered_status for item in received], [503, 503])
+        self.assertTrue(all(item.valid for item in received))
+        self.assertEqual(json.loads(received[1].body)["schema_version"], "0.1")
+        self.assertEqual(received[1].events[0]["data"]["message"], "second")
         self.assertIn('"message":"second"', output)
 
     def test_a_receiver_that_does_not_answer_does_not_stop_the_console(self):

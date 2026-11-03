@@ -655,7 +655,7 @@ capabilities:
         pending: T-06.6
       # REQ-OUT-010: The body of an HTTP batch MUST be one JSON object {"schema_version": "...
       - id: REQ-OUT-010
-        # the batch body {schema_version, events} in canonical JSON, same bytes in both languages, and optional gzip (T-04.4); the destination that sends it is T-04.5
+        # the batch body {schema_version, events} in canonical JSON, same bytes in both languages, and optional gzip (T-04.4); the fake receiver of T-04.8 rejects a body that is not that batch and says why
         tests:
           - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/shared_cases_test.go }
           - { language: go, path: go/internal/tests/infrastructure/outbound/shared/http_client/helpers_test.go }
@@ -665,6 +665,8 @@ capabilities:
           - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_helpers.py }
           - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_http_client.py }
           - { language: python, path: python/internal/tests/infrastructure/outbound/shared/http_client/test_env_names.py }
+          - { language: go, path: go/internal/tests/fakes/fake_receiver/shared_cases_test.go }
+          - { language: python, path: python/internal/tests/fakes/fake_receiver/test_shared_cases.py }
 
   # --------------------------------------------------------------------------------------------------------------
   - id: executions

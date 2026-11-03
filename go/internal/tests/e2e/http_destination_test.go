@@ -16,6 +16,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes/fake_receiver"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/console"
 	logging_http "github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/http"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
@@ -77,10 +78,12 @@ func log_input() telemetry.NewEventInput {
 }
 
 func Test_two_destinations_one_answers_503_and_the_other_still_gets_the_line(t *testing.T) {
-	receiver := new_http_receiver(t, http.StatusServiceUnavailable)
+	receiver := fake_receiver.New(fake_receiver.Config{})
+	t.Cleanup(receiver.Close)
+	receiver.Script(fake_receiver.Answer{Status: http.StatusServiceUnavailable}, fake_receiver.Answer{Status: http.StatusServiceUnavailable})
 	http_sink, http_error := logging_http.NewDestination(func() logging_http.Settings {
 		settings := logging_http.DefaultSettings()
-		settings.URL = receiver.server.URL
+		settings.URL = receiver.URL()
 		return settings
 	}())
 	if http_error != nil {
@@ -102,10 +105,10 @@ func Test_two_destinations_one_answers_503_and_the_other_still_gets_the_line(t *
 	if result != (telemetry.EmitResult{Accepted: 1, Failed: 1, Reason: "status_503"}) {
 		t.Fatalf("the result is %+v", result)
 	}
-	bodies := receiver.received()
-	if len(bodies) != 2 || !strings.HasPrefix(bodies[1], `{"events":[{`) || !strings.Contains(bodies[1], `"message":"hello"`) ||
-		!strings.HasSuffix(bodies[1], `"schema_version":"0.1"}`) {
-		t.Fatalf("the receiver got %v", bodies)
+	requests := receiver.Requests()
+	if len(requests) != 2 || !requests[1].Valid || len(requests[1].Events) != 1 || requests[1].AnsweredStatus != http.StatusServiceUnavailable ||
+		!strings.Contains(string(requests[1].Events[0]), `"message":"hello"`) {
+		t.Fatalf("the receiver got %+v", requests)
 	}
 }
 

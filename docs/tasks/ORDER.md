@@ -56,7 +56,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 32 | [T-04.5](T-04_logging-and-core-adapters/T-04.5_http-destination.md) | HTTP destination | code | Done | done (2026-11-03) | T-04.4 | 2026-10-28 |
 | 33 | [T-04.6](T-04_logging-and-core-adapters/T-04.6_aws-http-adapter.md) | AWS HTTP adapter | code | Todo | todo | T-04.4 | 2026-10-28 |
 | 34 | [T-04.7](T-04_logging-and-core-adapters/T-04.7_replace-and-remove-the-old-library.md) | Replace and remove the old library | code | Todo | todo | T-04.1 to T-04.6 | 2026-10-28 |
-| 35 | [T-04.8](T-04_logging-and-core-adapters/T-04.8_fake-receiver-for-tests.md) | Fake receiver for tests | test | Todo | todo | T-04.4 | 2026-10-28 |
+| 35 | [T-04.8](T-04_logging-and-core-adapters/T-04.8_fake-receiver-for-tests.md) | Fake receiver for tests | test | Done | done (2026-11-03) | T-04.4 | 2026-10-28 |
 | 36 | [T-05](T-05_delivery/T-05_delivery.md) | Delivery, buffering and failures | epic | Todo | todo | T-04 | 2026-10-28 |
 | 37 | [T-05.1](T-05_delivery/T-05.1_bounded-queue-and-worker.md) | Bounded queue and worker | code | Todo | todo | T-04.5 | 2026-10-28 |
 | 38 | [T-05.2](T-05_delivery/T-05.2_backpressure-and-priorities.md) | Backpressure and priorities | code | Todo | todo | T-05.1 | 2026-10-28 |

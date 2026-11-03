@@ -1,0 +1,388 @@
+{
+  "description": "Scripts and what the fake receiver must do with them, the same in Go and Python (T-04.8). config: expected_bearer, expected_api_key {header,value}, default_status. script: the answers in order; an answer is {status, retry_after?, location?, delay_ms?} or {close: true} or {truncate: true}. requests: what the test sends (body text, gzip? to compress it, headers?). expected: per request the status (or connection_error / body_error), headers the answer must carry, a text its body must contain, a minimum elapsed time. expected_recorded: how many requests were recorded, how many events in the valid batches, the invalid reasons (each a text the recorded reason must contain, in order) and how many requests were gzipped. A request that the fake rejects (400 invalid body, 401 authentication) is still recorded.",
+  "cases": [
+    {
+      "description": "With an empty script the fake answers 200 to a valid batch and records the batch, its headers and its events.",
+      "config": {},
+      "script": [],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 200
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A script is a list of answers consumed in order: fail twice, then succeed. Every request is recorded in order.",
+      "config": {},
+      "script": [
+        {
+          "status": 503
+        },
+        {
+          "status": 503
+        },
+        {
+          "status": 200
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        },
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        },
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 503
+        },
+        {
+          "status": 503
+        },
+        {
+          "status": 200
+        }
+      ],
+      "expected_recorded": {
+        "requests": 3,
+        "events": 6,
+        "invalid": []
+      }
+    },
+    {
+      "description": "After the script is used up the default status applies (200, or the one given in the configuration).",
+      "config": {
+        "default_status": 500
+      },
+      "script": [
+        {
+          "status": 200
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        },
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 200
+        },
+        {
+          "status": 500
+        }
+      ],
+      "expected_recorded": {
+        "requests": 2,
+        "events": 4,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A 429 can carry a Retry-After header.",
+      "config": {},
+      "script": [
+        {
+          "status": 429,
+          "retry_after": "5"
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 429,
+          "headers": {
+            "Retry-After": "5"
+          }
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A redirect carries its Location header; the fake never follows or serves it.",
+      "config": {},
+      "script": [
+        {
+          "status": 302,
+          "location": "/elsewhere"
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 302,
+          "headers": {
+            "Location": "/elsewhere"
+          }
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A slow answer: the fake waits delay_ms before it answers.",
+      "config": {},
+      "script": [
+        {
+          "status": 200,
+          "delay_ms": 300
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 200,
+          "min_elapsed_ms": 250
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A closed connection: the fake closes the connection without any answer; the client sees a connection error.",
+      "config": {},
+      "script": [
+        {
+          "close": true
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": "connection_error"
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A truncated answer: the status line and the headers announce a body that never arrives in full; the client sees a body error.",
+      "config": {},
+      "script": [
+        {
+          "truncate": true
+        }
+      ],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": "body_error"
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "A body that is not the batch of REQ-OUT-010 is rejected with 400 and the reason; the fake records the request and the reason.",
+      "config": {},
+      "script": [],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}]}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 400,
+          "body_contains": "schema_version"
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 0,
+        "invalid": [
+          "schema_version"
+        ]
+      }
+    },
+    {
+      "description": "A body that is not JSON is rejected with 400.",
+      "config": {},
+      "script": [],
+      "requests": [
+        {
+          "body": "not json"
+        }
+      ],
+      "expected": [
+        {
+          "status": 400,
+          "body_contains": "JSON"
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 0,
+        "invalid": [
+          "JSON"
+        ]
+      }
+    },
+    {
+      "description": "events must be a list.",
+      "config": {},
+      "script": [],
+      "requests": [
+        {
+          "body": "{\"events\":{},\"schema_version\":\"0.1\"}"
+        }
+      ],
+      "expected": [
+        {
+          "status": 400,
+          "body_contains": "events"
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 0,
+        "invalid": [
+          "events"
+        ]
+      }
+    },
+    {
+      "description": "A gzipped body is decompressed before it is validated and recorded.",
+      "config": {},
+      "script": [],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}",
+          "gzip": true
+        }
+      ],
+      "expected": [
+        {
+          "status": 200
+        }
+      ],
+      "expected_recorded": {
+        "requests": 1,
+        "events": 2,
+        "invalid": [],
+        "gzip_requests": 1
+      }
+    },
+    {
+      "description": "The fake checks the bearer token the test expects: 401 without it, 200 with it.",
+      "config": {
+        "expected_bearer": "placeholder-token-1"
+      },
+      "script": [],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}"
+        },
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}",
+          "headers": {
+            "Authorization": "Bearer placeholder-token-1"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "status": 401
+        },
+        {
+          "status": 200
+        }
+      ],
+      "expected_recorded": {
+        "requests": 2,
+        "events": 2,
+        "invalid": []
+      }
+    },
+    {
+      "description": "The fake checks an API key in the header the test expects.",
+      "config": {
+        "expected_api_key": {
+          "header": "X-Api-Key",
+          "value": "placeholder-key-1"
+        }
+      },
+      "script": [],
+      "requests": [
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}",
+          "headers": {
+            "X-Api-Key": "wrong"
+          }
+        },
+        {
+          "body": "{\"events\":[{\"data\":{\"category\":\"http\",\"message\":\"one\"},\"event_id\":\"01900000-0000-7000-8000-000000000001\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"},{\"data\":{\"category\":\"http\",\"message\":\"two\"},\"event_id\":\"01900000-0000-7000-8000-000000000002\",\"event_type\":\"log.entry.recorded\",\"occurred_at\":\"2026-10-28T10:00:00.123456Z\",\"recorded_at\":\"2026-10-28T10:00:00.123456Z\",\"resource\":{\"instance_id\":\"hub-01\",\"service_name\":\"sensor-hub\"},\"schema_version\":\"0.1\",\"severity\":\"INFO\"}],\"schema_version\":\"0.1\"}",
+          "headers": {
+            "X-Api-Key": "placeholder-key-1"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "status": 401
+        },
+        {
+          "status": 200
+        }
+      ],
+      "expected_recorded": {
+        "requests": 2,
+        "events": 2,
+        "invalid": []
+      }
+    }
+  ]
+}

@@ -29,7 +29,7 @@ Logging on the new standard (`log.entry.recorded`), the three adapters of the co
 | 3 | [T-04.2 Console adapter](T-04.2_console-adapter.md) | done (2026-11-03) |
 | 4 | [T-04.3 File adapter](T-04.3_file-adapter.md) | done (2026-11-03) |
 | 5 | [T-04.5 HTTP destination](T-04.5_http-destination.md) | done (2026-11-03) |
-| 6 | [T-04.8 Fake receiver for tests](T-04.8_fake-receiver-for-tests.md) | todo |
+| 6 | [T-04.8 Fake receiver for tests](T-04.8_fake-receiver-for-tests.md) | done (2026-11-03) |
 | 7 | [T-04.6 AWS HTTP adapter](T-04.6_aws-http-adapter.md) | todo |
 | 8 | [T-04.7 Replace and remove the old library](T-04.7_replace-and-remove-the-old-library.md) | todo |
 
