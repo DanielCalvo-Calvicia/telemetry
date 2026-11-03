@@ -1,4 +1,4 @@
-"""The service that runs one input through the whole chain and delivers the event to the destinations."""
+"""The service that runs one input through the whole chain and queues the event for the destinations."""
 
 import dataclasses
 from typing import Optional
@@ -7,12 +7,7 @@ from telemetry.internal.application.call_context.call_context import current_cal
 from telemetry.internal.application.call_context.correlation import to_correlation_context
 from telemetry.internal.application.dtos.emit_result import EmitResult
 from telemetry.internal.application.dtos.new_event_input import NewEventInput
-from telemetry.internal.application.ports.outbound.ai_telemetry_sink_port import AITelemetrySinkPort
-from telemetry.internal.application.ports.outbound.device_telemetry_sink_port import DeviceTelemetrySinkPort
-from telemetry.internal.application.ports.outbound.event_sink_port import EventSinkPort
-from telemetry.internal.application.ports.outbound.log_sink_port import LogSinkPort
-from telemetry.internal.application.ports.outbound.metrics_sink_port import MetricsSinkPort
-from telemetry.internal.application.ports.outbound.trace_sink_port import TraceSinkPort
+from telemetry.internal.application.services.delivery_service import DeliveryService
 from telemetry.internal.application.services.destination_kind import destination_kind_of
 from telemetry.internal.application.services.event_builder_service import EventBuilderService
 from telemetry.internal.application.services.limits_service import LimitsService
@@ -20,28 +15,13 @@ from telemetry.internal.application.services.masking_service import MaskingServi
 from telemetry.internal.domain.errors import error_code_of
 from telemetry.internal.domain.value_objects.error_codes_generated import ERROR_CODE_EVENT_BUILD_FAILED
 
-REASON_NO_DESTINATION = "no_destination"
-REASON_SINK_RAISED = "sink_panicked"
-
-
-@dataclasses.dataclass(frozen=True)
-class Destinations:
-    """Destinations holds the sinks of each kind, in the order they were given; any kind may have several."""
-
-    log: tuple[LogSinkPort, ...] = ()
-    event: tuple[EventSinkPort, ...] = ()
-    metrics: tuple[MetricsSinkPort, ...] = ()
-    trace: tuple[TraceSinkPort, ...] = ()
-    device_telemetry: tuple[DeviceTelemetrySinkPort, ...] = ()
-    ai_telemetry: tuple[AITelemetrySinkPort, ...] = ()
-
 
 class EventPipelineService:
     """EventPipelineService turns one NewEventInput into one masked, limited, valid event delivered to the sinks.
 
-    Delivery is SYNCHRONOUS for now: the thread of the caller calls every sink. The bounded queue and the delivery
-    modes arrive with T-05; until then a slow sink slows the caller. It holds no mutable state, so one instance serves
-    many threads.
+    Delivery is ASYNCHRONOUS (REQ-DLV-002): the thread of the caller only ENQUEUES the event in the DeliveryService and
+    returns, and the workers of the destinations send it later in batches, so a slow sink never slows the caller. It
+    holds no mutable state of its own, so one instance serves many threads.
     """
 
     def __init__(
@@ -49,13 +29,13 @@ class EventPipelineService:
         builder: EventBuilderService,
         masking: MaskingService,
         limits: LimitsService,
-        destinations: Destinations,
+        delivery: DeliveryService,
     ) -> None:
-        """Keep the three services of the chain and the destinations; the composition root builds them."""
+        """Keep the three services of the chain and the delivery service; the composition root builds them."""
         self._builder = builder
         self._masking = masking
         self._limits = limits
-        self._destinations = destinations
+        self._delivery = delivery
 
     def emit(self, new_event: NewEventInput) -> EmitResult:
         """Run the input through the chain and return what became of it; it NEVER raises (ADR-005, REQ-DLV-002).
@@ -68,14 +48,16 @@ class EventPipelineService:
         2. Build the envelope (EventBuilderService).
         3. Mask it (MaskingService), BEFORE any sink: no code path sends an envelope that was not masked (ADR-006).
         4. Apply the size limits (LimitsService).
-        5. Route it by the first segment of the event type (see destination_kind_of). No destination of that kind
-           gives ``dropped=1`` with the reason ``no_destination``.
-        6. Call ``send([envelope])`` on EVERY destination of the kind, in the order given, each call guarded on its
-           own: a sink that raises counts ``failed=1`` with the reason ``sink_panicked`` and never stops the others.
+        5. Route it by the first segment of the event type (see destination_kind_of) and hand it to
+           ``DeliveryService.enqueue``, which puts it in the queue of EVERY destination of that kind. No destination of
+           that kind gives ``dropped=1`` with the reason ``no_destination``; a full queue gives ``dropped=1`` with the
+           reason ``queue_full``. The sinks are called later, by their workers, never by this call.
 
         A failure of step 2, 3 or 4 gives ``dropped=1`` and the code of the error as the reason. Any unexpected
-        exception gives ``dropped=1`` and the reason ``event_build_failed``. The result adds the SendResult of every
-        destination; its reason is the first that is not empty.
+        exception gives ``dropped=1`` and the reason ``event_build_failed``. The result adds what became of the event in
+        every destination: ``accepted`` means QUEUED, not delivered, and the reason is the first that is not empty. What
+        a sink does with the event afterwards (a failure, a drop) is a counter of the delivery (T-05.5), not part of
+        the result of this call.
         """
         try:
             return self._emit(new_event)
@@ -93,26 +75,7 @@ class EventPipelineService:
         limited = self._limits.apply(masked.envelope)
         if limited.error is not None or limited.envelope is None:
             return self._dropped(limited.error)
-        envelope = limited.envelope
-        sinks = getattr(self._destinations, destination_kind_of(new_event.event_type))
-        if not sinks:
-            return EmitResult(dropped=1, reason=REASON_NO_DESTINATION)
-        accepted = dropped = failed = 0
-        reason = ""
-        for sink in sinks:
-            try:
-                sent = sink.send([envelope])
-                sent_counts = (sent.accepted, sent.dropped, sent.failed)
-                sent_reason = sent.reason
-            except Exception:  # a sink never fails the caller and never stops the others (ADR-005)
-                sent_counts = (0, 0, 1)
-                sent_reason = REASON_SINK_RAISED
-            accepted += sent_counts[0]
-            dropped += sent_counts[1]
-            failed += sent_counts[2]
-            if reason == "" and sent_reason:
-                reason = sent_reason
-        return EmitResult(accepted=accepted, dropped=dropped, failed=failed, reason=reason)
+        return self._delivery.enqueue(destination_kind_of(new_event.event_type), limited.envelope)
 
     @staticmethod
     def _with_call_context(new_event: NewEventInput) -> NewEventInput:

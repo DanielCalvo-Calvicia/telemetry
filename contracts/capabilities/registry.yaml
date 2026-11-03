@@ -489,7 +489,10 @@ capabilities:
         pending: T-05.3
       # REQ-DLV-002: Hot-path emission operations (log, metric, event) MUST NOT block the c...
       - id: REQ-DLV-002
-        pending: T-05.1
+        # a log call enqueues and returns: 10,000 calls against a destination that never answers return at once, in Go and in Python, also inside asyncio (T-05.1)
+        tests:
+          - { language: go, path: go/internal/tests/application/services/delivery_service_test.go }
+          - { language: python, path: python/internal/tests/application/services/test_delivery_service.py }
       # REQ-DLV-003: The library MUST NOT report successful delivery before the destination...
       - id: REQ-DLV-003
         pending: T-05.3
@@ -510,7 +513,12 @@ capabilities:
         pending: T-05.3
       # REQ-DLV-006: Every queue MUST be bounded. The size, the batch size and the flush in...
       - id: REQ-DLV-006
-        pending: T-05.1
+        # a bounded queue per destination, a batch of 100 or the interval of 2 s, whichever comes first: 39 shared cases (T-05.1)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/batching/plan_batch_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/memory_queue/memory_queue_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/batching/test_plan_batch.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/memory_queue/test_memory_queue.py }
       # REQ-DLV-007: When a queue fills, the policy is configurable per destination: drop_n...
       - id: REQ-DLV-007
         pending: T-05.2

@@ -10,7 +10,13 @@ import unittest
 from typing import Any
 
 import telemetry
-from internal.tests.e2e.case_helpers import build_options, delivered_texts
+from internal.tests.e2e.case_helpers import (
+    build_options,
+    delivered_texts,
+    overrides_with_short_flush,
+    wait_for_deliveries,
+)
+from internal.tests.eventually import stop_workers_on_cleanup
 from internal.tests.infrastructure.config.helpers import merged_config
 from telemetry.internal.infrastructure.inbound.sdk.logging_handler import severity_method_name
 
@@ -57,9 +63,9 @@ class LoggingSharedCasesTest(unittest.TestCase):
         if case["kind"] == "levels":
             self.run_levels(case)
             return
-        config = merged_config(case["config"]["profile"], case["config"].get("overrides", {}))
+        config = merged_config(case["config"]["profile"], overrides_with_short_flush(case))
         options, sinks = build_options(case)
-        core = telemetry.new(config, *options)
+        core = stop_workers_on_cleanup(self, telemetry.new(config, *options))
         context_fields = case.get("call_context")
         if context_fields is None:
             self.run_calls(core, case)
@@ -68,6 +74,7 @@ class LoggingSharedCasesTest(unittest.TestCase):
             self.assertIsNone(created.error)
             with telemetry.use_call_context(created.call_context):
                 self.run_calls(core, case)
+        wait_for_deliveries(sinks, case["expected"]["deliveries"])
         for kind, expected_sinks in case["expected"]["deliveries"].items():
             self.assertEqual(delivered_texts(sinks[kind]), expected_sinks, kind)
 

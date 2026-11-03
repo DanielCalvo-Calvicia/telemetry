@@ -4,12 +4,14 @@ from telemetry.internal.application.dtos.emit_result import EmitResult
 from telemetry.internal.application.dtos.new_event_input import NewEventInput
 from telemetry.internal.application.dtos.shutdown_result import ShutdownResult
 from telemetry.internal.application.ports.inbound.logger_port import LoggerPort
+from telemetry.internal.application.services.delivery_service import DeliveryService, Destinations
 from telemetry.internal.application.services.event_builder_service import EventBuilderService
-from telemetry.internal.application.services.event_pipeline_service import Destinations, EventPipelineService
+from telemetry.internal.application.services.event_pipeline_service import EventPipelineService
 from telemetry.internal.application.services.limits_service import LimitsService
 from telemetry.internal.application.services.logger_service import LoggerService
 from telemetry.internal.application.services.masking_service import MaskingService
 from telemetry.internal.composition_root.config.options import Option, Options
+from telemetry.internal.composition_root.dependencies.memory_queue_dependencies import new_memory_queue
 from telemetry.internal.composition_root.dependencies.system_clock_dependencies import new_system_clock
 from telemetry.internal.composition_root.dependencies.uuid_generator_dependencies import new_uuid_generator
 from telemetry.internal.domain.errors import DeliveryModeUnknownError
@@ -42,10 +44,11 @@ class Core:
     from many threads.
     """
 
-    def __init__(self, pipeline: EventPipelineService, logger: LoggerPort) -> None:
-        """Keep the pipeline and the logger over it; build a core with ``new_core``."""
+    def __init__(self, pipeline: EventPipelineService, logger: LoggerPort, delivery: DeliveryService) -> None:
+        """Keep the pipeline, the logger over it and the delivery service; build a core with ``new_core``."""
         self._pipeline = pipeline
         self._logger = logger
+        self._delivery = delivery
 
     @property
     def logger(self) -> LoggerPort:
@@ -53,14 +56,19 @@ class Core:
         return self._logger
 
     def emit(self, new_event: NewEventInput) -> EmitResult:
-        """Turn one input into one masked, limited, valid event delivered to the sinks; it never raises (ADR-005)."""
+        """Turn one input into one masked, limited, valid event QUEUED for the sinks; it never raises (ADR-005).
+
+        The call returns when the event is in the queues: the sinks are called later by their workers, so ``accepted``
+        in the result means queued, not delivered.
+        """
         return self._pipeline.emit(new_event)
 
     def shutdown(self) -> ShutdownResult:
         """Shut the core down and say what became of the events still waiting.
 
-        This is a STUB that returns the zero result: T-05.4 gives it the flush and the shutdown (REQ-DLV-010). Until
-        then every emit has already been delivered, synchronously, when it returns.
+        This is a STUB that returns the zero result: T-05.4 gives it the flush and the shutdown (REQ-DLV-010). It stops
+        nothing and drains nothing yet: the workers of the destinations are DAEMON threads, so they never keep the
+        process alive, and T-05.4 is the one that stops them and sends what is still queued.
         """
         return ShutdownResult()
 
@@ -72,6 +80,11 @@ def new_core(config: Config, *options: Option) -> Core:
     generator. The configuration is validated here, at start, and ``ConfigurationError`` is raised with EVERY problem
     (REQ-CFG-002); a durable delivery mode without a spool adds the problem ``delivery.mode`` to the same error.
     Nothing is read from the environment and nothing is kept in a global.
+
+    This is the one place that starts the delivery: it builds the DeliveryService (a bounded queue and a daemon worker
+    thread per destination, sized by the delivery section of the configuration) and calls ``start()``; nothing runs on
+    import or in a constructor. The delivery measures time with the system clock, not with the clock of the options:
+    that clock stamps the events, and a fake one would never let a batch age.
     """
     applied = Options()
     for option in options:
@@ -98,5 +111,7 @@ def new_core(config: Config, *options: Option) -> Core:
         device_telemetry=tuple(applied.device_telemetry_sinks),
         ai_telemetry=tuple(applied.ai_telemetry_sinks),
     )
-    pipeline = EventPipelineService(builder, masking, limits, destinations)
-    return Core(pipeline, LoggerService(pipeline))
+    delivery = DeliveryService(destinations, configuration.delivery, new_system_clock(), new_memory_queue)
+    pipeline = EventPipelineService(builder, masking, limits, delivery)
+    delivery.start()
+    return Core(pipeline, LoggerService(pipeline), delivery)

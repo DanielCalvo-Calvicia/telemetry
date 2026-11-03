@@ -8,6 +8,7 @@ from typing import Any
 
 import telemetry
 from internal.tests.application.services.masking_helpers import envelope_from_json
+from internal.tests.eventually import eventually, stop_workers_on_cleanup
 from internal.tests.fakes import FakeClock, FakeIdGenerator
 from internal.tests.infrastructure.config.helpers import merged_config
 from internal.tests.infrastructure.outbound.shared.http_client.server_helpers import Reply, StubServer, free_port
@@ -546,13 +547,20 @@ class PublicModuleTest(unittest.TestCase):
     def test_it_works_as_a_log_sink_of_the_core(self):
         with StubServer() as server:
             sink = public_aws_http.new_destination(settings_for(server.port))
-            core = telemetry.new(
-                merged_config("microservice", {"resource": {"service_name": "sensor-hub"}}),
-                telemetry.with_log_sink(sink),
-                telemetry.with_clock(FakeClock()),
-                telemetry.with_id_generator(FakeIdGenerator([EventId("01900000-0000-7000-8000-000000000001")])),
+            core = stop_workers_on_cleanup(
+                self,
+                telemetry.new(
+                    merged_config(
+                        "microservice",
+                        {"resource": {"service_name": "sensor-hub"}, "delivery": {"flush_interval_ms": 5}},
+                    ),
+                    telemetry.with_log_sink(sink),
+                    telemetry.with_clock(FakeClock()),
+                    telemetry.with_id_generator(FakeIdGenerator([EventId("01900000-0000-7000-8000-000000000001")])),
+                ),
             )
             core.logger.info(telemetry.LogEntry(category="http", message="first"))
+            eventually(5.0, lambda: len(server.requests) >= 1, "the request of the worker")
             core.shutdown()
             self.assertEqual(sent_messages(server), ["first"])
             self.assertEqual(json.loads(server.requests[0].body)["log_group_name"], "my-log-group")

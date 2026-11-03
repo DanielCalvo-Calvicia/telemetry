@@ -133,22 +133,8 @@ func check_deliveries(t *testing.T, description string, expected *logging_expect
 	if expected == nil {
 		t.Fatalf("%s: the case has no expected", description)
 	}
-	for port, want_sinks := range expected.Deliveries {
-		got_sinks := readers[port]
-		if len(got_sinks) != len(want_sinks) {
-			t.Fatalf("%s: port %s has %d sinks, expected %d", description, port, len(got_sinks), len(want_sinks))
-		}
-		for sink_index, got_sink := range got_sinks {
-			got_events := canonical_events(t, got_sink)
-			want_events := want_sinks[sink_index]
-			if want_events == nil {
-				want_events = []string{}
-			}
-			if !reflect.DeepEqual(got_events, want_events) {
-				t.Fatalf("%s: port %s sink %d\n got %q\nwant %q", description, port, sink_index, got_events, want_events)
-			}
-		}
-	}
+	settle_deliveries(t, description, expected.Deliveries, readers)
+	compare_deliveries(t, description, expected.Deliveries, readers)
 }
 
 func Test_every_shared_logging_case_gives_the_same_result(t *testing.T) {

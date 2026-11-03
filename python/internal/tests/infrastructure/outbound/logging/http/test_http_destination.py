@@ -11,6 +11,7 @@ from typing import Any
 
 import telemetry
 from internal.tests.application.services.masking_helpers import envelope_from_json
+from internal.tests.eventually import eventually, stop_workers_on_cleanup
 from internal.tests.fakes import FakeClock, FakeIdGenerator
 from internal.tests.fakes.fake_receiver import Answer, Receiver
 from internal.tests.infrastructure.config.helpers import merged_config
@@ -318,19 +319,28 @@ class PublicModuleTest(unittest.TestCase):
 class TwoDestinationsTest(unittest.TestCase):
     """The acceptance criterion: a failing HTTP destination does not stop the console one in the same run."""
 
-    def run_core(self, url: str):
+    def run_core(self, url: str, receiver: Any = None):
         stream = io.StringIO()
         sink_http = public_http.new_destination(public_http.Settings(url=url))
         sink_console = console.new_destination_with_writer(console.Settings(), stream)
         ids = [EventId("01900000-0000-7000-8000-000000000001"), EventId("01900000-0000-7000-8000-000000000002")]
-        core = telemetry.new(
-            merged_config("microservice", {"resource": {"service_name": "sensor-hub"}}),
-            telemetry.with_log_sink(sink_http),
-            telemetry.with_log_sink(sink_console),
-            telemetry.with_clock(FakeClock()),
-            telemetry.with_id_generator(FakeIdGenerator(ids)),
+        core = stop_workers_on_cleanup(
+            self,
+            telemetry.new(
+                merged_config(
+                    "microservice", {"resource": {"service_name": "sensor-hub"}, "delivery": {"flush_interval_ms": 5}}
+                ),
+                telemetry.with_log_sink(sink_http),
+                telemetry.with_log_sink(sink_console),
+                telemetry.with_clock(FakeClock()),
+                telemetry.with_id_generator(FakeIdGenerator(ids)),
+            ),
         )
         core.logger.info(telemetry.LogEntry(category="http", message="first"))
+        # delivery is asynchronous: wait for the first event to leave, so the two events travel one by one
+        eventually(5.0, lambda: stream.getvalue().count(chr(10)) >= 1, "the first console line")
+        if receiver is not None:
+            eventually(5.0, lambda: len(receiver.requests()) >= 1, "the first http request")
         result = core.emit(
             telemetry.NewEventInput(
                 event_type="log.entry.recorded",
@@ -338,17 +348,21 @@ class TwoDestinationsTest(unittest.TestCase):
                 data={"category": "http", "message": "second"},
             )
         )
+        eventually(5.0, lambda: stream.getvalue().count(chr(10)) >= 2, "the second console line")
+        if receiver is not None:
+            eventually(5.0, lambda: len(receiver.requests()) >= 2, "the second http request")
         core.shutdown()
         return stream.getvalue(), result
 
     def test_a_receiver_that_answers_503_does_not_stop_the_console(self):
         with Receiver() as receiver:
             receiver.script(Answer(status=503), Answer(status=503))
-            output, result = self.run_core(receiver.url())
+            output, result = self.run_core(receiver.url(), receiver)
             received = receiver.requests()
         self.assertEqual(len(output.strip().split("\n")), 2)
         self.assertIn('"message":"first"', output)
-        self.assertEqual((result.accepted, result.dropped, result.failed, result.reason), (1, 0, 1, "status_503"))
+        # delivery is asynchronous: the call says the event was queued for both destinations (the 503 is a counter)
+        self.assertEqual((result.accepted, result.dropped, result.failed, result.reason), (2, 0, 0, ""))
         self.assertEqual(len(received), 2)
         self.assertEqual([item.answered_status for item in received], [503, 503])
         self.assertTrue(all(item.valid for item in received))
@@ -359,7 +373,7 @@ class TwoDestinationsTest(unittest.TestCase):
     def test_a_receiver_that_does_not_answer_does_not_stop_the_console(self):
         output, result = self.run_core(f"http://127.0.0.1:{free_port()}/ingest")
         self.assertEqual(len(output.strip().split("\n")), 2)
-        self.assertEqual((result.accepted, result.dropped, result.failed, result.reason), (1, 0, 1, "network_error"))
+        self.assertEqual((result.accepted, result.dropped, result.failed, result.reason), (2, 0, 0, ""))
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ from unittest import mock
 
 import telemetry
 from internal.tests.application.services.masking_helpers import envelope_from_json
+from internal.tests.eventually import eventually, stop_workers_on_cleanup
 from internal.tests.fakes import FakeClock, FakeIdGenerator
 from internal.tests.infrastructure.config.helpers import merged_config
 from telemetry.internal.application.ports.outbound.event_sink_port import EventSinkPort
@@ -456,12 +457,21 @@ class PublicPackageTest(TemporaryDirectoryTestCase):
             telemetry.with_clock(FakeClock()),
             telemetry.with_id_generator(FakeIdGenerator([EventId("01900000-0000-7000-8000-000000000001")])),
         ]
-        core = telemetry.new(merged_config("microservice", {"resource": {"service_name": "sensor-hub"}}), *options)
+        core = stop_workers_on_cleanup(
+            self,
+            telemetry.new(
+                merged_config(
+                    "microservice", {"resource": {"service_name": "sensor-hub"}, "delivery": {"flush_interval_ms": 5}}
+                ),
+                *options,
+            ),
+        )
         core.logger.info(
             telemetry.LogEntry(
                 category="http", message="login password=placeholder-secret-not-real", fields={"order": 7}
             )
         )
+        eventually(5.0, lambda: (self.logs / BASE).exists() and read_lines(self.logs / BASE), "the line of the worker")
         core.shutdown()
         lines = read_lines(self.logs / BASE)
         self.assertEqual(len(lines), 1)

@@ -147,22 +147,8 @@ func Test_every_shared_core_case_gives_the_same_result(t *testing.T) {
 				t.Fatalf("%s: results\n got %v\nwant %v", fixture.Description, got_results, fixture.Expected.Results)
 			}
 
-			for port, want_sinks := range fixture.Expected.Deliveries {
-				got_sinks := readers[port]
-				if len(got_sinks) != len(want_sinks) {
-					t.Fatalf("%s: port %s has %d sinks, expected %d", fixture.Description, port, len(got_sinks), len(want_sinks))
-				}
-				for sink_index, got_sink := range got_sinks {
-					got_events := canonical_events(t, got_sink)
-					want_events := want_sinks[sink_index]
-					if want_events == nil {
-						want_events = []string{}
-					}
-					if !reflect.DeepEqual(got_events, want_events) {
-						t.Fatalf("%s: port %s sink %d\n got %q\nwant %q", fixture.Description, port, sink_index, got_events, want_events)
-					}
-				}
-			}
+			settle_deliveries(t, fixture.Description, fixture.Expected.Deliveries, readers)
+			compare_deliveries(t, fixture.Description, fixture.Expected.Deliveries, readers)
 
 			shutdown_result := core.Shutdown(context.Background())
 			if shutdown_result.Sent != fixture.Expected.Shutdown.Sent || shutdown_result.Spooled != fixture.Expected.Shutdown.Spooled || shutdown_result.Dropped != fixture.Expected.Shutdown.Dropped {

@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
 )
 
 func public_config() telemetry.Config {
-	cfg := telemetry.Microservice()
+	cfg := fast_delivery(telemetry.Microservice())
 	cfg.Resource.ServiceName = "sensor-hub"
 	return cfg
 }
@@ -32,9 +33,10 @@ func Test_new_builds_a_core_with_the_default_clock_and_ids_and_delivers_an_event
 
 	result := core.Emit(context.Background(), public_input())
 
-	if result != (telemetry.EmitResult{Accepted: 1}) || sink.Calls() != 1 {
-		t.Fatalf("result = %+v, calls = %d", result, sink.Calls())
+	if result != (telemetry.EmitResult{Accepted: 1}) {
+		t.Fatalf("result = %+v", result)
 	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return sink.Calls() == 1 })
 	if shutdown_result := core.Shutdown(context.Background()); shutdown_result != (telemetry.ShutdownResult{}) {
 		t.Fatalf("shutdown = %+v", shutdown_result)
 	}

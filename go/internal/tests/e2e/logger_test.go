@@ -5,15 +5,17 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
 )
 
 func new_logging_core(t *testing.T) (*telemetry.Telemetry, *fakes.FakeLogSink) {
 	t.Helper()
 	sink := &fakes.FakeLogSink{}
-	config := telemetry.Microservice()
+	config := fast_delivery(telemetry.Microservice())
 	config.Resource.ServiceName = "sensor-hub"
 	core, new_error := telemetry.New(config, telemetry.WithLogSink(sink))
 	if new_error != nil {
@@ -32,6 +34,8 @@ func Test_a_field_named_password_never_reaches_the_sink(t *testing.T) {
 	})
 	slog.New(telemetry.NewSlogHandler(core.Logger(), "auth")).Info("login", "password", "hunter2-secret")
 
+	waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives both events", func() bool { return count_events(sink) == 2 })
+	waiting.StaysTrue(t, 30*time.Millisecond, "the sink receives no third event", func() bool { return count_events(sink) == 2 })
 	events := canonical_events(t, sink)
 	if len(events) != 2 {
 		t.Fatalf("%d events, want 2", len(events))
@@ -48,6 +52,7 @@ func Test_no_request_body_is_captured_by_default(t *testing.T) {
 
 	core.Logger().Info(context.Background(), telemetry.LogEntry{Category: "http", Message: "request done"})
 
+	waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return count_events(sink) == 1 })
 	batches := sink.Batches()
 	if len(batches) != 1 || len(batches[0]) != 1 {
 		t.Fatalf("batches %v", batches)

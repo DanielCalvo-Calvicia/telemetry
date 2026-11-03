@@ -4,16 +4,19 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/call_context"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/outbound"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/services"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/composition_root/dependencies"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/event_validation"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/masking"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 )
 
 // ----- THE ROUTING TABLE ----------------------------------------------------
@@ -76,8 +79,32 @@ func pipeline_with(test *testing.T, validate_data services.EventDataValidator, l
 		new_test_services(test, validate_data).service,
 		services.NewMaskingService(spy_masker(test, masking.MaskerOptions{})),
 		services.NewLimitsService(limits),
-		destinations,
+		started_delivery(test, destinations),
 	)
+}
+
+// started_delivery returns a delivery service over the destinations with a short flush interval, started, and stopped when
+// the test ends. The events reach the sinks a few milliseconds after Emit returns, so a test waits for them.
+func started_delivery(test *testing.T, destinations services.Destinations) *services.DeliveryService {
+	test.Helper()
+	delivery := services.NewDeliveryService(
+		destinations,
+		services.DeliverySettings{QueueSize: 100, BatchSize: 10, FlushIntervalMS: 5, TimeoutMS: 1000},
+		dependencies.NewSystemClock(),
+		dependencies.NewMemoryQueue,
+	)
+	delivery.Start()
+	test.Cleanup(delivery.Stop)
+	return delivery
+}
+
+// events_received counts the events the sink received in every batch.
+func events_received(batches [][]value_objects.Envelope) int {
+	total := 0
+	for _, batch := range batches {
+		total += len(batch)
+	}
+	return total
 }
 
 func input_of_type(event_type string, data map[string]any) dtos.NewEventInput {
@@ -111,15 +138,15 @@ func Test_every_kind_reaches_only_the_sinks_of_its_kind(t *testing.T) {
 			if result != (dtos.EmitResult{Accepted: 1}) {
 				t.Fatalf("result = %+v", result)
 			}
-			for index, calls := range batch_counts {
-				want := 0
-				if index == test_case.sink_index {
-					want = 1
+			waiting.Eventually(t, waiting.DefaultTimeout, "the sink of the kind receives the event", func() bool { return batch_counts[test_case.sink_index]() == 1 })
+			waiting.StaysTrue(t, 30*time.Millisecond, "no other sink receives it", func() bool {
+				for index, calls := range batch_counts {
+					if index != test_case.sink_index && calls() != 0 {
+						return false
+					}
 				}
-				if calls() != want {
-					t.Errorf("sink %d received %d calls, want %d", index, calls(), want)
-				}
-			}
+				return batch_counts[test_case.sink_index]() == 1
+			})
 		})
 	}
 }
@@ -134,7 +161,7 @@ func Test_an_event_with_no_sink_of_its_kind_is_dropped_with_no_destination(t *te
 	}
 }
 
-func Test_a_panicking_sink_counts_one_failure_and_the_others_still_receive(t *testing.T) {
+func Test_a_panicking_sink_does_not_change_the_result_and_the_others_still_receive(t *testing.T) {
 	healthy_sink := &fakes.FakeLogSink{}
 	pipeline := pipeline_for(t, event_validation.ValidateEvent, services.Destinations{
 		Log: []outbound_log{panicking_sink{}, healthy_sink},
@@ -142,25 +169,26 @@ func Test_a_panicking_sink_counts_one_failure_and_the_others_still_receive(t *te
 
 	result := pipeline.Emit(context.Background(), input_of_type("log.entry.recorded", valid_log_data()))
 
-	if result != (dtos.EmitResult{Accepted: 1, Failed: 1, Reason: services.ReasonSinkPanicked}) {
+	if result != (dtos.EmitResult{Accepted: 2}) {
 		t.Fatalf("result = %+v", result)
 	}
-	if healthy_sink.Calls() != 1 {
-		t.Fatalf("the healthy sink received %d calls", healthy_sink.Calls())
-	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "the healthy sink receives the event", func() bool { return healthy_sink.Calls() == 1 })
+	waiting.StaysTrue(t, 30*time.Millisecond, "the healthy sink receives it once", func() bool { return healthy_sink.Calls() == 1 })
 }
 
-func Test_the_result_is_the_sum_of_the_sinks_and_the_reason_is_the_first_one(t *testing.T) {
+func Test_the_result_is_the_sum_over_the_sinks_of_the_kind_and_says_queued_not_delivered(t *testing.T) {
 	first_sink, second_sink, third_sink := &fakes.FakeLogSink{}, &fakes.FakeLogSink{}, &fakes.FakeLogSink{}
-	first_sink.SetResult(dtos.SendResult{Accepted: 1})
 	second_sink.SetResult(dtos.SendResult{Dropped: 2, Failed: 1, Reason: "queue_full"})
 	third_sink.SetResult(dtos.SendResult{Failed: 3, Reason: "send_failed"})
 	pipeline := pipeline_for(t, permissive_validator, services.Destinations{Log: []outbound_log{first_sink, second_sink, third_sink}})
 
 	result := pipeline.Emit(context.Background(), input_of_type("log.entry.recorded", valid_log_data()))
 
-	if result != (dtos.EmitResult{Accepted: 1, Dropped: 2, Failed: 4, Reason: "queue_full"}) {
-		t.Fatalf("result = %+v", result)
+	if result != (dtos.EmitResult{Accepted: 3}) {
+		t.Fatalf("result = %+v: the failures of the sinks are not part of the result of the call", result)
+	}
+	for _, sink := range []*fakes.FakeLogSink{first_sink, second_sink, third_sink} {
+		waiting.Eventually(t, waiting.DefaultTimeout, "every sink receives the event", func() bool { return events_received(sink.Batches()) == 1 })
 	}
 }
 
@@ -205,7 +233,7 @@ func Test_a_failure_of_masking_or_of_limits_drops_the_event_and_no_sink_receives
 			sink := &fakes.FakeLogSink{}
 			pipeline := services.NewEventPipelineService(
 				new_test_services(t, permissive_validator).service, test_case.masking, test_case.limits,
-				services.Destinations{Log: []outbound_log{sink}},
+				started_delivery(t, services.Destinations{Log: []outbound_log{sink}}),
 			)
 
 			result := pipeline.Emit(context.Background(), input_of_type("log.entry.recorded", valid_log_data()))
@@ -213,22 +241,20 @@ func Test_a_failure_of_masking_or_of_limits_drops_the_event_and_no_sink_receives
 			if result != (dtos.EmitResult{Dropped: 1, Reason: test_case.want}) {
 				t.Fatalf("result = %+v", result)
 			}
-			if sink.Calls() != 0 {
-				t.Fatal("a sink received an event whose chain failed")
-			}
+			waiting.StaysTrue(t, 30*time.Millisecond, "no sink receives an event whose chain failed", func() bool { return sink.Calls() == 0 })
 		})
 	}
 }
 
 func Test_a_pipeline_that_cannot_run_never_panics(t *testing.T) {
-	broken_pipeline := services.NewEventPipelineService(nil, nil, nil, services.Destinations{})
+	broken_pipeline := services.NewEventPipelineService(nil, nil, nil, nil)
 	if result := broken_pipeline.Emit(context.Background(), input_of_type("log.entry.recorded", valid_log_data())); result != (dtos.EmitResult{Dropped: 1, Reason: value_objects.ErrorCodeEventBuildFailed}) {
 		t.Fatalf("result = %+v", result)
 	}
 
 	nil_sink_pipeline := pipeline_for(t, permissive_validator, services.Destinations{Log: []outbound_log{nil}})
-	if result := nil_sink_pipeline.Emit(context.Background(), input_of_type("log.entry.recorded", valid_log_data())); result != (dtos.EmitResult{Dropped: 1, Reason: value_objects.ErrorCodeEventBuildFailed}) {
-		t.Fatalf("a nil sink: result = %+v", result)
+	if result := nil_sink_pipeline.Emit(context.Background(), input_of_type("log.entry.recorded", valid_log_data())); result != (dtos.EmitResult{Dropped: 1, Reason: services.ReasonNoDestination}) {
+		t.Fatalf("a nil sink is ignored, so the kind has no destination: result = %+v", result)
 	}
 }
 
@@ -253,6 +279,7 @@ func Test_the_call_context_of_ctx_becomes_the_context_of_the_event_unless_the_in
 		sink := &fakes.FakeLogSink{}
 		pipeline := pipeline_for(t, permissive_validator, services.Destinations{Log: []outbound_log{sink}})
 		pipeline.Emit(emit_context, input)
+		waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return sink.Calls() == 1 })
 		return sink.Batches()[0][0]
 	}
 
@@ -366,16 +393,15 @@ func Test_no_sink_of_any_kind_receives_a_secret_in_data_attributes_or_context(t 
 				}
 				t.Run(run.event_type+"/"+place+"/"+secret.name, func(t *testing.T) {
 					pipeline := pipeline_for(t, permissive_validator, run.sinks)
+					received_before := len(run.received())
 
 					result := pipeline.Emit(context.Background(), secret_input_in(t, run.event_type, place, secret))
 
 					if result.Accepted != 1 {
 						t.Fatalf("result = %+v", result)
 					}
+					waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return len(run.received()) > received_before })
 					received := run.received()
-					if len(received) == 0 {
-						t.Fatal("the sink received nothing, so the test proves nothing")
-					}
 					sent_text := canonical_text(t, received[len(received)-1])
 					if strings.Contains(sent_text, secret.core) {
 						t.Fatalf("a sink received the secret %q: %s", secret.core, sent_text)

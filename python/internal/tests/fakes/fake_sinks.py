@@ -74,3 +74,36 @@ class FakeDeviceTelemetrySink(_FakeSink):
 
 class FakeAiTelemetrySink(_FakeSink):
     """FakeAiTelemetrySink is a fake of the AI telemetry sink port."""
+
+
+class BlockingLogSink:
+    """BlockingLogSink is a log sink that never answers until it is released: a hanging destination.
+
+    It records every batch it is called with and sets ``entered`` when the first call starts. ``send`` waits for
+    ``release()`` for at most ``longest_block_seconds``, so a test that forgets to release it still ends.
+    """
+
+    def __init__(self, longest_block_seconds: float = 30.0) -> None:
+        self._lock = threading.Lock()
+        self._batches: list = []
+        self._released = threading.Event()
+        self._longest_block_seconds = longest_block_seconds
+        self.entered = threading.Event()
+
+    @property
+    def batches(self) -> list:
+        """A copy of the batches received, each one a copy too."""
+        with self._lock:
+            return [list(batch) for batch in self._batches]
+
+    def release(self) -> None:
+        """Let every call, the ones waiting and the next ones, return."""
+        self._released.set()
+
+    def send(self, events: Sequence[Envelope]) -> SendResult:
+        """Record a copy of the batch, wait until released and accept the batch."""
+        with self._lock:
+            self._batches.append(list(events))
+        self.entered.set()
+        self._released.wait(self._longest_block_seconds)
+        return SendResult(accepted=len(events), dropped=0, failed=0)

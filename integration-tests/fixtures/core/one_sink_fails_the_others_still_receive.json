@@ -1,5 +1,5 @@
 {
-  "description": "A failing sink never stops the others (ADR-005, REQ-DLV-005): both receive the event, the failure is counted.",
+  "description": "A failing sink never stops the others (ADR-005, REQ-DLV-005): both receive the event. Since T-05.1 the result of the call says the event was queued for both destinations (accepted 2); the failure of the first sink is a counter of the delivery (T-05.5), not part of the result of the call.",
   "kind": "core",
   "config": {
     "profile": "microservice",
@@ -42,10 +42,10 @@
   "expected": {
     "results": [
       {
-        "accepted": 1,
+        "accepted": 2,
         "dropped": 0,
-        "failed": 1,
-        "reason": "send_failed"
+        "failed": 0,
+        "reason": ""
       }
     ],
     "deliveries": {

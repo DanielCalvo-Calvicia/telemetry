@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/file"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
 )
@@ -28,7 +29,7 @@ func Test_the_file_destination_writes_the_masked_event_of_the_core(t *testing.T)
 	if build_error != nil {
 		t.Fatal(build_error)
 	}
-	config := telemetry.Microservice()
+	config := fast_delivery(telemetry.Microservice())
 	config.Resource.ServiceName = "sensor-hub"
 	core, new_error := telemetry.New(config, telemetry.WithLogSink(destination))
 	if new_error != nil {
@@ -39,6 +40,10 @@ func Test_the_file_destination_writes_the_masked_event_of_the_core(t *testing.T)
 		Category: "auth", Message: "login", Fields: map[string]any{"password": "placeholder-secret-not-real", "user": "bob"},
 	})
 
+	waiting.Eventually(t, waiting.DefaultTimeout, "the file holds the line", func() bool {
+		content, read_error := os.ReadFile(filepath.Join(directory, "telemetry.jsonl"))
+		return read_error == nil && strings.Contains(string(content), "\n")
+	})
 	content, read_error := os.ReadFile(filepath.Join(directory, "telemetry.jsonl"))
 	if read_error != nil {
 		t.Fatal(read_error)

@@ -1,7 +1,6 @@
 package e2e_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"go/ast"
@@ -15,8 +14,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes/fake_receiver"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/console"
 	logging_http "github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/http"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
@@ -56,7 +57,17 @@ func (receiver *http_receiver) received() []string {
 
 func new_core_with(t *testing.T, sinks ...telemetry.LogSinkPort) *telemetry.Telemetry {
 	t.Helper()
-	config := telemetry.Microservice()
+	return new_core_with_batch_size(t, 0, sinks...)
+}
+
+// new_core_with_batch_size builds a core with the sinks and, when batch_size is above zero, that batch size, so a test can
+// make every event leave in a batch of its own.
+func new_core_with_batch_size(t *testing.T, batch_size int, sinks ...telemetry.LogSinkPort) *telemetry.Telemetry {
+	t.Helper()
+	config := fast_delivery(telemetry.Microservice())
+	if batch_size > 0 {
+		config.Delivery.BatchSize = batch_size
+	}
 	config.Resource.ServiceName = "sensor-hub"
 	options := make([]telemetry.Option, 0, len(sinks))
 	for _, sink := range sinks {
@@ -89,22 +100,24 @@ func Test_two_destinations_one_answers_503_and_the_other_still_gets_the_line(t *
 	if http_error != nil {
 		t.Fatal(http_error)
 	}
-	var buffer bytes.Buffer
+	var buffer locked_buffer
 	console_sink, console_error := console.NewDestinationWithWriter(console.DefaultSettings(), &buffer)
 	if console_error != nil {
 		t.Fatal(console_error)
 	}
-	core := new_core_with(t, http_sink, console_sink)
+	core := new_core_with_batch_size(t, 1, http_sink, console_sink)
 
 	core.Logger().Info(context.Background(), telemetry.LogEntry{Category: "http", Message: "through the logger"})
 	result := core.Emit(context.Background(), log_input())
 
-	if strings.Count(buffer.String(), "\n") != 2 || !strings.Contains(buffer.String(), `"message":"hello"`) {
+	if result != (telemetry.EmitResult{Accepted: 2}) {
+		t.Fatalf("the result is %+v: queued for both destinations, the failure of the http one is not part of it", result)
+	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "the console holds both lines", func() bool { return strings.Count(buffer.String(), "\n") == 2 })
+	if !strings.Contains(buffer.String(), `"message":"hello"`) {
 		t.Fatalf("the console must hold both lines, it holds %q", buffer.String())
 	}
-	if result != (telemetry.EmitResult{Accepted: 1, Failed: 1, Reason: "status_503"}) {
-		t.Fatalf("the result is %+v", result)
-	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "the receiver answers both requests", func() bool { return len(receiver.Requests()) == 2 })
 	requests := receiver.Requests()
 	if len(requests) != 2 || !requests[1].Valid || len(requests[1].Events) != 1 || requests[1].AnsweredStatus != http.StatusServiceUnavailable ||
 		!strings.Contains(string(requests[1].Events[0]), `"message":"hello"`) {
@@ -122,7 +135,7 @@ func Test_two_destinations_one_never_answers_and_the_other_still_gets_the_line(t
 	if http_error != nil {
 		t.Fatal(http_error)
 	}
-	var buffer bytes.Buffer
+	var buffer locked_buffer
 	console_sink, console_error := console.NewDestinationWithWriter(console.DefaultSettings(), &buffer)
 	if console_error != nil {
 		t.Fatal(console_error)
@@ -131,12 +144,11 @@ func Test_two_destinations_one_never_answers_and_the_other_still_gets_the_line(t
 
 	result := core.Emit(context.Background(), log_input())
 
-	if result != (telemetry.EmitResult{Accepted: 1, Failed: 1, Reason: "network_error"}) {
-		t.Fatalf("the result is %+v", result)
+	if result != (telemetry.EmitResult{Accepted: 2}) {
+		t.Fatalf("the result is %+v: queued for both destinations, the failure of the http one is not part of it", result)
 	}
-	if strings.Count(buffer.String(), "\n") != 1 {
-		t.Fatalf("the console holds %q", buffer.String())
-	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "the console holds the line", func() bool { return strings.Count(buffer.String(), "\n") == 1 })
+	waiting.StaysTrue(t, 30*time.Millisecond, "the console holds exactly one line", func() bool { return strings.Count(buffer.String(), "\n") == 1 })
 }
 
 func Test_the_http_destination_sends_the_batch_body_of_the_core_event(t *testing.T) {
@@ -161,6 +173,7 @@ func Test_the_http_destination_sends_the_batch_body_of_the_core_event(t *testing
 			Severity  string `json:"severity"`
 		} `json:"events"`
 	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "the receiver gets the batch", func() bool { return len(receiver.received()) >= 1 })
 	bodies := receiver.received()
 	if len(bodies) != 1 {
 		t.Fatalf("got %d bodies", len(bodies))

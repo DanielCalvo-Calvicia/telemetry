@@ -7,6 +7,7 @@ import unittest
 from typing import Any, Optional
 
 import telemetry
+from internal.tests.eventually import eventually, stop_workers_on_cleanup, with_short_flush
 from internal.tests.fakes import FakeClock, FakeIdGenerator, FakeLogSink
 from telemetry.internal.application.dtos.log_entry import LogEntry
 from telemetry.internal.infrastructure.inbound.sdk.logging_handler import (
@@ -189,15 +190,19 @@ class SecretThroughTheWholeCoreTest(unittest.TestCase):
         sink = FakeLogSink()
         base = telemetry.microservice()
         resource = dataclasses.replace(base.resource, service_name="sensor-hub", instance_id="hub-01")
-        core = telemetry.new(
-            dataclasses.replace(base, resource=resource),
-            telemetry.with_log_sink(sink),
-            telemetry.with_clock(FakeClock()),
-            telemetry.with_id_generator(FakeIdGenerator()),
+        core = stop_workers_on_cleanup(
+            self,
+            telemetry.new(
+                with_short_flush(dataclasses.replace(base, resource=resource)),
+                telemetry.with_log_sink(sink),
+                telemetry.with_clock(FakeClock()),
+                telemetry.with_id_generator(FakeIdGenerator()),
+            ),
         )
         core.logger.info(telemetry.LogEntry(category="auth", message="login", fields={"password": "hunter2"}))
         telemetry.LoggingHandler(core.logger, "auth").handle(new_record(password="hunter3"))
-        self.assertEqual(sink.calls, 2)
+        eventually(5.0, lambda: sum(len(batch) for batch in sink.batches) >= 2, "two events at the sink")
+        self.assertEqual(sum(len(batch) for batch in sink.batches), 2)
         for batch in sink.batches:
             for envelope in batch:
                 self.assertNotIn("hunter", str(envelope))

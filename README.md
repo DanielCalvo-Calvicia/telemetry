@@ -20,10 +20,11 @@ The new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md
 | The contract (envelope, event registry, error catalog, config schemas) and the generator of the code of both languages | Built (T-02) |
 | The core in Go and in Python: value objects, ports, event builder, masking, limits, configuration and profiles, errors, call context, the entry point (`go/pkg/telemetry`, `telemetry.new`) | Built (T-03) |
 | The logger with one method per severity, `log/slog` and `logging` integration | Built (T-04.1) |
-| Destinations: console, file (rotation and quota), HTTP (shared client), AWS HTTP (a Go module of its own) | Built (T-04.2 to T-04.6); no queue and no retry loop yet (T-05) |
+| Destinations: console, file (rotation and quota), HTTP (shared client), AWS HTTP (a Go module of its own) | Built (T-04.2 to T-04.6) |
 | The fake receiver for the tests of delivery | Built (T-04.8) |
 | The old library | Removed (T-04.7) |
-| The queue, batching, retries, flush and shutdown (T-05), the spool (T-06), events, devices, AI, OpenTelemetry and the rest | Planned |
+| A bounded queue and a worker per destination, batching by size and by time; a log call only enqueues (T-05.1) | Built |
+| The drop policies, retries, flush and shutdown, diagnostics (T-05.2 to T-05.6), the spool (T-06), events, devices, AI, OpenTelemetry and the rest | Planned |
 | CI (format, vet, build, tests and a coverage gate of 95%, for every Go module and for Python 3.10 and 3.11) | Written and checked locally; not yet run on GitHub, it needs a pull request |
 | Deployment | None, by design: it is a library ([ADR-010](docs/decisions/ADR-010-no-deployment-release-by-tags.md)) |
 

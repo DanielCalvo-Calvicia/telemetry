@@ -22,7 +22,7 @@ Go, package `telemetry`:
 | `Microservice()`, `Cronjob()`, `Worker()`, `Robotics()`, `OfflineDevice()` | `Config` | the profiles; they only change the delivery mode (`best_effort`, `retry` or `durable`) |
 | `WithLogSink`, `WithEventSink`, `WithMetricsSink`, `WithTraceSink`, `WithDeviceTelemetrySink`, `WithAITelemetrySink` | `Option` | the destinations; a sink given twice is a second destination |
 | `WithLocalSpool`, `WithClock`, `WithIDGenerator` | `Option` | the spool port, the clock and the id generator (for tests and for the project's own adapters) |
-| `(*Telemetry).Emit(ctx, NewEventInput)` | `EmitResult` | builds, validates, masks, limits and delivers one event; never fails: the result says how many sinks accepted, dropped or failed it and why |
+| `(*Telemetry).Emit(ctx, NewEventInput)` | `EmitResult` | builds, validates, masks, limits and queues one event; never fails: the result says how many destinations queued it (accepted), dropped it (for example `queue_full`) and why |
 | `(*Telemetry).Logger()` | `Logger` | the logger (below) |
 | `(*Telemetry).Shutdown(ctx)` | `ShutdownResult` | call it when the program ends; it is a stub until the queue of T-05.4 exists |
 
@@ -30,7 +30,7 @@ Types: `Telemetry`, `Config` (with `ResourceConfig`, `DeliveryConfig`, `LimitsCo
 
 Python, package `telemetry`: `new(config, *options)`, the profiles `microservice()`, `cronjob()`, `worker()`, `robotics()`, `offline_device()`, the options `with_log_sink`, `with_event_sink`, `with_metrics_sink`, `with_trace_sink`, `with_device_telemetry_sink`, `with_ai_telemetry_sink`, `with_local_spool`, `with_clock` and `with_id_generator`, `core.emit(...)`, `core.logger`, `core.shutdown()`, and the same types (`Telemetry`, `Config`, `LogEntry`, `NewEventInput`, `Severity`, `Limits`, `CallContext`, the ports, ...). An invalid configuration raises `ConfigurationError` with every problem.
 
-The settings are plain values: the project loads them with its own tool (the env names are in [environment-variables.md](../configuration/environment-variables.md)) and passes them in. The library never reads the environment or a file ([ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md)). The sinks are called synchronously until the queue of T-05 exists, and the spool port is accepted but not used until T-06.
+The settings are plain values: the project loads them with its own tool (the env names are in [environment-variables.md](../configuration/environment-variables.md)) and passes them in. The library never reads the environment or a file ([ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md)). A log call enqueues the event and a worker per destination sends it in batches (T-05.1); the spool port is accepted but not used until T-06.
 
 ## The logger
 
@@ -118,3 +118,5 @@ core.Logger().Info(ctx, telemetry.LogEntry{Category: "http", Function: "Handle",
 ```
 
 A runnable sample that logs through the AWS HTTP adapter is in `examples/aws_http_smoke` (a Go module of its own). The test that sends one line to a deployed aws_microservice is `go/pkg/logging/aws_http/internal/tests/e2e/deployed_aws_microservice_test.go` (see [monitoring](../operations/monitoring.md)).
+
+> **Update 2026-11-03 (T-05.1):** delivery is asynchronous. `Emit` and the log methods return when the event is **queued**: *accepted* in an `EmitResult` means queued, and the outcome of the send (a failure of a destination, for example) is not in it: it is counted by the destination and will be public with the diagnostics (T-05.5). A short program must wait for its events until `Shutdown` flushes (T-05.4). The `delivery` settings (queue 10,000, batch 100, flush 2,000 ms, timeout 3,000 ms) are the ones of the configuration; nothing starts before `New` / `new` is called and no function was added to the public API.

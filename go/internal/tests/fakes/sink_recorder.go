@@ -18,18 +18,26 @@ type sink_recorder struct {
 	result     dtos.SendResult
 	result_set bool
 	delay      time.Duration
+	deadlines  []time.Time
+	panic_on   bool
 }
 
 // Send records a copy of the events, waits for the delay and returns the result.
-func (recorder *sink_recorder) Send(_ context.Context, events []value_objects.Envelope) dtos.SendResult {
+func (recorder *sink_recorder) Send(ctx context.Context, events []value_objects.Envelope) dtos.SendResult {
 	recorder.mutex.Lock()
 	recorder.batches = append(recorder.batches, slices.Clone(events))
+	deadline, _ := ctx.Deadline()
+	recorder.deadlines = append(recorder.deadlines, deadline)
+	should_panic := recorder.panic_on
 	delay := recorder.delay
 	result := recorder.result
 	if !recorder.result_set {
 		result = dtos.SendResult{Accepted: len(events)}
 	}
 	recorder.mutex.Unlock()
+	if should_panic {
+		panic("the fake sink was told to panic")
+	}
 	if delay > 0 {
 		time.Sleep(delay)
 	}
@@ -42,6 +50,20 @@ func (recorder *sink_recorder) SetResult(result dtos.SendResult) {
 	defer recorder.mutex.Unlock()
 	recorder.result = result
 	recorder.result_set = true
+}
+
+// SetPanic makes every later Send panic (after it recorded the batch).
+func (recorder *sink_recorder) SetPanic(panic_on bool) {
+	recorder.mutex.Lock()
+	defer recorder.mutex.Unlock()
+	recorder.panic_on = panic_on
+}
+
+// Deadlines returns the deadline of the context of every call, in order; the zero time is a context with no deadline.
+func (recorder *sink_recorder) Deadlines() []time.Time {
+	recorder.mutex.Lock()
+	defer recorder.mutex.Unlock()
+	return slices.Clone(recorder.deadlines)
 }
 
 // SetDelay makes every later Send wait for the delay before it returns.

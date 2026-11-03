@@ -31,6 +31,11 @@ type Core struct {
 // NewCore validates the configuration and wires the core with the adapters of the options; the ones that are not given
 // are the system clock and the UUIDv7 generator. Nothing is read from the environment (ADR-004).
 //
+// NewCore also starts the delivery: one worker goroutine per destination, each with a bounded queue (T-05.1). Nothing
+// starts before NewCore is called, and an invalid configuration starts nothing. Until T-05.4 gives the core a shutdown,
+// nothing stops these workers: a core that is no longer used leaves its goroutines running until the process ends. That
+// leak is known and accepted for now.
+//
 // An invalid configuration returns a *infra_config.ValidationError with every problem together. A delivery mode
 // durable with no spool is one more problem of the same error (field delivery.mode, code config_field_invalid), after
 // the ones of the configuration, so a project sees everything it must fix at once.
@@ -67,12 +72,24 @@ func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Opt
 	}
 
 	builder := services.NewEventBuilderService(applied_options.Clock, applied_options.IDGenerator, provider, event_validation.ValidateEvent)
+	delivery := services.NewDeliveryService(
+		applied_options.Destinations,
+		services.DeliverySettings{
+			QueueSize:       configuration.Delivery.QueueSize,
+			BatchSize:       configuration.Delivery.BatchSize,
+			FlushIntervalMS: configuration.Delivery.FlushIntervalMilliseconds,
+			TimeoutMS:       configuration.Delivery.TimeoutMilliseconds,
+		},
+		applied_options.Clock,
+		dependencies.NewMemoryQueue,
+	)
 	pipeline := services.NewEventPipelineService(
 		builder,
 		services.NewMaskingService(masker),
 		services.NewLimitsService(configuration.Limits),
-		applied_options.Destinations,
+		delivery,
 	)
+	delivery.Start()
 	return &Core{pipeline: pipeline, logger: services.NewLoggerService(pipeline)}, nil
 }
 
@@ -96,8 +113,9 @@ func (core *Core) Logger() inbound.LoggerPort {
 	return core.logger
 }
 
-// Shutdown closes the core. It is a stub: it returns the zero result and does nothing, because the core has no queue to
-// flush yet; T-05.4 gives it the flush and the shutdown (REQ-DLV-010). It never panics, a nil *Core included.
+// Shutdown closes the core. It is still a stub: it returns the zero result and does nothing, so it neither flushes the
+// queues nor stops the workers of the delivery (T-05.4 gives it the flush, the stop of the workers and the result,
+// REQ-DLV-010). It never panics, a nil *Core included.
 func (core *Core) Shutdown(_ context.Context) dtos.ShutdownResult {
 	return dtos.ShutdownResult{}
 }

@@ -1,13 +1,17 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"reflect"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/canonical_json"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
 )
 
@@ -66,6 +70,9 @@ func case_config(t *testing.T, profile string, overrides map[string]json.RawMess
 		t.Fatalf("the profile %q is not known", profile)
 	}
 	base := make_profile()
+	// The delivery is asynchronous: a short flush interval lets a batch that is not full leave in a few milliseconds.
+	// A case may still set its own value in its overrides.
+	base.Delivery.FlushIntervalMS = test_flush_interval_ms
 	overrides_text, marshal_error := json.Marshal(overrides)
 	if marshal_error != nil {
 		t.Fatal(marshal_error)
@@ -74,6 +81,84 @@ func case_config(t *testing.T, profile string, overrides map[string]json.RawMess
 		t.Fatal(decode_error)
 	}
 	return base
+}
+
+// test_flush_interval_ms is the flush interval of the cores of the tests: short, so no test waits for the 2 s default.
+const test_flush_interval_ms = 5
+
+// fast_delivery sets the short flush interval of the tests on a configuration.
+func fast_delivery(config telemetry.Config) telemetry.Config {
+	config.Delivery.FlushIntervalMS = test_flush_interval_ms
+	return config
+}
+
+// locked_buffer is a bytes.Buffer that a worker goroutine can write while the test reads it.
+type locked_buffer struct {
+	mutex  sync.Mutex
+	buffer bytes.Buffer
+}
+
+func (locked *locked_buffer) Write(content []byte) (int, error) {
+	locked.mutex.Lock()
+	defer locked.mutex.Unlock()
+	return locked.buffer.Write(content)
+}
+
+func (locked *locked_buffer) String() string {
+	locked.mutex.Lock()
+	defer locked.mutex.Unlock()
+	return locked.buffer.String()
+}
+
+// count_events returns how many events a fake sink received.
+func count_events(reader delivery_reader) int {
+	total := 0
+	for _, batch := range reader.Batches() {
+		total += len(batch)
+	}
+	return total
+}
+
+// settle_deliveries waits until every sink of the expectation has received the expected number of events, then waits a
+// further 30 ms to prove that nothing extra arrives. The caller then compares the ordered lists exactly.
+func settle_deliveries(t *testing.T, description string, want map[string][][]string, readers map[string][]delivery_reader) {
+	t.Helper()
+	counts_match := func() bool {
+		for port, want_sinks := range want {
+			if len(readers[port]) != len(want_sinks) {
+				return true // the caller reports the wrong number of sinks
+			}
+			for sink_index, got_sink := range readers[port] {
+				if count_events(got_sink) != len(want_sinks[sink_index]) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	waiting.Eventually(t, waiting.DefaultTimeout, description+": every sink receives the expected number of events", counts_match)
+	waiting.StaysTrue(t, 30*time.Millisecond, description+": no sink receives an extra event", counts_match)
+}
+
+// compare_deliveries compares, sink by sink, the ordered events with the expected ones, exactly.
+func compare_deliveries(t *testing.T, description string, want map[string][][]string, readers map[string][]delivery_reader) {
+	t.Helper()
+	for port, want_sinks := range want {
+		got_sinks := readers[port]
+		if len(got_sinks) != len(want_sinks) {
+			t.Fatalf("%s: port %s has %d sinks, expected %d", description, port, len(got_sinks), len(want_sinks))
+		}
+		for sink_index, got_sink := range got_sinks {
+			got_events := canonical_events(t, got_sink)
+			want_events := want_sinks[sink_index]
+			if want_events == nil {
+				want_events = []string{}
+			}
+			if !reflect.DeepEqual(got_events, want_events) {
+				t.Fatalf("%s: port %s sink %d\n got %q\nwant %q", description, port, sink_index, got_events, want_events)
+			}
+		}
+	}
 }
 
 func parse_instant(t *testing.T, text string) telemetry.UTCInstant {
@@ -164,8 +249,12 @@ func build_case_core(t *testing.T, setup case_setup) (*telemetry.Telemetry, map[
 		event_ids = append(event_ids, event_id)
 	}
 	options, readers := case_sinks(t, setup.Sinks)
+	// The delivery reads the monotonic clock to know how old the oldest queued event is; a step of 10 ms per reading makes
+	// the fake clock move at least as fast as the flush interval of the tests.
+	fake_clock := fakes.NewFakeClock(parse_instant(t, setup.Clock.WallTime))
+	fake_clock.SetStep(10_000_000)
 	options = append(options,
-		telemetry.WithClock(fakes.NewFakeClock(parse_instant(t, setup.Clock.WallTime))),
+		telemetry.WithClock(fake_clock),
 		telemetry.WithIDGenerator(fakes.NewFakeIDGenerator(event_ids...)),
 	)
 	if setup.Spool {

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/composition_root/config"
@@ -15,12 +16,15 @@ import (
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 	infra_config "github.com/DanielCalvo-Calvicia/telemetry/go/internal/infrastructure/config"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/fakes"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 )
 
 func service_config(service_name string) infra_config.Config {
 	cfg := infra_config.Microservice()
 	cfg.Resource.ServiceName = service_name
 	cfg.Resource.InstanceID = "instance-1"
+	// The delivery is asynchronous: a short flush interval lets a batch that is not full leave in a few milliseconds.
+	cfg.Delivery.FlushIntervalMS = 5
 	return cfg
 }
 
@@ -59,9 +63,15 @@ func Test_two_cores_in_one_process_share_nothing(t *testing.T) {
 	first_core.Emit(context.Background(), log_input())
 	second_core.Emit(context.Background(), log_input())
 
-	if first_sink.Calls() != 2 || second_sink.Calls() != 1 {
-		t.Fatalf("the events crossed: %d and %d calls", first_sink.Calls(), second_sink.Calls())
+	events_in := func(sink *fakes.FakeLogSink) int {
+		total := 0
+		for _, batch := range sink.Batches() {
+			total += len(batch)
+		}
+		return total
 	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "each core delivers its own events", func() bool { return events_in(first_sink) == 2 && events_in(second_sink) == 1 })
+	waiting.StaysTrue(t, 30*time.Millisecond, "the events do not cross", func() bool { return events_in(first_sink) == 2 && events_in(second_sink) == 1 })
 	if text := canonical_of(t, first_sink.Batches()[0][0]); !strings.Contains(text, "first-service") || strings.Contains(text, "second-service") {
 		t.Fatalf("the first core used another configuration: %s", text)
 	}
@@ -94,6 +104,13 @@ func Test_sixteen_goroutines_emit_on_one_core_and_the_counts_add_up(t *testing.T
 	}
 	wait_group.Wait()
 
+	waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives every event", func() bool {
+		received_so_far := 0
+		for _, batch := range sink.Batches() {
+			received_so_far += len(batch)
+		}
+		return received_so_far == goroutines*emits_per_goroutine
+	})
 	if total.Accepted != goroutines*emits_per_goroutine || total.Dropped != 0 || total.Failed != 0 {
 		t.Fatalf("total = %+v", total)
 	}
@@ -177,9 +194,10 @@ func Test_the_options_append_and_a_nil_option_or_argument_is_ignored(t *testing.
 
 	result := core.Emit(context.Background(), log_input())
 
-	if result.Accepted != 2 || first_sink.Calls() != 1 || second_sink.Calls() != 1 {
-		t.Fatalf("result = %+v, calls = %d and %d", result, first_sink.Calls(), second_sink.Calls())
+	if result.Accepted != 2 {
+		t.Fatalf("result = %+v", result)
 	}
+	waiting.Eventually(t, waiting.DefaultTimeout, "both sinks receive the event", func() bool { return first_sink.Calls() == 1 && second_sink.Calls() == 1 })
 }
 
 func Test_every_option_sets_its_part_of_the_options(t *testing.T) {
@@ -215,9 +233,12 @@ func Test_the_clock_and_the_id_generator_that_are_given_are_used_and_the_default
 	if time_error != nil {
 		t.Fatal(time_error)
 	}
+	fake_clock := fakes.NewFakeClock(wall_time)
+	fake_clock.SetStep(10_000_000) // the delivery reads this clock too: 10 ms a reading moves it faster than the flush interval
 	core := new_core(t, service_config("service"), config.WithLogSink(sink),
-		config.WithClock(fakes.NewFakeClock(wall_time)), config.WithIDGenerator(fakes.NewFakeIDGenerator(event_id)))
+		config.WithClock(fake_clock), config.WithIDGenerator(fakes.NewFakeIDGenerator(event_id)))
 	core.Emit(context.Background(), log_input())
+	waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return sink.Calls() == 1 })
 	envelope := sink.Batches()[0][0]
 	if envelope.EventId != event_id.String() || envelope.RecordedAt != wall_time.String() {
 		t.Fatalf("the fakes were not used: %s", canonical_of(t, envelope))
@@ -226,6 +247,7 @@ func Test_the_clock_and_the_id_generator_that_are_given_are_used_and_the_default
 	default_sink := &fakes.FakeLogSink{}
 	default_core := new_core(t, service_config("service"), config.WithLogSink(default_sink))
 	default_core.Emit(context.Background(), log_input())
+	waiting.Eventually(t, waiting.DefaultTimeout, "the default sink receives the event", func() bool { return default_sink.Calls() == 1 })
 	default_envelope := default_sink.Batches()[0][0]
 	if validation_error := value_objects.ValidateEventID(default_envelope.EventId); validation_error != nil {
 		t.Fatalf("the default id is not a UUIDv7: %v", validation_error)
@@ -305,11 +327,45 @@ func Test_no_sink_receives_a_secret_through_the_whole_core_in_data_attributes_or
 				if result := core.Emit(context.Background(), input); result.Accepted != 1 {
 					t.Fatalf("result = %+v", result)
 				}
+				waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return sink.Calls() == 1 })
 				sent_text := canonical_of(t, sink.Batches()[0][0])
 				if strings.Contains(sent_text, secret.core) {
 					t.Fatalf("the sink received %q: %s", secret.core, sent_text)
 				}
 			})
 		}
+	}
+}
+
+func Test_an_invalid_delivery_setting_is_refused_at_start_with_the_field_and_the_reason(t *testing.T) {
+	cases := []struct {
+		name   string
+		change func(cfg *infra_config.Config)
+		field  string
+	}{
+		{"queue zero", func(cfg *infra_config.Config) { cfg.Delivery.QueueSize = 0 }, "delivery.queue_size"},
+		{"batch zero", func(cfg *infra_config.Config) { cfg.Delivery.BatchSize = 0 }, "delivery.batch_size"},
+		{"flush zero", func(cfg *infra_config.Config) { cfg.Delivery.FlushIntervalMS = 0 }, "delivery.flush_interval_ms"},
+		{"batch over queue", func(cfg *infra_config.Config) { cfg.Delivery.QueueSize = 5; cfg.Delivery.BatchSize = 6 }, "delivery.batch_size"},
+	}
+	for _, test_case := range cases {
+		t.Run(test_case.name, func(t *testing.T) {
+			cfg := service_config("service")
+			test_case.change(&cfg)
+			core, core_error := containers.NewCore(context.Background(), cfg, config.WithLogSink(&fakes.FakeLogSink{}))
+			var validation_error *infra_config.ValidationError
+			if core != nil || !errors.As(core_error, &validation_error) {
+				t.Fatalf("expected a validation error, got %v", core_error)
+			}
+			found := false
+			for _, problem := range validation_error.Problems {
+				if problem.Field == test_case.field && problem.Code == value_objects.ErrorCodeConfigFieldInvalid && problem.Reason != "" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("no problem for %s with a reason: %+v", test_case.field, validation_error.Problems)
+			}
+		})
 	}
 }

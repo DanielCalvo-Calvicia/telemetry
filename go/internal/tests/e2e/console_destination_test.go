@@ -11,7 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/tests/waiting"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/console"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
 )
@@ -22,12 +24,12 @@ const (
 )
 
 func Test_the_console_destination_writes_the_masked_event_of_the_core(t *testing.T) {
-	var buffer bytes.Buffer
+	var buffer locked_buffer
 	sink, build_error := console.NewDestinationWithWriter(console.DefaultSettings(), &buffer)
 	if build_error != nil {
 		t.Fatal(build_error)
 	}
-	config := telemetry.Microservice()
+	config := fast_delivery(telemetry.Microservice())
 	config.Resource.ServiceName = "sensor-hub"
 	core, new_error := telemetry.New(config, telemetry.WithLogSink(sink))
 	if new_error != nil {
@@ -38,6 +40,7 @@ func Test_the_console_destination_writes_the_masked_event_of_the_core(t *testing
 		Category: "auth", Message: "login", Fields: map[string]any{"password": "placeholder-secret-not-real", "user": "bob"},
 	})
 
+	waiting.Eventually(t, waiting.DefaultTimeout, "the console receives the line", func() bool { return strings.Contains(buffer.String(), "\n") })
 	line := buffer.String()
 	if strings.Count(line, "\n") != 1 || !strings.HasSuffix(line, "\n") {
 		t.Fatalf("expected exactly one line, got %q", line)
@@ -61,12 +64,12 @@ func Test_the_console_destination_writes_the_masked_event_of_the_core(t *testing
 }
 
 func Test_the_console_destination_in_text_format_and_with_a_minimum_severity(t *testing.T) {
-	var buffer bytes.Buffer
+	var buffer locked_buffer
 	sink, build_error := console.NewDestinationWithWriter(console.Settings{Format: "text", MinimumSeverity: "WARN"}, &buffer)
 	if build_error != nil {
 		t.Fatal(build_error)
 	}
-	config := telemetry.Microservice()
+	config := fast_delivery(telemetry.Microservice())
 	config.Resource.ServiceName = "sensor-hub"
 	core, new_error := telemetry.New(config, telemetry.WithLogSink(sink))
 	if new_error != nil {
@@ -74,6 +77,8 @@ func Test_the_console_destination_in_text_format_and_with_a_minimum_severity(t *
 	}
 	core.Logger().Info(context.Background(), telemetry.LogEntry{Category: "c", Message: "quiet"})
 	core.Logger().Error(context.Background(), telemetry.LogEntry{Category: "c", Function: "run", Message: "loud"})
+	waiting.Eventually(t, waiting.DefaultTimeout, "the console receives the loud line", func() bool { return strings.Contains(buffer.String(), "loud") })
+	waiting.StaysTrue(t, 30*time.Millisecond, "the console holds one line", func() bool { return strings.Count(buffer.String(), "\n") == 1 })
 	if !strings.Contains(buffer.String(), "ERROR    [c] run: loud\n") || strings.Contains(buffer.String(), "quiet") ||
 		strings.Count(buffer.String(), "\n") != 1 {
 		t.Fatalf("the output is %q", buffer.String())

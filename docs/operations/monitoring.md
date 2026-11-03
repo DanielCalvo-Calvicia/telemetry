@@ -36,8 +36,8 @@ The reasons are fixed texts: they never hold a URL, a path or a value the caller
 
 ## Timeouts, retries and shutdown
 
-- The HTTP destinations time out after **3 seconds** by default (`TELEMETRY_HTTP_TIMEOUT_MS`, `TELEMETRY_AWS_HTTP_TIMEOUT_MS`) and **do not retry or queue yet**: the destination sends once, synchronously, and a failed event is not sent again. The bounded queue, the batching and the retry policy by delivery mode are planned (T-05).
-- `Shutdown` (Go) and `shutdown` (Python) exist and a consumer should call them on exit, but they are a stub until T-05.4 gives them the flush: today the destinations buffer nothing.
+- The HTTP destinations time out after **3 seconds** by default (`TELEMETRY_HTTP_TIMEOUT_MS`, `TELEMETRY_AWS_HTTP_TIMEOUT_MS`) and **do not retry yet**: a worker sends each batch once and a failed event is not sent again (the retry by delivery mode is T-05.3). Every destination has a **bounded queue** (10,000 events by default) and a worker that sends a batch when it holds 100 events or when the oldest is 2 seconds old (`delivery.queue_size`, `batch_size`, `flush_interval_ms`, `timeout_ms`); a log call only queues and never waits for the network. A full queue drops the new event with the reason `queue_full`; the counters per destination are public with T-05.5.
+- `Shutdown` (Go) and `shutdown` (Python) exist and a consumer should call them on exit, but they are a stub until T-05.4 gives them the flush: **events still queued when the process ends are lost**, so a short program must wait (the sample does) until then.
 
 ## Manual end-to-end check of a deployment
 

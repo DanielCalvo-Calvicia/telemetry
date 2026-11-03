@@ -9,7 +9,8 @@ import unittest
 from typing import Any
 
 import telemetry
-from internal.tests.e2e.case_helpers import build_options, parse_time
+from internal.tests.e2e.case_helpers import build_options, overrides_with_short_flush, parse_time, wait_for_deliveries
+from internal.tests.eventually import stop_workers_on_cleanup
 from internal.tests.infrastructure.config.helpers import merged_config
 from telemetry.internal.domain.operations.canonical_json.canonical_json import canonical_json
 from telemetry.internal.domain.value_objects.utc_instant import UtcInstant
@@ -65,7 +66,7 @@ class CoreSharedCasesTest(unittest.TestCase):
         self.assertGreaterEqual(len(load_cases()), 15)
 
     def run_case(self, case: dict[str, Any]) -> None:
-        config = merged_config(case["config"]["profile"], case["config"].get("overrides", {}))
+        config = merged_config(case["config"]["profile"], overrides_with_short_flush(case))
         options, sinks = build_options(case)
         if "new_error" in case:
             with self.assertRaises(telemetry.ConfigurationError) as raised:
@@ -73,7 +74,7 @@ class CoreSharedCasesTest(unittest.TestCase):
             actual = [{"field": problem.field, "code": problem.code} for problem in raised.exception.problems]
             self.assertEqual(actual, case["new_error"]["problems"])
             return
-        core = telemetry.new(config, *options)
+        core = stop_workers_on_cleanup(self, telemetry.new(config, *options))
         results = []
         context_fields = case.get("call_context")
         if context_fields is None:
@@ -85,6 +86,7 @@ class CoreSharedCasesTest(unittest.TestCase):
                 results = [core.emit(build_event(emit)) for emit in case["emits"]]
         expected = case["expected"]
         self.assertEqual([as_dict(result) for result in results], expected["results"])
+        wait_for_deliveries(sinks, expected["deliveries"])
         for kind, expected_sinks in expected["deliveries"].items():
             actual_sinks = [
                 [canonical_json(envelope).decode("utf-8") for batch in sink.batches for envelope in batch]
