@@ -1,0 +1,27 @@
+{
+  "description": "The public names of the AWS HTTP adapter (go/pkg/logging/aws_http and telemetry.logging.aws_http).",
+  "functions": [
+    {
+      "go": "DefaultSettings",
+      "python": "default_settings"
+    },
+    {
+      "go": "NewDestination",
+      "python": "new_destination"
+    }
+  ],
+  "types": [
+    {
+      "go": "Settings",
+      "python": "Settings"
+    },
+    {
+      "go": "Destination",
+      "python": "Destination"
+    },
+    {
+      "go": "Delivery",
+      "python": "Delivery"
+    }
+  ]
+}

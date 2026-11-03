@@ -1,0 +1,198 @@
+{
+  "description": "What the AWS HTTP adapter sends for one event. The settings are log_group_name my-log-group and log_stream_name my-log-stream. expected_request is the exact JSON body of the add_log endpoint (the keys in this order, no HTML escaping, no space); expected_message is the text inside it: the entry with the keys of the old LogEntryOutboundDTO in the order of that struct (ProducerID, ApplicationID, ProcessID, Application, Category, Function, Indentation, Depth, Level, Message, Fields, Timestamp). ProducerID and Application are resource.service_name, ApplicationID is resource.instance_id, ProcessID is context.correlation_id or empty, Indentation and Depth are 0 (the event has no call tree), Level is the severity with CRITICAL written FATAL, Fields is the canonical JSON of the attributes or null, Timestamp is the occurred_at text. expected_skipped means no request is made for the event and it is counted as skipped.",
+  "log_group_name": "my-log-group",
+  "log_stream_name": "my-log-stream",
+  "cases": [
+    {
+      "name": "info_with_attributes_and_correlation",
+      "description": "A log.entry.recorded event: the application is the service_name, the application id the instance_id, the process id the correlation_id, the attributes are the Fields in canonical JSON.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000001",
+        "event_type": "log.entry.recorded",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "INFO",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "category": "http",
+          "function": "handle_request",
+          "message": "request done"
+        },
+        "attributes": {
+          "order": 7,
+          "user": "a<b&c"
+        },
+        "context": {
+          "correlation_id": "corr-0001"
+        }
+      },
+      "expected_request": "{\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"message\":\"{\\\"ProducerID\\\":\\\"sensor-hub\\\",\\\"ApplicationID\\\":\\\"hub-01\\\",\\\"ProcessID\\\":\\\"corr-0001\\\",\\\"Application\\\":\\\"sensor-hub\\\",\\\"Category\\\":\\\"http\\\",\\\"Function\\\":\\\"handle_request\\\",\\\"Indentation\\\":0,\\\"Depth\\\":0,\\\"Level\\\":\\\"INFO\\\",\\\"Message\\\":\\\"request done\\\",\\\"Fields\\\":{\\\"order\\\":7,\\\"user\\\":\\\"a<b&c\\\"},\\\"Timestamp\\\":\\\"2026-10-28T10:00:00.123456Z\\\"}\",\"timestamp\":1793181600123}",
+      "expected_message": "{\"ProducerID\":\"sensor-hub\",\"ApplicationID\":\"hub-01\",\"ProcessID\":\"corr-0001\",\"Application\":\"sensor-hub\",\"Category\":\"http\",\"Function\":\"handle_request\",\"Indentation\":0,\"Depth\":0,\"Level\":\"INFO\",\"Message\":\"request done\",\"Fields\":{\"order\":7,\"user\":\"a<b&c\"},\"Timestamp\":\"2026-10-28T10:00:00.123456Z\"}"
+    },
+    {
+      "name": "critical_is_fatal_and_no_fields",
+      "description": "CRITICAL is written FATAL (the old level); with no attributes Fields is null, with no function it is an empty text, with no context the process id is empty.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000002",
+        "event_type": "log.entry.recorded",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "CRITICAL",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "category": "boot",
+          "message": "cannot start"
+        }
+      },
+      "expected_request": "{\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"message\":\"{\\\"ProducerID\\\":\\\"sensor-hub\\\",\\\"ApplicationID\\\":\\\"hub-01\\\",\\\"ProcessID\\\":\\\"\\\",\\\"Application\\\":\\\"sensor-hub\\\",\\\"Category\\\":\\\"boot\\\",\\\"Function\\\":\\\"\\\",\\\"Indentation\\\":0,\\\"Depth\\\":0,\\\"Level\\\":\\\"FATAL\\\",\\\"Message\\\":\\\"cannot start\\\",\\\"Fields\\\":null,\\\"Timestamp\\\":\\\"2026-10-28T10:00:00.123456Z\\\"}\",\"timestamp\":1793181600123}",
+      "expected_message": "{\"ProducerID\":\"sensor-hub\",\"ApplicationID\":\"hub-01\",\"ProcessID\":\"\",\"Application\":\"sensor-hub\",\"Category\":\"boot\",\"Function\":\"\",\"Indentation\":0,\"Depth\":0,\"Level\":\"FATAL\",\"Message\":\"cannot start\",\"Fields\":null,\"Timestamp\":\"2026-10-28T10:00:00.123456Z\"}"
+    },
+    {
+      "name": "warn_unicode_and_control",
+      "description": "Text keeps its UTF-8 and a control character is escaped; nothing is HTML-escaped.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000003",
+        "event_type": "log.entry.recorded",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "WARN",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "category": "ñ",
+          "function": "f",
+          "message": "línea\n\"quoted\" <tag> & \u0001 done ✓"
+        },
+        "attributes": {
+          "ключ": "значение",
+          "nested": {
+            "b": 1,
+            "a": [
+              1,
+              2
+            ]
+          }
+        }
+      },
+      "expected_request": "{\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"message\":\"{\\\"ProducerID\\\":\\\"sensor-hub\\\",\\\"ApplicationID\\\":\\\"hub-01\\\",\\\"ProcessID\\\":\\\"\\\",\\\"Application\\\":\\\"sensor-hub\\\",\\\"Category\\\":\\\"ñ\\\",\\\"Function\\\":\\\"f\\\",\\\"Indentation\\\":0,\\\"Depth\\\":0,\\\"Level\\\":\\\"WARN\\\",\\\"Message\\\":\\\"línea\\\\n\\\\\\\"quoted\\\\\\\" <tag> & \\\\u0001 done ✓\\\",\\\"Fields\\\":{\\\"nested\\\":{\\\"a\\\":[1,2],\\\"b\\\":1},\\\"ключ\\\":\\\"значение\\\"},\\\"Timestamp\\\":\\\"2026-10-28T10:00:00.123456Z\\\"}\",\"timestamp\":1793181600123}",
+      "expected_message": "{\"ProducerID\":\"sensor-hub\",\"ApplicationID\":\"hub-01\",\"ProcessID\":\"\",\"Application\":\"sensor-hub\",\"Category\":\"ñ\",\"Function\":\"f\",\"Indentation\":0,\"Depth\":0,\"Level\":\"WARN\",\"Message\":\"línea\\n\\\"quoted\\\" <tag> & \\u0001 done ✓\",\"Fields\":{\"nested\":{\"a\":[1,2],\"b\":1},\"ключ\":\"значение\"},\"Timestamp\":\"2026-10-28T10:00:00.123456Z\"}"
+    },
+    {
+      "name": "timestamp_is_cut_not_rounded",
+      "description": "The timestamp is the occurred_at in milliseconds since the epoch, cut and never rounded.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000004",
+        "event_type": "log.entry.recorded",
+        "occurred_at": "2026-10-28T10:00:00.999999Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "DEBUG",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "category": "t",
+          "message": "m"
+        }
+      },
+      "expected_request": "{\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"message\":\"{\\\"ProducerID\\\":\\\"sensor-hub\\\",\\\"ApplicationID\\\":\\\"hub-01\\\",\\\"ProcessID\\\":\\\"\\\",\\\"Application\\\":\\\"sensor-hub\\\",\\\"Category\\\":\\\"t\\\",\\\"Function\\\":\\\"\\\",\\\"Indentation\\\":0,\\\"Depth\\\":0,\\\"Level\\\":\\\"DEBUG\\\",\\\"Message\\\":\\\"m\\\",\\\"Fields\\\":null,\\\"Timestamp\\\":\\\"2026-10-28T10:00:00.999999Z\\\"}\",\"timestamp\":1793181600999}",
+      "expected_message": "{\"ProducerID\":\"sensor-hub\",\"ApplicationID\":\"hub-01\",\"ProcessID\":\"\",\"Application\":\"sensor-hub\",\"Category\":\"t\",\"Function\":\"\",\"Indentation\":0,\"Depth\":0,\"Level\":\"DEBUG\",\"Message\":\"m\",\"Fields\":null,\"Timestamp\":\"2026-10-28T10:00:00.999999Z\"}"
+    },
+    {
+      "name": "trace_level",
+      "description": "TRACE is kept as TRACE.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000005",
+        "event_type": "log.entry.recorded",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "TRACE",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "category": "t",
+          "message": ""
+        }
+      },
+      "expected_request": "{\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"message\":\"{\\\"ProducerID\\\":\\\"sensor-hub\\\",\\\"ApplicationID\\\":\\\"hub-01\\\",\\\"ProcessID\\\":\\\"\\\",\\\"Application\\\":\\\"sensor-hub\\\",\\\"Category\\\":\\\"t\\\",\\\"Function\\\":\\\"\\\",\\\"Indentation\\\":0,\\\"Depth\\\":0,\\\"Level\\\":\\\"TRACE\\\",\\\"Message\\\":\\\"\\\",\\\"Fields\\\":null,\\\"Timestamp\\\":\\\"2026-10-28T10:00:00.123456Z\\\"}\",\"timestamp\":1793181600123}",
+      "expected_message": "{\"ProducerID\":\"sensor-hub\",\"ApplicationID\":\"hub-01\",\"ProcessID\":\"\",\"Application\":\"sensor-hub\",\"Category\":\"t\",\"Function\":\"\",\"Indentation\":0,\"Depth\":0,\"Level\":\"TRACE\",\"Message\":\"\",\"Fields\":null,\"Timestamp\":\"2026-10-28T10:00:00.123456Z\"}"
+    },
+    {
+      "name": "another_log_event_without_data_keys",
+      "description": "Any log.* event is translated; a data key that is missing is an empty text.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000006",
+        "event_type": "log.custom.thing",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "ERROR",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "message": "only the message"
+        }
+      },
+      "expected_request": "{\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"message\":\"{\\\"ProducerID\\\":\\\"sensor-hub\\\",\\\"ApplicationID\\\":\\\"hub-01\\\",\\\"ProcessID\\\":\\\"\\\",\\\"Application\\\":\\\"sensor-hub\\\",\\\"Category\\\":\\\"\\\",\\\"Function\\\":\\\"\\\",\\\"Indentation\\\":0,\\\"Depth\\\":0,\\\"Level\\\":\\\"ERROR\\\",\\\"Message\\\":\\\"only the message\\\",\\\"Fields\\\":null,\\\"Timestamp\\\":\\\"2026-10-28T10:00:00.123456Z\\\"}\",\"timestamp\":1793181600123}",
+      "expected_message": "{\"ProducerID\":\"sensor-hub\",\"ApplicationID\":\"hub-01\",\"ProcessID\":\"\",\"Application\":\"sensor-hub\",\"Category\":\"\",\"Function\":\"\",\"Indentation\":0,\"Depth\":0,\"Level\":\"ERROR\",\"Message\":\"only the message\",\"Fields\":null,\"Timestamp\":\"2026-10-28T10:00:00.123456Z\"}"
+    },
+    {
+      "name": "a_metric_is_skipped",
+      "description": "An event that is not a log.* event is skipped and counted.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000007",
+        "event_type": "metric.counter.incremented",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "INFO",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "name": "x",
+          "value": 1
+        }
+      },
+      "expected_skipped": true
+    },
+    {
+      "name": "a_text_that_looks_like_log_is_skipped",
+      "description": "The type must start with log. : logger.x is not a log event.",
+      "event": {
+        "schema_version": "0.1",
+        "event_id": "01900000-0000-7000-8000-000000000008",
+        "event_type": "logger.something",
+        "occurred_at": "2026-10-28T10:00:00.123456Z",
+        "recorded_at": "2026-10-28T10:00:00.123456Z",
+        "severity": "INFO",
+        "resource": {
+          "service_name": "sensor-hub",
+          "instance_id": "hub-01"
+        },
+        "data": {
+          "message": "m"
+        }
+      },
+      "expected_skipped": true
+    }
+  ]
+}

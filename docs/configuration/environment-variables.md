@@ -140,3 +140,23 @@ The HTTP destination is **the shared client** (the section "Shared HTTP client" 
 | Variable | Default | Field | Notes |
 |---|---|---|---|
 | `TELEMETRY_HTTP_MINIMUM_SEVERITY` | `INFO` | `minimum_severity` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL`, in upper case; an event below it is not sent |
+
+## AWS HTTP adapter (built, T-04.6)
+
+The adapter that sends `log.*` events to the `add_log` endpoint of aws_microservice ([contracts/config/aws_http.schema.json](../../contracts/config/aws_http.schema.json)). The endpoint is `host` + `:` + `port` + `path`; the host includes its scheme. It always POSTs and never compresses. The library never reads the environment: the consumer loads the values and passes them in. Host, port, path, log group and log stream are required and have no default; this repository holds placeholders only.
+
+| Variable | Default | Field | Notes |
+|---|---|---|---|
+| `TELEMETRY_AWS_HTTP_HOST` | none (required) | `host` | with the scheme, `http` or `https`; authentication over plain http is refused except to localhost |
+| `TELEMETRY_AWS_HTTP_PORT` | none (required) | `port` | 1 to 65535 |
+| `TELEMETRY_AWS_HTTP_PATH` | none (required) | `path` | starts with `/` |
+| `TELEMETRY_AWS_HTTP_LOG_GROUP_NAME` | none (required) | `log_group_name` | the CloudWatch log group |
+| `TELEMETRY_AWS_HTTP_LOG_STREAM_NAME` | none (required) | `log_stream_name` | the CloudWatch log stream |
+| `TELEMETRY_AWS_HTTP_TIMEOUT_MS` | `3000` | `timeout_ms` | milliseconds before a request gives up |
+| `TELEMETRY_AWS_HTTP_SKIP_TLS_VERIFICATION` | `false` | `skip_tls_verification` | turns the certificate check off; on by default |
+| `TELEMETRY_AWS_HTTP_BEARER_TOKEN` | none | `bearer_token` | a secret; not together with an API key |
+| `TELEMETRY_AWS_HTTP_API_KEY_HEADER` | none | `api_key_header` | needs the value |
+| `TELEMETRY_AWS_HTTP_API_KEY_VALUE` | none | `api_key_value` | a secret; needs the header |
+| `TELEMETRY_AWS_HTTP_MAX_ATTEMPTS` | `5` | `max_attempts` | the first attempt included |
+| `TELEMETRY_AWS_HTTP_RETRY_BASE_DELAY_MS` | `200` | `retry_base_delay_ms` | base of the backoff |
+| `TELEMETRY_AWS_HTTP_RETRY_MAX_DELAY_MS` | `30000` | `retry_max_delay_ms` | ceiling of the backoff, not below the base |

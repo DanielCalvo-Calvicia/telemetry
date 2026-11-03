@@ -72,6 +72,7 @@ The new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md),
 |---|---|---|
 | The Go core module `github.com/DanielCalvo-Calvicia/telemetry/go` | `go/vX.Y.Z` | `go/v0.3.0` (the first one planned) |
 | A Go adapter module, one per adapter | `go/pkg/<functionality>/<adapter>/vX.Y.Z` | `go/pkg/spool/sqlite/v0.1.0` |
+| The first one that exists in the code, the AWS adapter | `go/pkg/logging/aws_http/vX.Y.Z` | `go/pkg/logging/aws_http/v0.1.0` (not created) |
 | The Python package `telemetry` | `python-vX.Y.Z` | `python-v0.1.0` |
 | The old library `github.com/DanielCalvo-Calvicia/telemetry` | `vX.Y.Z` | `v0.1.0` and `v0.2.0` exist; no new one is planned |
 
@@ -114,3 +115,5 @@ A tag cannot be taken back (the proxy caches versions forever). A bad release ge
 
 - The CI run on GitHub of the coverage gate after `v0.2.0` (the same command passes locally).
 - The race detector.
+
+> **Update 2026-11-03 (T-04.6):** the module `go/pkg/logging/aws_http` is in `go.work`, so the `go` job of CI (a matrix over the modules of `go.work`) already runs on it. Its `go.mod` has the core at the placeholder `v0.0.0` and a local `replace` to `../../..`: **before its first tag, replace `v0.0.0` by the tag of the core and delete the `replace`**, then check that it builds with `GOWORK=off`. The coverage step measures `./internal/...` for the core and every package except the tests for an adapter module.

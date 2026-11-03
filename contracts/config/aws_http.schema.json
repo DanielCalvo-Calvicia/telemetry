@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/config/aws_http.schema.json",
+  "title": "Settings of the AWS HTTP adapter",
+  "description": "The settings of the adapter that sends log.* events to the add_log endpoint of aws_microservice (T-04.6, ADR-008). The endpoint is host + \":\" + port + path. The adapter always POSTs, never compresses and never follows a redirect, and it reuses the shared client (http_client.schema.json) for the rest. The library reads no file and no environment (ADR-004); no value of a real project is held here. The order of the properties is the order in which a validation reports its problems.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "host": {
+      "type": "string",
+      "description": "The host WITH its scheme, for example http://localhost (as in the old adapter, ADR-008). Required, http or https.",
+      "x-env": "TELEMETRY_AWS_HTTP_HOST"
+    },
+    "port": {
+      "type": "string",
+      "description": "The port, 1 to 65535. Required.",
+      "x-env": "TELEMETRY_AWS_HTTP_PORT"
+    },
+    "path": {
+      "type": "string",
+      "description": "The path of the add_log endpoint, starting with /. Required.",
+      "x-env": "TELEMETRY_AWS_HTTP_PATH"
+    },
+    "log_group_name": {
+      "type": "string",
+      "description": "The CloudWatch log group the entries go to (a placeholder such as my-log-group in this repository). Required.",
+      "x-env": "TELEMETRY_AWS_HTTP_LOG_GROUP_NAME"
+    },
+    "log_stream_name": {
+      "type": "string",
+      "description": "The CloudWatch log stream the entries go to. Required.",
+      "x-env": "TELEMETRY_AWS_HTTP_LOG_STREAM_NAME"
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "description": "Milliseconds before a request gives up (default 3000).",
+      "x-env": "TELEMETRY_AWS_HTTP_TIMEOUT_MS",
+      "minimum": 1
+    },
+    "skip_tls_verification": {
+      "type": "boolean",
+      "description": "Turn the verification of the TLS certificate OFF. On by default (REQ-SEC-005).",
+      "x-env": "TELEMETRY_AWS_HTTP_SKIP_TLS_VERIFICATION"
+    },
+    "bearer_token": {
+      "type": "string",
+      "description": "A bearer token for the Authorization header. A secret, no default, never in an error or a result (REQ-SEC-007). Not together with an API key.",
+      "x-env": "TELEMETRY_AWS_HTTP_BEARER_TOKEN"
+    },
+    "api_key_header": {
+      "type": "string",
+      "description": "The name of the header that carries an API key. Needs api_key_value.",
+      "x-env": "TELEMETRY_AWS_HTTP_API_KEY_HEADER"
+    },
+    "api_key_value": {
+      "type": "string",
+      "description": "The API key. A secret, no default. Needs api_key_header.",
+      "x-env": "TELEMETRY_AWS_HTTP_API_KEY_VALUE"
+    },
+    "max_attempts": {
+      "type": "integer",
+      "description": "Attempts at most for one request, the first included (default 5).",
+      "x-env": "TELEMETRY_AWS_HTTP_MAX_ATTEMPTS",
+      "minimum": 1
+    },
+    "retry_base_delay_ms": {
+      "type": "integer",
+      "description": "The base of the exponential backoff in milliseconds (default 200).",
+      "x-env": "TELEMETRY_AWS_HTTP_RETRY_BASE_DELAY_MS",
+      "minimum": 1
+    },
+    "retry_max_delay_ms": {
+      "type": "integer",
+      "description": "The ceiling of the backoff in milliseconds (default 30000). Not below the base.",
+      "x-env": "TELEMETRY_AWS_HTTP_RETRY_MAX_DELAY_MS",
+      "minimum": 1
+    }
+  }
+}

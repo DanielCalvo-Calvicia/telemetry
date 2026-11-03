@@ -15,3 +15,5 @@ A new outbound adapter, `aws_http` (`internal/logging/infrastructure/outbound/aw
 
 - Positive: a service logs to CloudWatch without an AWS SDK and without credentials; the endpoint creates the log group and the stream when they do not exist.
 - Negative: the sink depends on the contract of another service; a change of `add_log` is a change of this adapter (the tests build the request from the same field names). The `message` of a CloudWatch event is JSON text, so a reader sees a JSON string inside the event.
+
+> **Update 2026-11-03 (T-04.6):** the adapter of the new standard translates the **event**, not an entry: the same `add_log` request (the four fields, the `message` with the keys of the old entry in the same order, the timestamp in milliseconds), built from a `log.*` event; any other event is skipped and counted. Go: module `go/pkg/logging/aws_http`; Python: `telemetry.logging.aws_http`. The old adapter stays until T-04.7. See [architecture section 2.24](../architecture/architecture.md).

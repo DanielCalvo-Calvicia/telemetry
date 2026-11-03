@@ -1,0 +1,134 @@
+{
+  "description": "The settings of the AWS HTTP adapter (contracts/config/aws_http.schema.json). The problems of the five required fields (host, port, path, log_group_name, log_stream_name) in the order of the schema; the rules of the shared client (timeout, authentication, retry) are in integration-tests/fixtures/http/settings.json and are not repeated here. expected is the effective settings as exact canonical JSON (all thirteen fields).",
+  "cases": [
+    {
+      "description": "the minimum: five required settings",
+      "settings": {
+        "host": "http://localhost",
+        "port": "8080",
+        "path": "/api/v1/cloudwatch/logs/add",
+        "log_group_name": "my-log-group",
+        "log_stream_name": "my-log-stream"
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"\",\"host\":\"http://localhost\",\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"max_attempts\":5,\"path\":\"/api/v1/cloudwatch/logs/add\",\"port\":\"8080\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":3000}"
+    },
+    {
+      "description": "a https host and a changed timeout",
+      "settings": {
+        "host": "https://logs.example.invalid",
+        "port": "443",
+        "path": "/api/v1/cloudwatch/logs/add",
+        "log_group_name": "my-log-group",
+        "log_stream_name": "my-log-stream",
+        "timeout_ms": 500
+      },
+      "expected": "{\"api_key_header\":\"\",\"api_key_value\":\"\",\"bearer_token\":\"\",\"host\":\"https://logs.example.invalid\",\"log_group_name\":\"my-log-group\",\"log_stream_name\":\"my-log-stream\",\"max_attempts\":5,\"path\":\"/api/v1/cloudwatch/logs/add\",\"port\":\"443\",\"retry_base_delay_ms\":200,\"retry_max_delay_ms\":30000,\"skip_tls_verification\":false,\"timeout_ms\":500}"
+    },
+    {
+      "description": "nothing set: the five required fields, in order",
+      "settings": {},
+      "problems": [
+        {
+          "field": "host",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "port",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "path",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "log_group_name",
+          "code": "config_field_invalid"
+        },
+        {
+          "field": "log_stream_name",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "only the log stream is missing",
+      "settings": {
+        "host": "http://localhost",
+        "port": "8080",
+        "path": "/api/v1/cloudwatch/logs/add",
+        "log_group_name": "my-log-group",
+        "log_stream_name": ""
+      },
+      "problems": [
+        {
+          "field": "log_stream_name",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a path without the slash",
+      "settings": {
+        "host": "http://localhost",
+        "port": "8080",
+        "path": "api/v1",
+        "log_group_name": "my-log-group",
+        "log_stream_name": "my-log-stream"
+      },
+      "problems": [
+        {
+          "field": "path",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a host without a scheme",
+      "settings": {
+        "host": "localhost",
+        "port": "8080",
+        "path": "/api/v1/cloudwatch/logs/add",
+        "log_group_name": "my-log-group",
+        "log_stream_name": "my-log-stream"
+      },
+      "problems": [
+        {
+          "field": "host",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a port that is not a number",
+      "settings": {
+        "host": "http://localhost",
+        "port": "80a",
+        "path": "/api/v1/cloudwatch/logs/add",
+        "log_group_name": "my-log-group",
+        "log_stream_name": "my-log-stream"
+      },
+      "problems": [
+        {
+          "field": "port",
+          "code": "config_field_invalid"
+        }
+      ]
+    },
+    {
+      "description": "a port out of range",
+      "settings": {
+        "host": "http://localhost",
+        "port": "70000",
+        "path": "/api/v1/cloudwatch/logs/add",
+        "log_group_name": "my-log-group",
+        "log_stream_name": "my-log-stream"
+      },
+      "problems": [
+        {
+          "field": "port",
+          "code": "config_field_invalid"
+        }
+      ]
+    }
+  ]
+}

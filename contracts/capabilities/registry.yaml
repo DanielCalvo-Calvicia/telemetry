@@ -271,11 +271,16 @@ capabilities:
           - { language: python, path: python/internal/tests/e2e/test_core_shared_cases.py }
       # REQ-ARC-014: The adapters of the core (console, file, HTTP) live in the core module...
       - id: REQ-ARC-014
-        # the console, file and HTTP adapters live in internal/infrastructure/outbound/logging/{console,file,http}/ with external/, error/ and helpers/ (T-04.2, T-04.3, T-04.5); the optional adapters as modules of their own start with the AWS adapter (T-04.6)
-        pending: T-04.6
+        # the console, file and HTTP adapters live in internal/infrastructure/outbound/logging/{console,file,http}/ with external/, error/ and helpers/ (T-04.2, T-04.3, T-04.5); the AWS adapter is a module of its own, go/pkg/logging/aws_http, that imports only the standard library and the core (T-04.6)
+        tests:
+          - { language: go, path: go/pkg/logging/aws_http/internal/tests/imports_test.go }
+          - { language: go, path: go/pkg/logging/aws_http/internal/tests/shared_cases_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/logging/aws_http/test_shared_cases.py }
       # REQ-DST-001: Go MUST be distributed as one core module (github.com/DanielCalvo-Calv...
       - id: REQ-DST-001
-        pending: T-04.6
+        # the AWS adapter is a Go module of its own, joined by go.work, that builds and tests with GOWORK=off (T-04.6)
+        tests:
+          - { language: go, path: go/pkg/logging/aws_http/internal/tests/imports_test.go }
       # REQ-DST-002: Python MUST be distributed as one package with optional extras (for ex...
       - id: REQ-DST-002
         pending: T-06.4
@@ -368,7 +373,7 @@ capabilities:
     ports:
       - "planned: the destination port (T-03.2)"
     adapters:
-      - "built: console (T-04.2), file (T-04.3), HTTP (T-04.5); planned: AWS (T-04.6)"
+      - "built: console (T-04.2), file (T-04.3), HTTP (T-04.5), AWS (T-04.6)"
     languages:
       go:
         state: todo
@@ -579,7 +584,7 @@ capabilities:
     ports:
       - "planned: the destination port (T-03.2)"
     adapters:
-      - "planned: http (T-04.5), aws http (T-04.6), sqlite (T-06.6), opentelemetry (T-10.4), prometheus (T-10.5)"
+      - "built: http (T-04.5), aws http (T-04.6); planned: sqlite (T-06.6), opentelemetry (T-10.4), prometheus (T-10.5)"
     languages:
       go:
         state: todo

@@ -88,3 +88,10 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 - It sends only the masked events, after the masking and the limits of the chain, to the URL the consumer configured: **no URL is fixed in the code and none appears in the repository** (the tests use `127.0.0.1` and `logs.example.invalid`).
 - The token and the key are those of the shared client: they never appear in a result, an outcome, an error or a diagnostic, even when the URL carries a secret in its query. TLS verification is on by default; a redirect is never followed, so a response cannot send the token to another host.
 - A receiver that answers a permanent rejection (another 4xx) makes the batch **dropped**, never retried in a loop; a transient failure is bounded by the retry policy (T-05.3) and the queue (T-05.1).
+
+## The AWS HTTP adapter (built, T-04.6)
+
+- It sends only masked events (ADR-006), to the endpoint the consumer configured: **no host, port, log group or log stream is fixed in the code** and the repository holds placeholders only (`http://localhost`, `my-log-group`, `my-log-stream`).
+- The bearer token and the API key are those of the shared client: they never appear in a result, an outcome, an error or a diagnostic. Authentication over plain http is refused except to localhost. TLS verification is on by default and a redirect is never followed.
+- The Go module has no third-party dependency and a test fails on any import that is not the standard library or the core. Its `go.mod` carries a local `replace` for development that is removed at release; a released module must build without `go.work`.
+- An event that cannot be written is dropped (`serialization_failed`) and no request is made; no caller value is put in the reason.

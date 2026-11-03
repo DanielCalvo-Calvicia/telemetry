@@ -45,7 +45,15 @@ jobs:
           test -z "$(go run golang.org/x/tools/cmd/goimports@v0.35.0 -l .)"
       - run: go vet ./...
       - run: go build ./...
-      - run: go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out
+      # The code of the core is under internal/; an adapter module (go/pkg/logging/<name>) has its code at its root and
+      # only its tests under internal/tests, so it measures every package except the tests.
+      - name: Tests and coverage profile
+        run: |
+          coverpkg='./internal/...'
+          if [ ! -d internal/domain ]; then
+            coverpkg=$(go list ./... | grep -v '/internal/tests' | paste -sd, -)
+          fi
+          go test ./... -count=1 -coverpkg="$coverpkg" -coverprofile=coverage.out
       - name: Coverage gate (>= 95%, excluding external/ folders)
         run: |
           grep -v '/external/' coverage.out > filtered.out
