@@ -18,7 +18,7 @@ capabilities:
     status: in_progress
     description: "The contracts/ folder as the single source of truth (envelope, schemas, enums, registries, error codes), the code generated from it, the canonical JSON, the shared fixtures, the conformance rules and the versioning of the contract. Built so far: the envelope and the first event type, the generator, the generated code of both languages, the canonical JSON and the validation at the source."
     public_api:
-      - "planned: the envelope and event types as aliases in pkg/logging (T-03.9)"
+      - "built: the envelope and event types are aliases in go/pkg/telemetry (T-03.9)"
       - "built (internal): generated types and validators, canonical JSON of both languages"
     schemas:
       - "contracts/schemas/envelope.schema.json"
@@ -174,7 +174,7 @@ capabilities:
     status: in_progress
     description: "The layers, the direction of the dependencies, the composition root, the shape of the public packages and the distribution of the library in one Go core module and one Python package. Built so far: the architecture tests of both languages."
     public_api:
-      - "planned: pkg/logging as the only public surface of the old module; pkg/<functionality>/<adapter> in the new core (T-03.9)"
+      - "built: go/pkg/telemetry and go/pkg/logging/<adapter> as the only public surface; the old pkg/logging was removed (T-03.9, T-04.7)"
     schemas: []
     configuration:
       - "planned: none; the library never reads the environment (ADR-004)"

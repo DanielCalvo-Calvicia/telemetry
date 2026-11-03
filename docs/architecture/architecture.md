@@ -1,54 +1,46 @@
 # Architecture
 
-Status as of 2026-10-27. Everything described here exists in the repository unless it says **planned**.
+Status as of 2026-11-03. Everything described here exists in the repository unless it says **planned**.
 
 ## 1. Purpose and responsibility
 
-`telemetry` is a public Go library (`github.com/DanielCalvo-Calvicia/telemetry`) that gives a Snow Factory service one logger with the same behaviour everywhere: structured entries, a minimum level that follows the environment, masking of sensitive data, and several sinks (console, a generic HTTP receiver, and the `add_log` endpoint of aws_microservice, which stores the entry in CloudWatch Logs).
+`telemetry` is a public library, in Go and in Python, with **one contract** for both ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md)). It gives a Snow Factory service one way to build structured events (the first one is the log line), to make them safe (validation at the source, masking of sensitive data, limits) and to hand them to the destinations the project chose: the console, a file, a generic HTTP receiver and the `add_log` endpoint of aws_microservice, which stores the line in CloudWatch Logs.
 
-It is a library, not a service: there is no `cmd/`, no image and no manifest ([ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md)). A consumer imports `pkg/logging`, builds a logger and logs.
+It is a library, not a service: there is no `cmd/`, no image and no manifest ([ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md)). A project builds the core once, in code, passes the destinations it chose and logs or emits ([ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). The library never decides where the events go (the project does) and never reads the process environment ([ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md)).
 
-The library does one thing: take an entry from the caller, make it safe, stamp it and hand it to every sink. It never decides where the logs go (the consumer does) and never reads the process environment ([ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md)).
+The library that existed before the standard (the module with `pkg/logging`, tags `v0.1.0` and `v0.2.0`) was removed from the tree in T-04.7 (2026-11-03); its tags stay on the Go proxy and it is not maintained. This document describes only what is in the tree now.
 
-## 2. Structure (layers exist)
+## 2. Structure
 
-One Go module, capabilities side by side under `internal/` ([ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md)). Logging is the only capability today; metrics is **planned** (it would be `internal/metrics` with the same three layers).
+The Go code is **one core module, `go/`** (`github.com/DanielCalvo-Calvicia/telemetry/go`, [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)), plus **one module per adapter that has dependencies of its own** (today `go/pkg/logging/aws_http`, section 2.24). The core has no third-party dependency (REQ-ARC-005). The Python code is one installable package, `python/` (section 2.1), with the same layers and folder names. `contracts/` is the single source of truth between the two (section 2.3) and `go.work` joins the Go modules for local work and CI. A nested adapter module whose path is under `go/pkg/` can import the `internal/` packages of the core, and a module with an unrelated path cannot (checked on Go 1.25.5 in T-01.2 and recorded in ADR-013).
 
-**Started (T-01.2, 2026-10-28):** beside this module there is a second Go module, `go/` (`github.com/DanielCalvo-Calvicia/telemetry/go`), for the new standard ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md), [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). It has only the empty layers `domain/`, `application/`, `infrastructure/` and `composition_root/` and the folders of its tests; nothing of the new library is built. `go.work` at the root joins the two modules, and the old library stays untouched until T-04.7 removes it. `integration-tests/` exists with a README and is empty (planned); `contracts/` has its layout (2.3, T-02.1). `python/` holds the skeleton of the Python package (T-01.3, below). Checked on Go 1.25.5: a nested adapter module whose path is under `go/pkg/` can import the `internal/` packages of the core, and a module with an unrelated path cannot (the result is recorded in ADR-013).
+The layers of both languages are the standard ones ([ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md)): the domain imports nothing from the other layers; the application imports the domain and defines the ports; the infrastructure implements the ports; only `composition_root/` imports the concrete outbound adapters; a project imports only the public packages (`go/pkg/telemetry` and `go/pkg/logging/<adapter>` in Go, `telemetry` and `telemetry.logging.<adapter>` in Python). The architecture tests (section 2.2) enforce the direction of the dependencies in both languages.
 
 ```text
 telemetry/
-├── go.mod, go.sum, go.work, LICENSE, SECURITY.md, README.md, CLAUDE.md, .env.example, .gitignore
-├── go/                            # the new Go core: its own go.mod; internal/{domain,application,infrastructure,composition_root,tests} (empty layers)
-├── contracts/                     # the contract: schemas/, enums/, events/, errors/, config/, capabilities/, conventions/, storage/ (layout only)
-├── tools/contract_generator/      # the generator of the code of both languages from contracts/ (its own module)
-├── python/, integration-tests/    # the new standard (python/ is the skeleton; integration-tests/ is planned, a README)
-├── .github/workflows/ci.yml
+├── go/                            # the Go core: its own go.mod
+│   ├── pkg/telemetry/             #   the public entry point (section 2.17)
+│   ├── pkg/logging/{console,file,http}/   #   the public packages of the destinations of the core
+│   ├── pkg/logging/aws_http/      #   the AWS HTTP adapter: a module of its own (section 2.24)
+│   └── internal/{domain,application,infrastructure,composition_root,tests}/
+├── python/                        # the Python package `telemetry`: src/telemetry/{...,logging/}, internal/tests/ (section 2.1)
+├── contracts/                     # the contract: schemas/, enums/, events/, errors/, config/, capabilities/, conventions/, storage/
+├── integration-tests/             # the fixtures that both languages read (fixtures/) and the cross-language comparison script
+├── examples/aws_http_smoke/       # a sample service, a Go module of its own
+├── tools/contract_generator/      # turns contracts/ into the code of both languages (its own module)
+├── tools/registry_check/          # checks that every requirement has a conformance test or a pending task (its own module)
 ├── docs/                          # this documentation
-├── pkg/logging/                   # the ONLY public API: logging.go, sinks.go, example_test.go, sinks_test.go
-├── examples/aws_http_smoke/       # a sample service that logs in production to the add_log endpoint (run by hand)
-└── internal/
-    ├── logging/
-    │   ├── domain/                # entities, value_objects, operations (masking), rules, errors
-    │   ├── application/           # call_depth, dtos, ports (inbound, outbound), services, errors
-    │   └── infrastructure/
-    │       ├── config/            # TelemetryConfig (the env tags; no loading)
-    │       └── outbound/          # console, http_sink, aws_http, systemclock, uuidgen
-    ├── composition_root/
-    │   ├── containers/            # logging_container.go (the only place that wires the logger)
-    │   └── dependencies/          # one file per outbound adapter
-    └── tests/                     # mirrors the code tree; black-box (package x_test)
+├── .github/workflows/ci.yml
+└── go.work, LICENSE, SECURITY.md, README.md, CLAUDE.md, .env.example, .gitignore
 ```
 
-The dependency rule is the standard one: domain imports nothing from the other layers; application imports domain and defines the ports; infrastructure implements the ports; only `internal/composition_root` imports the concrete outbound adapters; consumers import only `pkg/logging` ([ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md), [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md)).
+### 2.1 The Python package (built, T-01.3 and T-03 to T-04)
 
-### 2.1 The Python package (started, T-01.3)
-
-`python/` is an installable package `telemetry` (Python 3.10 or newer; the Raspberry Pi of the pilot runs 3.11.4) with the same layers and folder names as the Go core. Only the skeleton exists: nothing of the new library is built.
+`python/` is an installable package `telemetry` (Python 3.10 or newer; the Raspberry Pi of the pilot runs 3.11.4) with the same layers and folder names as the Go core. It holds the Python implementation of everything the Go core has (sections 2.5 to 2.24), with the public entry point in `src/telemetry/__init__.py` and the destinations in `src/telemetry/logging/{console,file,http,aws_http}.py`.
 
 ```text
 python/
-├── pyproject.toml                     # setuptools; the extras sqlite, otel, prometheus, ai (empty for now); coverage and ruff settings
+├── pyproject.toml                     # setuptools; the extras sqlite, otel, prometheus, ai (the extras are empty for now: no adapter needs them yet); coverage and ruff settings
 ├── src/telemetry/                     # the package, py.typed
 │   └── internal/{domain,application,infrastructure,composition_root}/
 └── internal/tests/                    # unittest tests mirroring the code; the same folders as go/internal/tests
@@ -60,7 +52,7 @@ python/
 
 ### 2.2 The architecture tests (built, T-01.4)
 
-The direction of the dependencies is a test in both languages (REQ-ARC-008), so a wrong import fails before review. They run on the new core (`go/`, `python/`), not on the old library of the root module.
+The direction of the dependencies is a test in both languages (REQ-ARC-008), so a wrong import fails before review. They run on the Go core (`go/`) and on `python/`.
 
 | Rule | What it forbids |
 |---|---|
@@ -74,13 +66,13 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 - **Where they live.** Go: `go/internal/tests/architecture/` (`dependency_direction_test.go`, `composition_root_test.go`, `internal_visibility_test.go`, `helpers_test.go`) over the rule engine in `go/internal/tests/architecture/checker/`, which reads the imports with `go/parser` of the standard library. Python: `python/internal/tests/architecture/` (`test_dependency_direction.py`, `test_composition_root.py`, `test_internal_visibility.py`, `helpers.py`) over `checker.py`, which reads the imports with the standard `ast` module. Neither adds a dependency.
 - **Planted violations.** Each rule has a fixture tree that breaks it and a clean tree, in `go/internal/tests/fixtures/architecture/testdata/<case>/` (`testdata` is ignored by the Go tool, so the files are never compiled) and `python/internal/tests/fixtures/architecture/<case>/` (excluded from ruff). A test fails if the planted violation is not reported, and another if the clean tree is not accepted.
 - **A failure names the file and the import:** `domain-isolated: internal/domain/zz_planted.go imports "net/http"`.
-- **Not checked yet.** The adapter folders `outbound/<functionality>/<adapter>` do not exist, so the rules about adapters pass on the empty layers and are proved by the fixtures; they start to bite with T-04.
+- **What they check today.** The adapter folders `outbound/logging/<adapter>` and `outbound/shared/<adapter>` exist in both languages since T-04, so the rules about adapters now check real code; the fixtures keep proving that each rule catches a planted violation.
 
-### 2.3 The contract folder (started, T-02.1)
+### 2.3 The contract folder (built, T-02.1 to T-02.8)
 
 `contracts/` is the single source of truth between the two languages (REQ-CNF-001). Its layout, the naming rule, the envelope schema, the first event type (`log.entry.recorded`), the registry of event types and the catalog of error codes exist (T-02.1 to T-02.3); the generator that turns them into code exists (2.4, T-02.4).
 
-| Folder | What it will hold |
+| Folder | What it holds |
 |---|---|
 | `schemas/` (`device/`, `ai/`) | the JSON Schema (draft 2020-12) of the envelope (**written**: `envelope.schema.json` and `common/` for `resource`, `actor`, `context` and `attributes`) and, later, of the `data` of each event type |
 | `enums/` (`device/`, `ai/`) | severity and the actor kinds (**written**), then the execution states and transitions and the allowed values of the device and AI domains |
@@ -91,7 +83,7 @@ The direction of the dependencies is a test in both languages (REQ-ARC-008), so 
 | `conventions/naming.md` | the mechanical naming rule: Go `PascalCase` exported, Python `snake_case` functions and `PascalCase` classes, JSON `snake_case` |
 | `storage/` | the layouts of the files a reader opens (the SQLite destination, the spool) |
 
-A change is approved by the maintainer by pull request and a dated ADR note, and is implemented and released in both languages. The generated code arrives with T-02.4.
+A change is approved by the maintainer by pull request and a dated ADR note, and is implemented and released in both languages. The generated code exists since T-02.4 (section 2.4).
 
 **How an event type is registered.** An event type `<domain>.<entity>.<action>` has a schema for its `data` at `schemas/<domain>/<entity>_<action>.schema.json` and an entry in `events/registry.yaml` (type, schema, capability, the `schema_version` since which it exists). Each type is added with its capability, one at a time. T-02.4 will fail when a registered type has no schema or a schema is not registered. Error codes are in `errors/catalog.yaml`: a stable lowercase `snake_case` code with a category (`enums/failure_category.json`) and a default message; each capability adds its own.
 
@@ -240,9 +232,9 @@ One logical model, [contracts/config/config.schema.json](../../contracts/config/
 
 ### 2.16 The call context (built, T-03.8)
 
-`application/call_context/` (Go and Python) carries the identity and the correlation of a call through the program, migrated from the old `call_depth` package (which stays, unchanged, until T-04.7). A `CallContext` holds the `application`, the `instance_id`, the `execution_id`, the `correlation_id`, the `trace_id`, the `span_id` and the **indentation** of the call depth (it starts at 1 and grows by one at each deeper layer). Empty means not set and is never an error.
+`application/call_context/` (Go and Python) carries the identity and the correlation of a call through the program, migrated from the `call_depth` package of the old library (removed in T-04.7). A `CallContext` holds the `application`, the `instance_id`, the `execution_id`, the `correlation_id`, the `trace_id`, the `span_id` and the **indentation** of the call depth (it starts at 1 and grows by one at each deeper layer). Empty means not set and is never an error.
 
-- **Go** stores it in `context.Context` under an unexported key type: `WithCallContext`, `FromContext`, `NextIndentation` (a copy one layer deeper; the original is never changed) and `NewRequestContext`. **Python** stores it in a `contextvars.ContextVar` (per-call storage, not shared mutable state: it works with threads, each of which starts with none, and with `asyncio` tasks, which inherit the context of their creator and cannot change each other's): `use_call_context(...)` and `deeper_indentation()` are context managers, `current_call_context()` reads it. The Python names map to the Go ones by that rule.
+- **Go** stores it in `context.Context` under an unexported key type: `WithCallContext`, `FromContext`, `NextIndentation` (a copy one layer deeper; the original is never changed) and `NewRequestContext` (internal: it needs an id generator, so it is not in the public package, which has `NewCallContext` and `WithCorrelationID`). **Python** stores it in a `contextvars.ContextVar` (per-call storage, not shared mutable state: it works with threads, each of which starts with none, and with `asyncio` tasks, which inherit the context of their creator and cannot change each other's): `use_call_context(...)` and `deeper_indentation()` are context managers, `current_call_context()` reads it. The Python names map to the Go ones by that rule.
 - **Validation** (`NewCallContext` / `new_call_context`): `trace_id` is 32 and `span_id` 16 lowercase hexadecimal digits and **neither may be all zeros** (W3C Trace Context); the other fields are identifiers (not blank, no control characters, never trimmed). All problems are reported together as one classified error with the code `event_schema_invalid`, naming the fields and never the values. An incoming id is **data, not authorization** (REQ-TRC-003): it is validated and never trusted. It never raises to the caller (Python returns a `CallContextResult`).
 - **A new request** (`NewRequestContext` / `start_request`): the application and the instance id are validated, and the old per-request process id becomes the **correlation id**, a UUIDv7 generated with the identifier generator port (`NewEventID`; the port may get its own method later). A failing generator is an `event_build_failed` error with the cause in the chain and no context.
 - **What goes to the envelope:** `ToCorrelationContext` / `to_correlation_context` maps only the four correlation ids to the correlation context of the event (REQ-LOG-005) and gives none when all four are empty. **The application and the instance are not part of the envelope context**: the resource comes from the configuration. They stay in the call context for the migration of the old consumers.
@@ -294,7 +286,7 @@ One logical model, [contracts/config/config.schema.json](../../contracts/config/
 - **JSON** (REQ-LOG-001): one line per event, the **canonical JSON of the envelope** (T-02.5): the same bytes in both languages.
 - **Text:** `occurred_at`, the severity padded to 8 characters, `[category]`, `function:` when there is one, the message, then the attributes sorted by key as `key=value` with each value in its JSON form. An event of another type shows its type and its data as canonical JSON. **Control characters** (a line break, a carriage return, a tab, the escape character, any character below U+0020 and DEL) in the category, the function, the message or an attribute key are written as escapes (`\n`, `\r`, `\t`, `\u001b`): one event can never split or colour a line (log injection). The line never holds more than the masked event holds. A test compared 6000 random events in both languages: **no difference** in either format.
 - **Writing:** one `write` call per line, under a lock, so the lines of concurrent callers never interleave; the whole batch of one `Send` stays together. Python writes UTF-8 explicitly (a console encoding must not fail on non-ASCII text). A write failure counts the event as failed with the reason `write_failed` and the others are still written; a serialization failure is `serialization_failed`; a panic or an exception inside the destination is `destination_failed`. **Nothing reaches the log call** (ADR-005). The adapter's own `WriteEvent` / `write_event` returns or raises a classified error with the cause; **it has no catalog code yet** (the delivery codes arrive with T-05).
-- **Not done:** the console as the fallback that reports a failing sink (ADR-005 of the old library; its role in the new design is T-05.5), colours, and the minimum severity of the other destinations (the file adapter T-04.3 and the HTTP destination T-04.5 take the same setting).
+- **Not done:** the console as the fallback that reports a failing sink (a mechanism of the removed old library; its role in the new design is T-05.5), colours, and the minimum severity of the other destinations (the file adapter T-04.3 and the HTTP destination T-04.5 take the same setting).
 
 ### 2.21 The file destination (built, T-04.3)
 
@@ -332,100 +324,100 @@ The real receiver is a separate project (Q03-1, Q07-9), so **every test of deliv
 
 ### 2.24 The AWS HTTP adapter (built, T-04.6)
 
-The adapter that keeps the route to the `add_log` endpoint of aws_microservice (ADR-008): it translates a `log.*` event to the request of the old adapter and posts it. It is the **first adapter that is not in the core module** (REQ-ARC-014, REQ-DST-001, ADR-013).
+The adapter that keeps the route to the `add_log` endpoint of aws_microservice (ADR-008): it translates a `log.*` event to the `add_log` request that the adapter of the old library sent and posts it. It is the **first adapter that is not in the core module** (REQ-ARC-014, REQ-DST-001, ADR-013).
 
-- **Go: a module of its own**, `go/pkg/logging/aws_http/` (`github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/aws_http`), with `aws_http_destination.go`, `settings.go`, `error/` and `helpers/` (`build_add_log_request.go`, `build_endpoint.go`, `map_level.go`); its tests are in `internal/tests/` of the module. It has no `external/` folder: all the I/O is the shared client of the core (section 2.19), imported by its path under `go/internal/` (a nested module whose path is under `go/` may import the `internal/` packages of the core; **verified** in T-01.2 and again here, with the workspace and with `GOWORK=off`). Its `go.mod` has one `require`, the core at the placeholder `v0.0.0`, and a local `replace` to `../../..` that is for local work and **must be removed when the core is tagged** (T-04.7, T-13.4). `go.work` lists the module; the CI matrix picks it up by itself and its coverage step measures the module root (`ci.yml`). A test of the module fails on any import that is not the standard library or the core.
+- **Go: a module of its own**, `go/pkg/logging/aws_http/` (`github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/aws_http`), with `aws_http_destination.go`, `settings.go`, `error/` and `helpers/` (`build_add_log_request.go`, `build_endpoint.go`, `map_level.go`); its tests are in `internal/tests/` of the module. It has no `external/` folder: all the I/O is the shared client of the core (section 2.19), imported by its path under `go/internal/` (a nested module whose path is under `go/` may import the `internal/` packages of the core; **verified** in T-01.2 and again here, with the workspace and with `GOWORK=off`). Its `go.mod` has one `require`, the core at the placeholder `v0.0.0`, and a local `replace` to `../../..` that is for local work and **must be removed when the core is tagged** (T-13.4). `go.work` lists the module; the CI matrix picks it up by itself and its coverage step measures the module root (`ci.yml`). A test of the module fails on any import that is not the standard library or the core.
 - **Python:** `telemetry.logging.aws_http` over `internal/infrastructure/outbound/logging/aws_http/`, the same folders as the HTTP destination. The standard library is enough, so there is **no extra** (`telemetry[aws_http]` was only a proposal; the maintainer was not asked).
 - **Settings** ([contracts/config/aws_http.schema.json](../../contracts/config/aws_http.schema.json), env names `TELEMETRY_AWS_HTTP_*`): `host` (with its scheme), `port`, `path`, `log_group_name` and `log_stream_name` are required, with no default (this repository holds placeholders only), plus the timeout, TLS verification, authentication and retry settings of the shared client. It always POSTs and never compresses. The endpoint is `host` + `:` + `port` + `path`. One validation error lists every problem, the five required fields first.
 - **The request** is `{"log_group_name","log_stream_name","message","timestamp"}` in that order, no spaces, UTF-8 kept and nothing HTML-escaped; `timestamp` is the `occurred_at` cut (never rounded) to milliseconds. `message` is the entry as the old `LogEntryOutboundDTO` wrote it, with its keys in the order of that struct: `ProducerID` and `Application` are `resource.service_name`, `ApplicationID` is `resource.instance_id`, `ProcessID` is `context.correlation_id` (empty when absent), `Category`, `Function` and `Message` come from `data` (empty text when missing), `Indentation` and `Depth` are 0 (an event has no call tree), `Level` is the severity with CRITICAL written FATAL, `Fields` is the canonical JSON of the attributes (`null` when there are none) and `Timestamp` is the `occurred_at` text.
 - **What it does with a batch:** a `log.*` event gets **one request**; any other event is **skipped** (the `add_log` contract has no place for it): it counts as accepted in the result and in `Delivery.Skipped`. A 2xx accepts, a transient outcome fails and a permanent one drops, with the reason of the first event that was not accepted. An event that cannot be written (an `occurred_at` that is not a time, an attribute with no JSON form) is dropped with the reason `serialization_failed` and makes no request. No retry, no queue, no goroutine; it never panics or raises out (ADR-005); the token and the key never appear in a result or an error.
 - **Go and Python write the same bytes:** 8 shared cases ([fixtures/aws_http](../../integration-tests/fixtures/aws_http)) and a differential test of 600 random events (random text with control characters, DEL, U+2028 and non-BMP, nested attributes with floats): 0 differences. Changing the level mapping made the Go shared test fail, as it should.
 - **Choices taken without asking the maintainer:** `ProducerID` repeats the service name (the event has no producer); skipped events count as accepted; `{}` attributes are written as `null`; the fake receiver of section 2.23 is not used because it rejects any body that is not the batch body (an ad hoc local server is).
-- **Not done:** the tag of the module and the real version of the core in its `go.mod` (T-04.7 and T-13.4), the profiles selecting the adapter (the project passes it in code, ADR-013).
+- **Not done:** the tag of the module and the real version of the core in its `go.mod` (T-13.4), the profiles selecting the adapter (the project passes it in code, ADR-013).
 
 ## 3. Current state (exists)
 
-| Layer | Package | What it holds |
+| Where | What it holds | State |
 |---|---|---|
-| domain | `internal/logging/domain` | `rules.go` (levels, the minimum level by environment, the masking detectors as data) and `errors.go` |
-| domain | `.../domain/entities` | `LogEntry` (one finished line) |
-| domain | `.../domain/value_objects` | `Level`, `Message`, `Fields`, `Location`, `Indentation`, the identifiers |
-| domain | `.../domain/operations` | `SensitiveDataMasker` and its detectors (AWS access key, bearer credential, JWT, private key block, connection string password, credential pair) and `IsSensitiveFieldName`, `MaskValue` |
-| application | `.../application/services` | `LoggerService`: builds the entry, masks it, sends it to every sink, reports a failing sink to the fallback |
-| application | `.../application/call_depth` | `CallContext` carried in `context.Context` (application, instance, process id, indentation) |
-| application | `.../application/ports/inbound` | `LoggerPort`: one method per severity |
-| application | `.../application/ports/outbound` | `LogSinkPort`, `ClockPort`, `IDGeneratorPort` |
-| infrastructure | `.../outbound/console` | one JSON line per entry on the standard output |
-| infrastructure | `.../outbound/http_sink` | posts the flat JSON entry to a generic log receiver |
-| infrastructure | `.../outbound/aws_http` | adapts the entry to the `add_log` contract of aws_microservice and posts it ([ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md)); the new standard has its own adapter in the module `go/pkg/logging/aws_http` (section 2.24) |
-| infrastructure | `.../outbound/systemclock`, `.../uuidgen` | the clock and the generator of process ids (random v4 UUIDs) |
-| composition | `internal/composition_root/containers` | `LoggingContainer`: `NewLoggingContainer` (from a `Config`) and `NewLoggingContainerFromSinks` (from sinks the caller built) |
-| composition | `internal/composition_root/dependencies` | one file per adapter: console, HTTP sink, AWS HTTP sink, clock, UUID generator |
+| `go/` | the Go core: value objects, ports, the event builder, masking, limits, configuration and profiles, the error model, the call context, the pipeline, the logger and the entry point `go/pkg/telemetry` (sections 2.5 to 2.18) | built (T-02, T-03, T-04.1) |
+| `go/pkg/logging/{console,file,http}` | the destinations of the core and the shared HTTP client behind the HTTP one (sections 2.19 to 2.22) | built (T-04.2 to T-04.5) |
+| `go/pkg/logging/aws_http` | the AWS HTTP adapter, a Go module of its own, with its tests and the e2e test against a deployed aws_microservice in `internal/tests/e2e/` (section 2.24) | built (T-04.6) |
+| `go/internal/tests/` | the tests of the core, black-box, mirroring the code tree (`architecture/`, `contract/`, `e2e/`, `fakes/` with the fake receiver, `fixtures/`, one folder per layer) | built |
+| `python/` | the Python package with the same layers, the same public names and the destinations `telemetry.logging.{console,file,http,aws_http}`; its tests are in `python/internal/tests/` | built (T-03, T-04) |
+| `contracts/` | the envelope, the event registry, the error catalog, the config schemas and the naming rule (sections 2.3 to 2.8) | built (T-02) |
+| `integration-tests/` | the shared fixtures; the cross-language runner is planned (T-12) | fixtures built, runner planned |
+| `examples/aws_http_smoke/` | a sample service that logs through the AWS HTTP adapter (run by hand); a module of its own | built (T-04.7) |
+| `tools/contract_generator/`, `tools/registry_check/` | the generator and the registry check (sections 2.4 and 2.7), a module each | built (T-02) |
+| `docs/` | this documentation; the index is [docs/README.md](../README.md) | maintained with every change |
 
-Every outbound adapter keeps its I/O in an `external/` folder, its error translation in `error/` and its pure helpers in `helpers/`; the adapter file itself only holds the client and implements the port.
+Every adapter keeps its I/O in an `external/` folder, its error translation in `error/` and its pure helpers in `helpers/`; the adapter file itself only holds the client and implements the port (REQ-ARC-014). **Planned and not built:** the queue, batching, retries, flush and shutdown (T-05), the spool (T-06), the other event kinds (metrics, traces, devices, AI), OpenTelemetry and the other adapters.
 
 ## 4. Data flow of one log call
 
 ```text
-caller ──► LoggerPort.Info(ctx, Entry)
-             │ below the minimum level of APP_ENV? ──► dropped (nil)
+caller ──► core.Logger().Info(ctx, LogEntry)           (a call that returns nothing and never fails)
              ▼
-        take application, instance id, process id and indentation from the CallContext of ctx, when it carries one
+        build a log.entry.recorded event: the data, the attributes, the severity, the resource of the configuration,
+        the ids of the call context of ctx, occurred_at and recorded_at from the clock
              ▼
-        build the LogEntry (validates the value objects; the only error the caller can get)
+        validate it against the schema of its type ──► invalid: dropped, counted with its code
              ▼
-        stamp it with ClockPort.Now, MASK it (SensitiveDataMasker)
+        MASK it (ADR-006), then apply the limits (cut the keys and the values, reject an event over 64 KiB)
              ▼
-        for every sink: Send(ctx, LogEntryOutboundDTO)
-             │ a sink fails ──► the entry is dropped for THAT sink, an ERROR report goes to the fallback (console)
+        route it by the first segment of its type (log ──► the log sinks) and deliver it to EVERY destination
+             │ a destination fails (or panics) ──► counted for THAT destination, the others still get it
              ▼
-        nil
+        the result of the event (accepted, dropped, failed, reason); the caller of a log call sees nothing
 ```
 
-A sink never fails the caller and never stops the other sinks ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). The entry is masked once, before any sink ([ADR-006](../decisions/ADR-006-masking-before-every-sink.md)). The minimum level follows the environment, not a variable ([ADR-007](../decisions/ADR-007-minimum-level-follows-the-environment.md)).
+A destination never fails the caller and never stops another destination ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). The event is masked once, before any destination ([ADR-006](../decisions/ADR-006-masking-before-every-sink.md)). The minimum severity is a setting of each destination, not a variable of the environment. The destinations are called synchronously until the bounded queue of T-05 exists (section 2.17).
 
-## 5. The two ways to build a logger
+## 5. How a project builds the core
 
-| Way | Function | Use it when |
+There is one way: in code, with the adapters it chose.
+
+| Step | Go | Python |
 |---|---|---|
-| From settings | `logging.New(ctx, app_env, Config)` | the consumer loads `Config` from its environment and lets the settings switch the sinks on |
-| From sinks | `logging.NewWithSinks(ctx, app_env, mask_patterns, sinks...)` | the consumer builds the sinks itself with `NewConsoleSink`, `NewHTTPSink`, `NewAWSHTTPSink` (or its own `Sink`) ([ADR-009](../decisions/ADR-009-ready-made-sink-constructors.md)) |
+| a destination from its settings | `console.NewDestination(console.DefaultSettings())` (also `file`, `http`, `aws_http`) | `console.new_destination(console.default_settings())` |
+| the configuration | `telemetry.Microservice()` (or another profile), then the fields the project sets | `microservice()`, then `dataclasses.replace` |
+| the core | `telemetry.New(config, telemetry.WithLogSink(sink))` | `telemetry.new(config, telemetry.with_log_sink(sink))` |
+| at the end | `core.Shutdown(ctx)` | `core.shutdown()` |
 
-Both return the logger and a shutdown function to call on exit. Both use the console as the fallback sink.
+The configuration carries only settings, never an adapter name, and nothing registers itself on import ([ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). The project loads the settings from its environment with the names of [environment-variables.md](../configuration/environment-variables.md) and passes them in. The whole API is in [api.md](../api/api.md).
 
 ## 6. Decision records at a glance
 
 | ADR | Decision |
 |---|---|
 | [ADR-001](../decisions/ADR-001-adopt-shared-go-standard.md) | follow the shared Go Clean/Hexagonal standard |
-| [ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md) | one module, capabilities side by side |
-| [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md) | the public surface is `pkg/logging`, by aliases |
+| [ADR-002](../decisions/ADR-002-one-module-capabilities-side-by-side.md) | one module, capabilities side by side (replaced by ADR-013) |
+| [ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md) | the public surface is `pkg/logging`, by aliases (replaced by ADR-013; the rule of the aliases is kept) |
 | [ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md) | the library never reads the environment |
 | [ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md) | a failing sink never fails the caller |
 | [ADR-006](../decisions/ADR-006-masking-before-every-sink.md) | masking happens before every sink |
-| [ADR-007](../decisions/ADR-007-minimum-level-follows-the-environment.md) | the minimum level follows `APP_ENV` |
-| [ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP sink adapts to the `add_log` contract |
-| [ADR-009](../decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink |
+| [ADR-007](../decisions/ADR-007-minimum-level-follows-the-environment.md) | the minimum level followed `APP_ENV` (the old library; in the new one each destination has its own minimum severity) |
+| [ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP adapter adapts to the `add_log` contract |
+| [ADR-009](../decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink (now `NewDestination` and `DefaultSettings` in each adapter package) |
 | [ADR-010](../decisions/ADR-010-no-deployment-release-by-tags.md) | no deployment; release by tags |
-| [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard (accepted, not built) |
-| [ADR-012](../decisions/ADR-012-two-times-in-every-event.md) | two times in every event (accepted, not built) |
-| [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | one Go module per adapter, chosen in code (accepted, not built) |
+| [ADR-011](../decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard, one contract for Go and Python |
+| [ADR-012](../decisions/ADR-012-two-times-in-every-event.md) | two times in every event |
+| [ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md) | one Go module per adapter, chosen in code |
 
 ## 7. External services
 
 | Service | Direction | How |
 |---|---|---|
-| A generic log receiver | out (HTTP) | `http_sink`: `POST host:port/path` with the flat JSON entry, 3 s timeout, no retry |
-| aws_microservice (`add_log`) | out (HTTP) | `aws_http`: `POST host:port/path` (default `/api/v1/cloudwatch/logs/add`) with `log_group_name`, `log_stream_name`, `message`, `timestamp` (ms), 3 s timeout, no retry |
+| A generic receiver of events | out (HTTP) | the HTTP destination (section 2.22): `POST` (or `PUT` or `PATCH`) to the URL the project configures, the batch body `{"events": [...], "schema_version": "0.1"}`, 3 s timeout by default; the receiver does not exist yet (Q03-1, Q07-9) |
+| aws_microservice (`add_log`) | out (HTTP) | the AWS HTTP adapter (section 2.24): `POST host:port/path` (for example `/api/v1/cloudwatch/logs/add`) with `log_group_name`, `log_stream_name`, `message`, `timestamp` (ms), one request per `log.*` event |
 
-The library holds no credential: the receiver is reached by address only. CloudWatch Logs is reached through aws_microservice, never directly. In the new standard the same endpoint is reached by the AWS HTTP adapter (section 2.24): one request per `log.*` event with the same four fields.
+The library holds no credential of its own: a token or a key is a setting the project passes in and is never written in a result or an error. CloudWatch Logs is reached through aws_microservice, never directly. No destination retries or queues yet (T-05).
 
 ## 8. Persistence, errors, startup
 
-- **Persistence:** none. The library stores nothing; an entry that cannot be delivered is dropped.
-- **Errors:** sentinels in `application/errors.go` and `domain/errors.go`, composed with `errors.Join` so the root cause is kept (`errors.Is` works on both). The only error a log call can return is a failure to build the entry (`ErrLoggerEntryBuildFailed`).
-- **Startup:** `New` / `NewWithSinks` fail with the reason when a sink that is switched on lacks a required value, when `app_env` has no level, or when an extra mask pattern is not a regular expression.
+- **Persistence:** the file destination (section 2.21) writes JSON Lines files in the directory the project gives; there is no other persistence. The spool of the durable mode is planned (T-06).
+- **Errors:** a log call and the other calls of the hot path never fail the caller: a failure is a value with a code of [the catalog](../../contracts/errors/catalog.yaml), counted and the event dropped (section 2.15). Sentinels are in `application/errors.go` and `domain/errors.go` and are composed with `errors.Join` so the root cause is kept.
+- **Startup:** `New` (Go) returns, and `new` (Python) raises, an error with every problem of the configuration, each with its field and code; a destination that is built from invalid settings fails the same way. A `durable` mode without a spool port is refused.
 
 ## 9. Discrepancies
 
-None known. Planned and not built: the `metrics` capability (`internal/metrics`, `pkg/metrics`).
+None known between the code and this document. Planned and not built: the queue, retries, flush and shutdown (T-05), the spool (T-06), the diagnostics (T-05.5), the cross-language runner (T-12) and the tags of the modules (T-13).

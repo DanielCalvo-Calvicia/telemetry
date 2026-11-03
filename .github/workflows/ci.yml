@@ -6,8 +6,8 @@ on:
 permissions:
   contents: read
 jobs:
-  # Lists the Go modules of go.work (the old library at ".", the new core at "./go" and, later, each adapter), so a
-  # new module is checked without editing this file.
+  # Lists the Go modules of go.work (the core at "./go", each adapter module, the sample and the tools), so a new module is
+  # checked without editing this file.
   modules:
     runs-on: ubuntu-latest
     outputs:
@@ -48,13 +48,16 @@ jobs:
       # The code of the core is under internal/; an adapter module (go/pkg/logging/<name>) has its code at its root and
       # only its tests under internal/tests, so it measures every package except the tests.
       - name: Tests and coverage profile
+        if: ${{ !startsWith(matrix.module, './examples/') }}
         run: |
           coverpkg='./internal/...'
           if [ ! -d internal/domain ]; then
             coverpkg=$(go list ./... | grep -v '/internal/tests' | paste -sd, -)
           fi
           go test ./... -count=1 -coverpkg="$coverpkg" -coverprofile=coverage.out
+      # A sample under examples/ has no tests: it is formatted, vetted and built, and has no coverage gate.
       - name: Coverage gate (>= 95%, excluding external/ folders)
+        if: ${{ !startsWith(matrix.module, './examples/') }}
         run: |
           grep -v '/external/' coverage.out > filtered.out
           total=$(go tool cover -func=filtered.out | awk '/^total:/ {sub("%","",$3); print $3}')

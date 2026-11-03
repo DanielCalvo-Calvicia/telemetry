@@ -11,7 +11,7 @@ None. The library runs inside the consumer's process, in the consumer's environm
 | Tool | Version |
 |---|---|
 | Go | 1.25.5 or newer (`go.mod`) |
-| Third-party dependencies | `github.com/google/uuid` only |
+| Third-party dependencies | none in the Go core, in the AWS adapter module and in the Python package (standard library only); the tools of `tools/` have their own `go.mod` |
 
 ## Build and checks
 
@@ -23,7 +23,7 @@ go test ./... -count=1
 go test ./... -coverpkg=./internal/... -coverprofile=coverage.out   # the coverage gate of CI
 ```
 
-These commands run in the root module (the old library). The new Go core is a module of its own: run the same commands inside `go/` (`cd go`). `go.work` at the root joins the two modules for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). The pipeline runs both modules and the Python package (see "Pipeline" below).
+These commands run in each Go module, not at the root (the root has no Go module since T-04.7 removed the old library): the core is `go/` (`cd go`), the AWS adapter is `go/pkg/logging/aws_http`, the sample is `examples/aws_http_smoke` and the tools are `tools/contract_generator` and `tools/registry_check`. `go.work` at the root joins them for local work (`go work sync`, `go list -m all`) and is committed (ADR-013). The pipeline runs every module and the Python package (see "Pipeline" below).
 
 The architecture tests of the new core run with the others (`go test ./...` inside `go/`; `python -m unittest discover ...` in `python/`); they are part of the `go` and `python` jobs of the pipeline. They check the direction of the dependencies: see the architecture document, section 2.2.
 
@@ -46,8 +46,8 @@ Runs on a push to `main` and on every pull request, with a read-only `GITHUB_TOK
 
 | Job | What it does |
 |---|---|
-| `modules` | reads `go.work` (`go work edit -json`) and lists its modules: today `.` (the old library), `./go` (the new core) , `./tools/contract_generator` and `./tools/registry_check`; a module added to `go.work` is checked without editing the file |
-| `go` (one per module) | in the module folder (the shared-fixture test of `go/` runs here): `gofmt -l .` and `goimports -l .` (`golang.org/x/tools/cmd/goimports@v0.35.0`) print nothing; `go vet ./...`; `go build ./...`; `go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out`; the coverage gate: the total over `internal/`, **excluding the `external/` folders**, must be at least **95%** (measured locally on 2026-10-29: 99.0% for `go/`, 98.7% for the generator, 98.7% for the registry check, 98.0% for the old module without its e2e package) |
+| `modules` | reads `go.work` (`go work edit -json`) and lists its modules: today `./examples/aws_http_smoke`, `./go` (the core), `./go/pkg/logging/aws_http`, `./tools/contract_generator` and `./tools/registry_check`; a module added to `go.work` is checked without editing the file |
+| `go` (one per module) | in the module folder (the shared-fixture test of `go/` runs here): `gofmt -l .` and `goimports -l .` (`golang.org/x/tools/cmd/goimports@v0.35.0`) print nothing; `go vet ./...`; `go build ./...`; `go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out`; the coverage gate: the total over `internal/`, **excluding the `external/` folders**, must be at least **95%** (measured locally on 2026-10-29: 99.0% for `go/`, 98.7% for the generator, 98.7% for the registry check, 98.0% for the old module without its e2e package, which was removed in T-04.7; after it, 98.4% for `go/` and 98.2% for the AWS adapter module). The sample under `examples/` has no tests: it is formatted, vetted and built, and has no coverage gate) |
 | `python` (3.10 and 3.11) | in `python/` (the shared-fixture test runs here): `pip install . coverage[toml]==7.17.0 ruff==0.17.3`; `ruff check .` and `ruff format --check .`; `coverage run -m unittest discover -s internal/tests -t .` and `coverage report`, whose gate is `fail_under = 95` with `omit */external/*` in `pyproject.toml`. 3.10 is the declared minimum and 3.11 is the version of the Raspberry Pi of the pilot |
 | `generated-code` | the generated code is committed (REQ-DST-005): it runs the generator on `contracts/` (`cd tools/contract_generator && go run . --contracts ../../contracts --go-out ../../go/internal/domain/value_objects --python-out ../../python/src/telemetry/internal/domain/value_objects --go-validation-out ../../go/internal/domain/operations/event_validation --python-validation-out ../../python/src/telemetry/internal/domain/operations/event_validation`) and fails on `git diff --exit-code` or if `git status --porcelain` shows a new file, so a contract change without its generated code, or a hand edit of a generated file, cannot be merged |
 | `registry-check` | runs `tools/registry_check` on the specification, the registry, the repository and the tasks (`cd tools/registry_check && go run . --spec ../../docs/proposals/PR-001-telemetry-standard-go-python.md --registry ../../contracts/capabilities/registry.yaml --root ../.. --tasks ../../docs/tasks`): it fails if a requirement has neither a conformance test nor a pending task, if a listed test file or task does not exist, or if a capability is marked `supported` without both languages passing; it prints the uncovered requirements and the library maturity |
@@ -89,7 +89,7 @@ The rules:
 
 **Decided by the maintainer on 2026-10-28:** every contract change, even one that only adds an optional field (a MINOR change of `schema_version`, REQ-VER-003), is implemented in **both** languages and released in both. One language never releases a contract change alone.
 
-How a release is made today (the old library, and the same steps for the new tags):
+How a release is made (the same steps for every tag):
 
 1. Work on a `feature_*` branch; push it; open or merge into the branch `feature`.
 2. Merge `feature` into `main`.
@@ -99,7 +99,7 @@ How a release is made today (the old library, and the same steps for the new tag
 ## How a consumer takes a release
 
 ```bash
-go get github.com/DanielCalvo-Calvicia/telemetry@v0.2.0     # the old library; the only tags that exist today
+go get github.com/DanielCalvo-Calvicia/telemetry@v0.2.0     # the old library, removed from the tree in T-04.7; its tags stay on the proxy and are the only ones that exist today
 go mod tidy
 ```
 
@@ -117,3 +117,5 @@ A tag cannot be taken back (the proxy caches versions forever). A bad release ge
 - The race detector.
 
 > **Update 2026-11-03 (T-04.6):** the module `go/pkg/logging/aws_http` is in `go.work`, so the `go` job of CI (a matrix over the modules of `go.work`) already runs on it. Its `go.mod` has the core at the placeholder `v0.0.0` and a local `replace` to `../../..`: **before its first tag, replace `v0.0.0` by the tag of the core and delete the `replace`**, then check that it builds with `GOWORK=off`. The coverage step measures `./internal/...` for the core and every package except the tests for an adapter module.
+
+> **Update 2026-11-03 (T-04.7):** the old library (`pkg/logging`, `internal/logging`, the root `go.mod`) is removed from the tree and `.` is no longer in `go.work`. Its tags `v0.1.0` and `v0.2.0` are never moved and stay available on the Go proxy; the project that uses them keeps using them. Nothing else is tagged.

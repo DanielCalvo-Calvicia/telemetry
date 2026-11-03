@@ -1,123 +1,120 @@
 # Public API of the library
 
-The only public package is `github.com/DanielCalvo-Calvicia/telemetry/pkg/logging`. A consumer never imports `internal/` (the compiler forbids it). Every exported identifier is an alias or a thin function over the internal code, so there is one definition of each type ([ADR-003](../decisions/ADR-003-public-surface-is-pkg-logging.md)). Run `go doc ./pkg/logging` for the same list with the doc comments.
+The library is `telemetry`, in Go and in Python, with one contract for both ([PR-001](../proposals/PR-001-telemetry-standard-go-python.md)). A project builds the core **once**, in code, passes the destinations it chose, and logs or emits events. A project never imports an `internal/` package (the Go compiler forbids it) and nothing registers itself on import ([ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)). The old `pkg/logging` API (`logging.New`, `NewWithSinks`, `Sink`, `Entry`) was removed in T-04.7 (2026-11-03); the tags `v0.1.0` and `v0.2.0` keep it on the Go proxy and it is not maintained.
 
-## Types
+**Nothing of the new library is tagged or released yet**; until it is, use a `go.work` file or a clone of this repository (see the README).
+
+| Language | Public packages | Module |
+|---|---|---|
+| Go | `github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry` (the entry point), `.../go/pkg/logging/console`, `.../go/pkg/logging/file`, `.../go/pkg/logging/http` | the core, `github.com/DanielCalvo-Calvicia/telemetry/go` |
+| Go | `github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/aws_http` | a module of its own, so a project that does not use it does not download it |
+| Python | `telemetry` (the entry point) and `telemetry.logging.{console,file,http,aws_http}` | one installable package, standard library only, no extra to install |
+
+Run `go doc ./pkg/telemetry` in `go/` (and `go doc .` in `go/pkg/logging/aws_http`) for the same list with the doc comments. The names that both languages export are listed in `integration-tests/fixtures/core/public_names.json`; the rule that maps one to the other is in [contracts/conventions/naming.md](../../contracts/conventions/naming.md): Go `PascalCase` exported names, Python `snake_case` functions and `PascalCase` classes, `snake_case` in JSON. In Go the public types are **aliases** of the internal ones and the functions are thin ([ADR-003 and ADR-013](../decisions/ADR-013-go-modules-per-adapter-chosen-in-code.md)).
+
+## The entry point
+
+Go, package `telemetry`:
 
 | Name | Is | Use |
 |---|---|---|
-| `Logger` | `inbound.LoggerPort` | what a consumer asks of the logger: `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, each `(ctx, Entry) error` |
-| `Entry` | `dtos.LogEntryInboundDTO` | the entry a consumer builds for every call |
-| `Config` | `config.TelemetryConfig` | the settings (with their env tags) a consumer embeds in its own config |
-| `CallContext` | `call_depth.CallContext` | identity and depth of a call, carried in the context |
-| `Sink` | `outbound.LogSinkPort` | a destination of entries; implement it for a destination of your own |
-| `SinkEntry` | `dtos.LogEntryOutboundDTO` | the finished entry a `Sink` receives |
+| `New(config Config, options ...Option)` | `(*Telemetry, error)` | validates the configuration and builds the core with the adapters of the options; an invalid configuration returns a `*ValidationError` with every problem, a `durable` delivery mode without `WithLocalSpool` is one of them |
+| `Microservice()`, `Cronjob()`, `Worker()`, `Robotics()`, `OfflineDevice()` | `Config` | the profiles; they only change the delivery mode (`best_effort`, `retry` or `durable`) |
+| `WithLogSink`, `WithEventSink`, `WithMetricsSink`, `WithTraceSink`, `WithDeviceTelemetrySink`, `WithAITelemetrySink` | `Option` | the destinations; a sink given twice is a second destination |
+| `WithLocalSpool`, `WithClock`, `WithIDGenerator` | `Option` | the spool port, the clock and the id generator (for tests and for the project's own adapters) |
+| `(*Telemetry).Emit(ctx, NewEventInput)` | `EmitResult` | builds, validates, masks, limits and delivers one event; never fails: the result says how many sinks accepted, dropped or failed it and why |
+| `(*Telemetry).Logger()` | `Logger` | the logger (below) |
+| `(*Telemetry).Shutdown(ctx)` | `ShutdownResult` | call it when the program ends; it is a stub until the queue of T-05.4 exists |
 
-### `Entry`
+Types: `Telemetry`, `Config` (with `ResourceConfig`, `DeliveryConfig`, `LimitsConfig`, `SpoolConfig`, `MaskingConfig`), `Option`, `Logger`, `LogEntry`, `NewEventInput`, `EmitResult`, `SendResult`, `ShutdownResult`, `Severity` (with the constants `SeverityTrace` ... `SeverityCritical`), `Envelope`, `EventID`, `UTCInstant`, `ActorIdentity`, `CorrelationContext`, `EventAttributes`, `Identifier`, `Limits` (`DefaultLimits()`, `NewLimits(...)`), `ValidationError`, `CallContext`, and the ports a project implements for a destination of its own: `LogSinkPort`, `EventSinkPort`, `MetricsSinkPort`, `TraceSinkPort`, `DeviceTelemetrySinkPort`, `AITelemetrySinkPort`, `LocalSpoolPort`, `ClockPort` and `IDGeneratorPort`.
 
-| Field | Meaning |
+Python, package `telemetry`: `new(config, *options)`, the profiles `microservice()`, `cronjob()`, `worker()`, `robotics()`, `offline_device()`, the options `with_log_sink`, `with_event_sink`, `with_metrics_sink`, `with_trace_sink`, `with_device_telemetry_sink`, `with_ai_telemetry_sink`, `with_local_spool`, `with_clock` and `with_id_generator`, `core.emit(...)`, `core.logger`, `core.shutdown()`, and the same types (`Telemetry`, `Config`, `LogEntry`, `NewEventInput`, `Severity`, `Limits`, `CallContext`, the ports, ...). An invalid configuration raises `ConfigurationError` with every problem.
+
+The settings are plain values: the project loads them with its own tool (the env names are in [environment-variables.md](../configuration/environment-variables.md)) and passes them in. The library never reads the environment or a file ([ADR-004](../decisions/ADR-004-library-never-reads-the-environment.md)). The sinks are called synchronously until the queue of T-05 exists, and the spool port is accepted but not used until T-06.
+
+## The logger
+
+`core.Logger()` (Go) and `core.logger` (Python) give a `Logger` with one method per severity. Go: `Trace`, `Debug`, `Info`, `Warn`, `Error` and `Critical`, each `(ctx, LogEntry)` and with no return value. Python: `trace`, `debug`, `info`, `warn`, `error` and `critical`, each taking a `LogEntry`.
+
+| `LogEntry` field | Meaning |
 |---|---|
-| `ProducerID` | who produced the line (free text) |
-| `ApplicationID` | the running instance; taken from the `CallContext` of `ctx` when it carries one |
-| `ProcessID` | the request; taken from the `CallContext` of `ctx` when it carries one |
-| `Application` | the application name; taken from the `CallContext` of `ctx` when it carries one |
 | `Category` | the layer or area (for example `http`, `service`) |
-| `Function` | the function that logs |
-| `Indentation` | depth of the layer in the call tree; taken from the `CallContext` of `ctx` when it carries one |
-| `Depth` | the step inside one layer, reported by the caller |
+| `Function` | the function that logs (optional) |
 | `Message` | the text of the line |
-| `Fields` | extra data, `map[string]any`; masked before any sink |
+| `Fields` | extra data; they become the attributes of the event |
 
-The level is chosen by the method that is called and the timestamp is set by the logger, so neither is part of `Entry`. When `ctx` carries a `CallContext`, its application, instance id, process id and indentation **replace** the values of the entry; without one the entry keeps what the caller set.
+- A log call builds a `log.entry.recorded` event: `category`, `message` and, when given, `function` go to `data`; the extra fields go to `attributes`; the severity is the one of the method; the application is the `service_name` of the resource configuration; the ids of the call context are attached by the core. The data of the event type is in [contracts/schemas/log/entry_recorded.schema.json](../../contracts/schemas/log/entry_recorded.schema.json); the event types are registered in [contracts/events/registry.yaml](../../contracts/events/registry.yaml).
+- **A log call returns nothing and never fails**: no error, no exception, no panic ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). `Critical` logs; it does not stop the process. A rejected event is counted; the counters become diagnostics in T-05.5.
+- **Fields:** scalars and lists of scalars are kept; anything else is written as its canonical JSON text; null values and empty keys are dropped. The limits (32 attributes, a key of 64 characters, a value of 256 characters, an event of 64 KiB) are applied after the masking.
+- **Native logging.** Go: `telemetry.NewSlogHandler(logger, default_category)` returns a `slog.Handler`. Python: `telemetry.LoggingHandler(core.logger, default_category)` is a `logging.Handler`. The attributes named `category` and `function` set the category and the function. The handler does not filter by level.
+- No request body, payload or traceback is recorded unless the caller passes it in the fields.
 
-## Functions
+## The call context
 
-| Function | Returns | Notes |
-|---|---|---|
-| `New(ctx, app_env, cfg Config)` | `(Logger, shutdown func(ctx) error, error)` | builds the sinks `cfg` switches on; `app_env` is `development` or `production` |
-| `NewWithSinks(ctx, app_env, mask_extra_patterns, sinks ...Sink)` | `(Logger, shutdown, error)` | builds the logger over sinks the caller built |
-| `NewConsoleSink()` | `Sink` | one JSON line per entry on the standard output |
-| `NewHTTPSink(host, port, path)` | `(Sink, error)` | posts the flat JSON entry to a generic receiver; host includes the scheme |
-| `NewAWSHTTPSink(host, port, path, log_group_name, log_stream_name)` | `(Sink, error)` | adapts the entry to the `add_log` endpoint of aws_microservice; any empty value is an error |
-| `NewRequestContext(ctx, application_name, application_id)` | `(context.Context, error)` | starts the `CallContext` of a request with a new random process id |
-| `WithCallContext(ctx, CallContext)` | `context.Context` | carries a call context |
-| `FromContext(ctx)` | `(CallContext, bool)` | reads it |
-| `NextIndentation(ctx)` | `(context.Context, bool)` | one layer deeper; `false` and the same context when there is no call context |
+A `CallContext` carries the identity and the position of a call (application, instance id, execution id, correlation id, trace id, span id and indentation) in the context of the call; the core attaches it to the event.
 
-Constants and variables: `StartingIndentation` (1, the indentation of the inbound layer) and `ErrCallDepthProcessIDFailed`.
+- Go: `NewCallContext(options...)` with the options `WithApplication`, `WithInstanceID`, `WithExecutionID`, `WithCorrelationID`, `WithTraceID` and `WithSpanID`; `WithCallContext(ctx, call_context)` carries it; `FromContext(ctx)` reads it; `NextIndentation(ctx)` returns the context one layer deeper and `true`, or the same context and `false` when there is no call context. An invalid field is an error that names the field and never the value. The trace and span ids must be 32 and 16 lowercase hexadecimal digits and not all zeros.
+- Python: `new_call_context(...)`, `use_call_context(call_context)` (a context manager), `current_call_context()` and `deeper_indentation()` (a context manager).
+- The old `NewRequestContext(ctx, application_name, application_id)` is **not** part of the public API: the helper of the new core needs an id generator and is internal. A project builds the context with `NewCallContext` and gives the correlation id itself with `WithCorrelationID`.
 
-## Behaviour a consumer can rely on
+## Destinations
 
-- A call below the minimum level of `app_env` returns `nil` and sends nothing (`development`: DEBUG and above; `production`: INFO and above; TRACE is never sent).
-- A failing sink never makes the call fail and never stops the other sinks; the failure is reported to the console ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)).
-- Sensitive data is masked (`*****MASKED*****`) before any sink receives the entry ([ADR-006](../decisions/ADR-006-masking-before-every-sink.md)).
-- `Fatal` logs; it does not stop the process.
-- The only error a log call returns is a failure to build the entry (`ErrLoggerEntryBuildFailed`).
-- A construction function fails with the reason (the sentinels of the internal `application` and `containers` packages are joined, so `errors.Is` finds the root cause).
+A destination is built from its settings and given to the core as `telemetry.WithLogSink(destination)` (Go) or `telemetry.with_log_sink(destination)` (Python). It never fails the caller and never stops another destination. An invalid setting fails when the destination is built, with every problem together, each with its field and a reason that holds no configured value. The env names of the settings are in [environment-variables.md](../configuration/environment-variables.md).
 
-## Example
+### Console (built, T-04.2)
 
-```go
-cfg := logging.Config{ConsoleEnabled: true}
-logger, shutdown, err := logging.New(ctx, "production", cfg)
-if err != nil { /* handle */ }
-defer shutdown(ctx)
+Go: `console.NewDestination(console.Settings{Format: "json", MinimumSeverity: "INFO"})` from `go/pkg/logging/console`; `console.DefaultSettings()` gives the defaults; `NewDestinationWithWriter(settings, writer)` writes to another `io.Writer`. Python: `telemetry.logging.console.new_destination(Settings(...))`, `default_settings()` and `new_destination_with_writer(settings, writer)`. `Format` is `json` (the canonical JSON of the envelope, one line per event) or `text` (a readable line); `MinimumSeverity` is `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL` in upper case. An event below the minimum is not written (it counts as accepted).
 
-request_ctx, _ := logging.NewRequestContext(ctx, "orders", "instance-1")
-_ = logger.Info(request_ctx, logging.Entry{Category: "http", Function: "Handle", Message: "request received"})
-```
+### File (built, T-04.3)
 
-Building the sinks yourself:
+Go: `file.NewDestination(file.Settings{Directory: "logs", ...})` from `go/pkg/logging/file` returns a `*Destination`; `file.DefaultSettings()` gives the defaults (no directory) and `destination.Counters()` the counters. Python: `telemetry.logging.file.new_destination(Settings(directory="logs", ...))`, `default_settings()` and `destination.counters`. The directory is required (the library picks no path); the files are `telemetry.jsonl` and, rotated, `telemetry.jsonl.1` (the newest) ... `telemetry.jsonl.<max_files - 1>`; each line is the canonical JSON of one event. A directory that cannot be written fails when the destination is built.
 
-```go
-aws_sink, err := logging.NewAWSHTTPSink("http://aws-microservice", "8080", "/api/v1/cloudwatch/logs/add", "my-group", "my-stream")
-logger, shutdown, err := logging.NewWithSinks(ctx, "production", nil, logging.NewConsoleSink(), aws_sink)
-```
+### HTTP (built, T-04.5)
 
-A runnable sample is in `examples/aws_http_smoke`; the test that sends one line to a deployed aws_microservice is `internal/tests/e2e/deployed_aws_microservice_test.go`.
+Go: `http.NewDestination(http.Settings{URL: "https://...", ...})` from `go/pkg/logging/http` (package `http`: import it with an alias next to `net/http`) returns a `*Destination`; `http.DefaultSettings()` gives the defaults (no URL: it is required) and `NewDestinationWithLimits(settings, limits)` takes the limits (`telemetry.Limits`, `telemetry.DefaultLimits()`, `telemetry.NewLimits(...)`). Python: `telemetry.logging.http.new_destination(Settings(url="https://...", ...))`, `default_settings()`, `new_destination_with_limits(settings, limits)` and `telemetry.Limits`. The settings are those of the shared client and `minimum_severity`. The destination sends **one request per batch** and returns the result: events below the minimum are accepted without being sent; a transient failure is `failed`, a permanent rejection `dropped`, with the reason (`status_503`, `timeout`, `network_error`, `batch_too_large`...). `Deliver` also returns the full outcome (a `Delivery`). **It does not queue and does not retry yet** (T-05).
 
-## The contract the AWS HTTP sink sends
+**The contract it sends** (the shared HTTP client of the core, built in T-04.4): `POST` (or `PUT` or `PATCH`) to the URL the consumer configures, with `Content-Type: application/json` and, when asked, `Content-Encoding: gzip`, and the body `{"events": [ ... ], "schema_version": "0.1"}` (canonical JSON, at most the batch limit of 1 MiB). A bearer token goes in `Authorization` or an API key in a header the consumer names; the timeout is 3 s by default and the TLS verification is on. The receiver answers 2xx for success; 408, 429 and 5xx are transient (and `Retry-After` is honored by the retry policy that T-05 will run); other 4xx and any redirect are permanent rejections. A token is never sent over plain `http` except to `localhost`.
 
-`POST host:port/path` with `Content-Type: application/json`:
+### AWS HTTP (built, T-04.6)
+
+The adapter for the `add_log` endpoint of aws_microservice, which stores the line in CloudWatch Logs ([ADR-008](../decisions/ADR-008-aws-http-sink-adapts-to-add-log.md)). Go: a module of its own, `github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/aws_http` (not tagged yet), package `aws_http`: `aws_http.NewDestination(aws_http.Settings{Host: "http://localhost", Port: "8080", Path: "/api/v1/cloudwatch/logs/add", LogGroupName: "my-log-group", LogStreamName: "my-log-stream"})` returns a `*Destination`; `DefaultSettings()` gives the defaults, `NewDestinationWithLimits(settings, limits)` takes the limits and `ValidateSettings(settings)` checks them. Python: `telemetry.logging.aws_http.new_destination(Settings(host=..., ...))` and `default_settings()`. The five required settings are never defaulted and an empty one is a validation error that names it. Only `log.*` events are sent (one request each; any other event is skipped and counted as accepted); `Deliver` answers a `Delivery` with the result, the outcome of the last request, `Sent` and `Skipped`. See [architecture section 2.24](../architecture/architecture.md).
+
+**The request it sends:** `POST host:port/path` with `Content-Type: application/json`:
 
 ```json
 {"log_group_name": "my-group", "log_stream_name": "my-stream", "message": "<the whole entry as flat JSON>", "timestamp": 1792491116421}
 ```
 
-`message` is the entry encoded as the flat JSON payload (`ProducerID`, `ApplicationID`, `ProcessID`, `Application`, `Category`, `Function`, `Indentation`, `Depth`, `Level`, `Message`, `Fields`, `Timestamp`), so the level and the fields are kept in CloudWatch. `timestamp` is the entry's time in milliseconds. A status of 400 or above is a delivery failure; the answer body is not interpreted.
+`message` is the entry as the flat JSON payload that aws_microservice has always received (`ProducerID`, `ApplicationID`, `ProcessID`, `Application`, `Category`, `Function`, `Indentation`, `Depth`, `Level`, `Message`, `Fields`, `Timestamp`), so the level and the fields are kept in CloudWatch; `timestamp` is `occurred_at` in milliseconds. The mapping from the event to each key is in architecture section 2.24. A status of 2xx accepts; the answer body is not interpreted.
 
-> **Planned (T-02.1):** the public names of the new standard follow the rule in [contracts/conventions/naming.md](../../contracts/conventions/naming.md): Go `PascalCase`, Python `snake_case` functions and `PascalCase` classes, `snake_case` in JSON. This document describes the old `pkg/logging`, which does not change.
+## What a consumer can rely on
 
-> **Planned (T-02.2):** every event of the new standard shares one envelope, defined by [contracts/schemas/envelope.schema.json](../../contracts/schemas/envelope.schema.json): `schema_version`, `event_id` (UUIDv7), `event_type`, `occurred_at` and `recorded_at` (both UTC), `severity`, `resource`, `actor`, `context`, `data` and `attributes`. It does not describe the old `pkg/logging`, which does not change.
+- A log call never returns an error, never raises and never panics; `Emit` never fails and reports how many sinks accepted, dropped or failed the event ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)).
+- A failing destination never stops another one; the failure is in the result of the event.
+- Every event is **masked** before any destination receives it ([ADR-006](../decisions/ADR-006-masking-before-every-sink.md)), then limited. The masking has options in the configuration: extra field names, extra patterns, a replacement of the default list of names, classes of fields and a rule per class (`drop`, `redact`, `allow`).
+- A caller sets the event type, the severity, the data and, optionally, `occurred_at`, the actor, the context and the attributes; it cannot set `recorded_at` (the library's clock does), `event_id`, `schema_version` or `resource` (the configuration gives it).
+- An event is serialized in the canonical form of RFC 8785 (JCS): sorted keys, no whitespace, the same bytes in Go and Python; the times are written `YYYY-MM-DDTHH:MM:SS.ffffffZ` (UTC, six decimals). Every event shares one envelope, defined by [contracts/schemas/envelope.schema.json](../../contracts/schemas/envelope.schema.json): `schema_version`, `event_id` (UUIDv7), `event_type`, `occurred_at` and `recorded_at`, `severity`, `resource`, `actor`, `context`, `data` and `attributes`.
+- An event that does not match the schema of its type is **rejected, not thrown**: the validator returns a classified error (`event_type_unknown` or `event_schema_invalid`) whose message names the event type and the field path and never the value ([architecture section 2.6](../architecture/architecture.md)).
+- The errors a consumer can see are those of the building of the core (an invalid configuration: every problem with its field and code) and the diagnostics (counts by code, T-05.5). The codes are those of [the catalog](../../contracts/errors/catalog.yaml), the same in both languages; a message never holds a value the caller gave.
 
-> **Planned (T-02.3):** the first event type of the new standard is `log.entry.recorded`: its `data` is `category`, an optional `function` and `message` ([contracts/schemas/log/entry_recorded.schema.json](../../contracts/schemas/log/entry_recorded.schema.json)); the application is the `service_name` of the envelope resource, the severity is the envelope severity and any extra field goes to the envelope `attributes`. The event types are registered in [contracts/events/registry.yaml](../../contracts/events/registry.yaml) and the error codes in [contracts/errors/catalog.yaml](../../contracts/errors/catalog.yaml).
+## Example
 
-> **Planned (T-04.5):** the HTTP destination. Go: `http.NewDestination(http.Settings{URL: "https://...", ...})` from `go/pkg/logging/http` (package `http`: import it with an alias next to `net/http`) returns a `*Destination` to pass as `telemetry.WithLogSink(destination)`; `http.DefaultSettings()` gives the defaults (no URL: it is required) and `NewDestinationWithLimits(settings, limits)` takes the limits (`telemetry.Limits`, `telemetry.DefaultLimits()`, `telemetry.NewLimits(...)`, added to `go/pkg/telemetry` so that a project can build them). Python: `telemetry.logging.http.new_destination(Settings(url="https://...", ...))`, `default_settings()`, `new_destination_with_limits(settings, limits)` and `telemetry.Limits`. The settings are those of the shared client (T-04.4) and `minimum_severity`. The destination sends one request per batch and returns the result: events below the minimum are accepted without being sent; a transient failure is `failed`, a permanent rejection `dropped`, with the reason (`status_503`, `timeout`, `network_error`, `batch_too_large`...). It does not queue and does not retry (T-05).
+```go
+import (
+	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/console"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/pkg/telemetry"
+)
 
-> **Planned (T-04.6):** the AWS HTTP adapter, for the `add_log` endpoint of aws_microservice. Go: a module of its own, `go get github.com/DanielCalvo-Calvicia/telemetry/go/pkg/logging/aws_http` (not tagged yet), package `aws_http`: `aws_http.NewDestination(aws_http.Settings{Host: "http://localhost", Port: "8080", Path: "/api/v1/cloudwatch/logs/add", LogGroupName: "my-log-group", LogStreamName: "my-log-stream"})` returns a `*Destination` for `telemetry.WithLogSink(destination)`; `DefaultSettings()` gives the defaults and `NewDestinationWithLimits(settings, limits)` takes the limits. Python: `telemetry.logging.aws_http.new_destination(Settings(host=..., ...))`, `default_settings()`; no extra to install. The five required settings are never defaulted and an empty one is a validation error that names it. Only `log.*` events are sent (one request each); `Deliver` answers a `Delivery` with the result, the outcome of the last request, `Sent` and `Skipped`. See [architecture section 2.24](../architecture/architecture.md).
+sink, err := console.NewDestination(console.DefaultSettings())
+if err != nil { /* handle */ }
 
-> **Planned (T-04.3):** the file destination. Go: `file.NewDestination(file.Settings{Directory: "logs", ...})` from `go/pkg/logging/file` returns a `*Destination` to pass as `telemetry.WithLogSink(destination)`; `file.DefaultSettings()` gives the defaults (no directory) and `destination.Counters()` the counters. Python: `telemetry.logging.file.new_destination(Settings(directory="logs", ...))`, `default_settings()` and `destination.counters`. The directory is required (the library picks no path); the files are `telemetry.jsonl` and, rotated, `telemetry.jsonl.1` (the newest) ... `telemetry.jsonl.<max_files - 1>`; each line is the canonical JSON of one event. A directory that cannot be written fails when the destination is built.
+config := telemetry.Microservice()
+config.Resource.ServiceName = "orders"
+core, err := telemetry.New(config, telemetry.WithLogSink(sink))
+if err != nil { /* handle */ }
+defer core.Shutdown(ctx)
 
-> **Planned (T-04.2):** the console destination. Go: `console.NewDestination(console.Settings{Format: "json", MinimumSeverity: "INFO"})` from `go/pkg/logging/console` returns the sink to pass as `telemetry.WithLogSink(sink)`; `console.DefaultSettings()` gives the defaults; `NewDestinationWithWriter(settings, writer)` writes to another `io.Writer`. Python: `telemetry.logging.console.new_destination(Settings(...))` with `telemetry.with_log_sink(sink)`, `default_settings()` and `new_destination_with_writer(settings, writer)`. `format` is `json` (the canonical JSON of the envelope, one line per event) or `text` (a readable line); `minimum_severity` is `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` or `CRITICAL` in upper case. An event below the minimum is not written. An invalid setting fails when the destination is built, with every problem.
+core.Logger().Info(ctx, telemetry.LogEntry{Category: "http", Function: "Handle", Message: "request received"})
+```
 
-> **Planned (T-04.4):** the HTTP contract of the new core. An HTTP adapter sends `POST` (or `PUT` or `PATCH`) to the URL the consumer configures, with `Content-Type: application/json` and, when asked, `Content-Encoding: gzip`, a body `{"events": [ ... ], "schema_version": "0.1"}` (canonical JSON, at most the batch limit of 1 MiB), a bearer token in `Authorization` or an API key in a header the consumer names, a timeout of 3 s by default and TLS verification on. The receiver answers 2xx for success; 408, 429 and 5xx are retried (honoring `Retry-After`); other 4xx and any redirect are permanent rejections. A token is never sent over plain `http` except to `localhost`.
-
-> **Planned (T-04.1):** the logger of the new core. Go: `core.Logger()` returns a `Logger` with `Trace`, `Debug`, `Info`, `Warn`, `Error` and `Critical`, each `(ctx, LogEntry{Category, Function, Message, Fields})`; `telemetry.NewSlogHandler(logger, default_category)` is a `slog.Handler`. Python: `core.logger` with `trace` ... `critical`, each taking a `LogEntry`; `telemetry.LoggingHandler(core.logger, default_category)` is a `logging.Handler`. A log call returns nothing and never fails. Fields: scalars and lists of scalars are kept; anything else is written as its canonical JSON text; null values and empty keys are dropped. The handlers take the category and the function from the attributes named `category` and `function`.
-
-> **Planned (T-03.9):** the entry point of the new core. Go (`go/pkg/telemetry`): `New(config, options...) (*Telemetry, error)`, `Microservice()`, `Cronjob()`, `Worker()`, `Robotics()`, `OfflineDevice()`, the options `WithLogSink`, `WithEventSink`, `WithMetricsSink`, `WithTraceSink`, `WithDeviceTelemetrySink`, `WithAITelemetrySink`, `WithLocalSpool`, `WithClock` and `WithIDGenerator`, and the methods `Emit(ctx, NewEventInput) EmitResult` and `Shutdown(ctx) ShutdownResult`. Python: `telemetry.new(config, *options)` with the same names in `snake_case`, `core.emit(...)` and `core.shutdown()`. An invalid configuration, or a `durable` mode without a spool, fails at start with every problem (Go returns it, Python raises `ConfigurationError`); `Emit` never fails: it returns how many sinks accepted, dropped or failed the event and why. The sinks given here are called synchronously until T-05; `Shutdown` is a stub until T-05.4. The list of names both languages export is `integration-tests/fixtures/core/public_names.json`.
-
-> **Planned (T-03.8):** the call context of the new core: Go `NewRequestContext(ctx, ...)`, `FromContext(ctx)`, `NextIndentation(ctx)` and `NewCallContext(options...)`; Python `start_request(...)`, `use_call_context(...)`, `current_call_context()` and `deeper_indentation()`. A request context carries a new correlation id and the starting indentation; execution, trace and span ids can be added with `NewCallContext`; trace and span ids must be 32 and 16 lowercase hexadecimal digits and not all zeros. The old `NewRequestContext(ctx, "my-app", "instance-1")` maps to `NewRequestContext(ctx, id_generator, "my-app", "instance-1")`. The public entry point is T-03.9.
-
-> **Planned (T-03.7):** the errors a consumer can see. A log call and the other hot-path calls never return an error to the caller by failing: a failure is counted (by its code) and the event is dropped. A consumer sees an error only when it builds the logger (an invalid configuration: every problem with its field and code) and from the diagnostics (counts by code). The codes are those of [the catalog](../../contracts/errors/catalog.yaml), the same in Go and Python; a message never holds a value the caller gave.
-
-> **Planned (T-03.6):** the configuration of the new core: a `Config` (Go) / `Config` dataclasses (Python) with the sections `resource`, `delivery`, `limits`, `spool` and `masking`; start from a profile (`Microservice`, `Cronjob`, `Worker`, `Robotics`, `OfflineDevice` / `microservice()`, ...), override fields in code, and the validation at start returns every problem with its field and code. The consumer loads the environment itself with the names of [environment-variables.md](../configuration/environment-variables.md). The public entry point that takes it is T-03.9.
-
-> **Planned (T-03.5):** the limits and the policy for the consumer: 32 attributes, a key of 64 characters, a value of 256 characters, an event of 64 KiB and an HTTP batch of 1 MiB, all configurable. Longer keys and values are cut, the attributes beyond the 32nd (in the sorted order of the keys) are dropped, and an event still over 64 KiB after the cuts is rejected with `limit_exceeded`; every cut and every rejection is counted. The limits become part of the configuration in T-03.6.
-
-> **Planned (T-03.4):** the options of the masking the consumer will pass: extra field names, extra patterns (the common subset of Go and Python regular expressions), a replacement of the default list of names, classes of fields and a rule per class (`drop`, `redact`, `allow`). They become part of the configuration in T-03.6 and of the public entry point in T-03.9.
-
-> **Planned (T-03.3):** what a caller can set on an event and what it cannot: it gives the event type, the severity, the data and, optionally, `occurred_at`, the actor, the context and the attributes. It cannot set `recorded_at` (only the library does, from its clock), `event_id`, `schema_version` or `resource` (the configuration gives it). The builder is internal today; the public entry point is T-03.9.
-
-> **Planned (T-02.5):** an event is serialized in the canonical form of RFC 8785 (JCS): sorted keys, no whitespace, ECMAScript numbers, the same bytes in Go and Python. `occurred_at` and `recorded_at` are written `YYYY-MM-DDTHH:MM:SS.ffffffZ` (UTC, six decimals). The functions are `CanonicalJSON` (Go) and `canonical_json` (Python), internal to the library; see the [architecture document](../architecture/architecture.md), section 2.5.
-
-> **Planned (T-02.6):** an event that does not match the schema of its type is **rejected, not thrown**: the validator returns a classified error (`event_type_unknown` or `event_schema_invalid`) whose message names the event type and the field path and never the value, and the caller of a log call gets no panic and no exception. See the [architecture document](../architecture/architecture.md), section 2.6.
+A runnable sample that logs through the AWS HTTP adapter is in `examples/aws_http_smoke` (a Go module of its own). The test that sends one line to a deployed aws_microservice is `go/pkg/logging/aws_http/internal/tests/e2e/deployed_aws_microservice_test.go` (see [monitoring](../operations/monitoring.md)).

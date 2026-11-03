@@ -17,3 +17,5 @@ One Go module. Each capability lives under `internal/<capability>/{domain,applic
 - Negative: a breaking change in one capability moves the version of both. The library stays on `v0.x` until the API settles; `v2` and later would need a `/v2` module path.
 
 > **Update 2026-10-28:** [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) proposes one core module plus one module per adapter, under `go/`. [ADR-013](ADR-013-go-modules-per-adapter-chosen-in-code.md) would replace this decision when it is built. Nothing changes today.
+
+> **Update 2026-11-03 (T-04.7):** replaced by [ADR-013](ADR-013-go-modules-per-adapter-chosen-in-code.md). The old module, with its `internal/logging` capability and its `pkg/logging` surface, was removed from the tree in T-04.7; the library is now the core module `go/` plus one module per adapter that has its own dependencies (the first is `go/pkg/logging/aws_http`). The tags `v0.1.0` and `v0.2.0` keep the old module on the Go proxy.

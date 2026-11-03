@@ -1,7 +1,7 @@
 go 1.25.5
 
 use (
-	.
+	./examples/aws_http_smoke
 	./go
 	./go/pkg/logging/aws_http
 	./tools/contract_generator

@@ -115,6 +115,10 @@ class StubServer:
                 pass
 
         class QuietServer(http.server.ThreadingHTTPServer):
+            request_queue_size = (
+                128  # the default backlog of 5 refuses some of 16 clients that connect at once, on a loaded machine
+            )
+
             def handle_error(self, request, client_address) -> None:
                 pass  # a client that gave up (a timeout test) is not an error of the test
 

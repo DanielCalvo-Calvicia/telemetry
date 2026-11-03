@@ -17,3 +17,5 @@ A new outbound adapter, `aws_http` (`internal/logging/infrastructure/outbound/aw
 - Negative: the sink depends on the contract of another service; a change of `add_log` is a change of this adapter (the tests build the request from the same field names). The `message` of a CloudWatch event is JSON text, so a reader sees a JSON string inside the event.
 
 > **Update 2026-11-03 (T-04.6):** the adapter of the new standard translates the **event**, not an entry: the same `add_log` request (the four fields, the `message` with the keys of the old entry in the same order, the timestamp in milliseconds), built from a `log.*` event; any other event is skipped and counted. Go: module `go/pkg/logging/aws_http`; Python: `telemetry.logging.aws_http`. The old adapter stays until T-04.7. See [architecture section 2.24](../architecture/architecture.md).
+
+> **Update 2026-11-03 (T-04.7):** the old adapter (`internal/logging/infrastructure/outbound/aws_http` and its `LOGGER_AWS_HTTP_*` variables) was removed with the old library. The adapter of the new standard, which the update of T-04.6 describes, keeps the contract of this decision and is the only one that exists.

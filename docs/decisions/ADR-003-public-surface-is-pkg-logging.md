@@ -19,3 +19,5 @@ Everything of the library is under `internal/`, so a consumer cannot import it. 
 > **Update 2026-11-02 (T-03.9):** the public package of the new core exists: `go/pkg/telemetry` (the name decided in T-01.1). It follows this ADR: thin functions and types that are aliases of the internal ones, every exported identifier documented. `pkg/logging` stays untouched until T-04.7.
 
 > **Update 2026-10-28:** [PR-001](../proposals/PR-001-telemetry-standard-go-python.md) proposes that `pkg/logging` disappears and that the public packages are `go/pkg/<functionality>/<adapter>`. [ADR-013](ADR-013-go-modules-per-adapter-chosen-in-code.md) would replace this decision when it is built. Nothing changes today.
+
+> **Update 2026-11-03 (T-04.7):** replaced by [ADR-013](ADR-013-go-modules-per-adapter-chosen-in-code.md). `pkg/logging` (the old module) was removed in T-04.7. The public surface is now `go/pkg/telemetry` (the entry point) and `go/pkg/logging/<adapter>` (one package per destination: `console`, `file`, `http`, and `aws_http` in a module of its own). The rule of this ADR, thin functions over types that are aliases, is kept by those packages.

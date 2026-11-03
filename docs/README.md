@@ -1,16 +1,16 @@
 # Documentation of telemetry
 
-State of the documents: 2026-10-27. Start with [architecture](architecture/architecture.md) for the structure and [api](api/api.md) to use the library.
+State of the documents: 2026-11-03. Start with [architecture](architecture/architecture.md) for the structure and [api](api/api.md) to use the library.
 
 | Document | What it answers |
 |---|---|
-| [architecture/architecture.md](architecture/architecture.md) | the layers, the packages, the data flow of one log call, the two ways to build a logger |
-| [api/api.md](api/api.md) | the public API of `pkg/logging` and the contract the AWS HTTP sink sends |
-| [configuration/environment-variables.md](configuration/environment-variables.md) | every `LOGGER_*` variable, its default and what happens when a value is missing |
+| [architecture/architecture.md](architecture/architecture.md) | the structure of the tree, the layers, what each part does, the data flow of one log call, how a project builds the core |
+| [api/api.md](api/api.md) | the public API of the Go and Python library (the entry point, the logger, the call context, the destinations) and the contracts the HTTP and AWS HTTP destinations send |
+| [configuration/environment-variables.md](configuration/environment-variables.md) | every `TELEMETRY_*` variable of the core and of each destination, its default and its field |
 | [decisions/](decisions/) | the decision records ADR-001 to ADR-013 |
 | [requirements/requirements.md](requirements/requirements.md) | what the library must do, and the state of each requirement |
 | [security/security.md](security/security.md) | masking, what the library holds, the checklist before anything is pushed to the public repository |
-| [operations/monitoring.md](operations/monitoring.md) | what a consumer can observe, the failure report, timeouts, the manual end-to-end check |
+| [operations/monitoring.md](operations/monitoring.md) | what a consumer can observe, the reasons in a result, timeouts, the manual end-to-end check (the diagnostics are planned, T-05.5) |
 | [deployment/deployment.md](deployment/deployment.md) | there is no deployment: build, CI, releases by tag and how a consumer takes one |
 | [proposals/](proposals/) | the proposals that are not built yet |
 | [tasks/](tasks/README.md) | the task plan to build the new standard: 13 epics, 85 subtasks, the order and the board |
@@ -21,14 +21,14 @@ State of the documents: 2026-10-27. Start with [architecture](architecture/archi
 | ADR | Decision |
 |---|---|
 | [ADR-001](decisions/ADR-001-adopt-shared-go-standard.md) | adopt the shared Go Clean/Hexagonal standard |
-| [ADR-002](decisions/ADR-002-one-module-capabilities-side-by-side.md) | one module, capabilities side by side |
-| [ADR-003](decisions/ADR-003-public-surface-is-pkg-logging.md) | the public surface is `pkg/logging`, by aliases |
+| [ADR-002](decisions/ADR-002-one-module-capabilities-side-by-side.md) | one module, capabilities side by side (replaced by ADR-013; the old module was removed in T-04.7) |
+| [ADR-003](decisions/ADR-003-public-surface-is-pkg-logging.md) | the public surface is `pkg/logging`, by aliases (replaced by ADR-013: it is now `go/pkg/telemetry` and `go/pkg/logging/<adapter>`; the rule of aliases is kept) |
 | [ADR-004](decisions/ADR-004-library-never-reads-the-environment.md) | the library never reads the environment |
-| [ADR-005](decisions/ADR-005-a-failing-sink-never-fails-the-caller.md) | a failing sink never fails the caller |
+| [ADR-005](decisions/ADR-005-a-failing-sink-never-fails-the-caller.md) | a failing sink never fails the caller (the rule stays; the console fallback and the "never retries" text went with the old library) |
 | [ADR-006](decisions/ADR-006-masking-before-every-sink.md) | masking happens before every sink |
-| [ADR-007](decisions/ADR-007-minimum-level-follows-the-environment.md) | the minimum level follows the environment |
-| [ADR-008](decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP sink adapts the entry to the `add_log` contract |
-| [ADR-009](decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink |
+| [ADR-007](decisions/ADR-007-minimum-level-follows-the-environment.md) | the minimum level follows the environment (the old library; in the new one each destination has its own minimum severity) |
+| [ADR-008](decisions/ADR-008-aws-http-sink-adapts-to-add-log.md) | the AWS HTTP sink adapts the entry to the `add_log` contract (the old adapter is removed; the adapter of the new standard keeps the contract) |
+| [ADR-009](decisions/ADR-009-ready-made-sink-constructors.md) | ready-made constructors for each sink (the old API is removed; each adapter has `NewDestination` and `DefaultSettings`) |
 | [ADR-010](decisions/ADR-010-no-deployment-release-by-tags.md) | no deployment; release by tags |
 | [ADR-011](decisions/ADR-011-adopt-the-telemetry-standard-go-python.md) | adopt the telemetry standard, one contract for Go and Python |
 | [ADR-012](decisions/ADR-012-two-times-in-every-event.md) | two times in every event, generated and recorded |
@@ -38,7 +38,7 @@ State of the documents: 2026-10-27. Start with [architecture](architecture/archi
 
 | Proposal | Status |
 |---|---|
-| [PR-001](proposals/PR-001-telemetry-standard-go-python.md) | the new telemetry standard (one contract for Go and Python, device and AI modules). Accepted on 2026-10-28 (version 0.2), nothing built |
+| [PR-001](proposals/PR-001-telemetry-standard-go-python.md) | the new telemetry standard (one contract for Go and Python, device and AI modules). Accepted on 2026-10-28 (version 0.2), being built task by task: the contract, the core, the logger and the destinations exist; the old library was removed (T-04.7) |
 
 ## Questionnaires
 

@@ -15,3 +15,5 @@
 
 - Positive: a client has an easy, typed way to generate each adapter, and may implement its own `Sink`.
 - Negative: `Sink` and `SinkEntry` are now public, so the shape of the outbound port is part of the API.
+
+> **Update 2026-11-03 (T-04.7):** the ready-made constructors of the old API (`NewConsoleSink`, `NewHTTPSink`, `NewAWSHTTPSink`, `NewWithSinks`) were removed with `pkg/logging`. Each adapter now has its own package with `NewDestination(settings)` and `DefaultSettings()` (`go/pkg/logging/console`, `file`, `http` and `aws_http`; in Python `telemetry.logging.<adapter>.new_destination` and `default_settings`), and the project passes the destination to the core with `WithLogSink`. The idea of this ADR, an easy typed way to build each adapter, is kept; a project that needs a destination of its own implements the sink port.

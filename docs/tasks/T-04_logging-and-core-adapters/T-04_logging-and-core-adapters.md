@@ -31,7 +31,7 @@ Logging on the new standard (`log.entry.recorded`), the three adapters of the co
 | 5 | [T-04.5 HTTP destination](T-04.5_http-destination.md) | done (2026-11-03) |
 | 6 | [T-04.8 Fake receiver for tests](T-04.8_fake-receiver-for-tests.md) | done (2026-11-03) |
 | 7 | [T-04.6 AWS HTTP adapter](T-04.6_aws-http-adapter.md) | done (2026-11-03) |
-| 8 | [T-04.7 Replace and remove the old library](T-04.7_replace-and-remove-the-old-library.md) | todo |
+| 8 | [T-04.7 Replace and remove the old library](T-04.7_replace-and-remove-the-old-library.md) | done (2026-11-03) |
 
 Order: T-04.1 and T-04.4 are independent (T-04.4 only needs T-03.5, so it can start as soon as the limits exist). T-04.2 and T-04.3 need only T-04.1 and run in parallel with each other and with T-04.4. T-04.5, T-04.6 and T-04.8 need T-04.4 and can run in parallel. T-04.7 goes last: it needs every other task of the epic, because it is the moment the old API disappears. T-05.1 can start when T-04.5 is done, without waiting for T-04.7.
 

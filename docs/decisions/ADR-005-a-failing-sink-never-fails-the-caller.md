@@ -17,3 +17,5 @@ A log call sits in the middle of business code. A receiver that is down or slow 
 
 - Positive: a broken receiver costs a request at most 3 s per sink and never an error.
 - Negative: entries are lost when a receiver is down (there is no queue, no retry and no disk buffer). Delivery is best effort; a service that needs guaranteed delivery needs a different design.
+
+> **Update 2026-11-03 (T-04.7):** the rule stays and is implemented by the destinations and the pipeline of the new core: a destination that fails never fails the caller and never stops another destination, and a log call returns nothing. What goes with the removed library is its mechanism: the report of a failing sink to a console fallback, the synchronous send and the "never retries" text. The queue, the retry policy and the diagnostics of T-05 replace them; until then a destination sends once, synchronously, and the failure is in the result of the event.
