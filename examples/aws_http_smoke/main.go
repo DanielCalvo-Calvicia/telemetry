@@ -61,14 +61,10 @@ func run() error {
 	config := telemetry.Microservice()
 	config.Resource.ServiceName = application_name
 	config.Resource.InstanceID = "instance-1"
-	// A log call only queues the event and a worker sends it. A short flush interval, and the wait at the end of run, give the
-	// worker time to send before this short program exits: Shutdown does not flush yet (T-05.4 gives it the flush).
-	config.Delivery.FlushIntervalMS = 100
 	core, core_error := telemetry.New(config, telemetry.WithLogSink(console_destination), telemetry.WithLogSink(aws_destination))
 	if core_error != nil {
 		return fmt.Errorf("building the core: %w", core_error)
 	}
-	defer func() { _ = core.Shutdown(ctx) }()
 	logger := core.Logger()
 
 	logger.Info(ctx, telemetry.LogEntry{Category: "main", Function: "run", Message: "the sample service starts"})
@@ -78,7 +74,11 @@ func run() error {
 		}
 	}
 	logger.Info(ctx, telemetry.LogEntry{Category: "main", Function: "run", Message: "the sample service stops"})
-	time.Sleep(time.Second) // until T-05.4: let the workers send what is queued
+
+	// A log call only queues the event and a worker sends it, so a program must call Shutdown before it exits: it sends
+	// what is queued, within the deadline of ctx, and says how many events were sent and dropped.
+	result := core.Shutdown(ctx)
+	fmt.Printf("shutdown: %d sent, %d dropped\n", result.Sent, result.Dropped)
 	return nil
 }
 

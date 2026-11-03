@@ -469,7 +469,7 @@ capabilities:
     status: planned
     description: "The bounded queue and its worker, the delivery modes best_effort, retry and durable, backpressure and priorities, flush and shutdown, and the diagnostics of every destination."
     public_api:
-      - "planned: flush, shutdown and the diagnostics snapshot (T-05.4, T-05.5)"
+      - "built: flush and shutdown (T-05.4); planned: the diagnostics snapshot (T-05.5)"
     schemas: []
     configuration:
       - "planned: queue size, batch size, flush interval, timeout, drop policy (T-03.6)"
@@ -543,7 +543,12 @@ capabilities:
           - { language: python, path: python/internal/tests/domain/operations/classification/test_classify_event.py }
       # REQ-DLV-010: The library MUST offer flush and shutdown with a timeout. When they fi...
       - id: REQ-DLV-010
-        pending: T-05.4
+        # flush and shutdown with a timeout answer how many events were sent, left in the spool and dropped: 8 shared cases, a hanging destination ends at the timeout (T-05.4)
+        tests:
+          - { language: go, path: go/internal/tests/application/services/flush_and_shutdown_test.go }
+          - { language: go, path: go/internal/tests/composition_root/flush_and_shutdown_test.go }
+          - { language: python, path: python/internal/tests/application/services/test_flush_and_shutdown.py }
+          - { language: python, path: python/internal/tests/composition_root/test_core_flush_and_shutdown.py }
       # REQ-DGN-001: The library MUST expose, per destination: queue depth, dropped events
       - id: REQ-DGN-001
         pending: T-05.5

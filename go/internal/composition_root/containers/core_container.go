@@ -23,6 +23,7 @@ import (
 // two cores in one process share nothing, and it is safe for concurrent use.
 type Core struct {
 	pipeline *services.EventPipelineService
+	delivery *services.DeliveryService
 	logger   inbound.LoggerPort
 }
 
@@ -32,9 +33,8 @@ type Core struct {
 // are the system clock and the UUIDv7 generator. Nothing is read from the environment (ADR-004).
 //
 // NewCore also starts the delivery: one worker goroutine per destination, each with a bounded queue (T-05.1). Nothing
-// starts before NewCore is called, and an invalid configuration starts nothing. Until T-05.4 gives the core a shutdown,
-// nothing stops these workers: a core that is no longer used leaves its goroutines running until the process ends. That
-// leak is known and accepted for now.
+// starts before NewCore is called, and an invalid configuration starts nothing. Only Shutdown stops these workers: a
+// program must call it before it exits, and a core that is no longer used without it leaves its goroutines running.
 //
 // An invalid configuration returns a *infra_config.ValidationError with every problem together. A delivery mode
 // durable with no spool is one more problem of the same error (field delivery.mode, code config_field_invalid), after
@@ -93,7 +93,7 @@ func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Opt
 		delivery,
 	)
 	delivery.Start()
-	return &Core{pipeline: pipeline, logger: services.NewLoggerService(pipeline)}, nil
+	return &Core{pipeline: pipeline, delivery: delivery, logger: services.NewLoggerService(pipeline)}, nil
 }
 
 // ----- METHODS --------------------------------------------------------------
@@ -116,11 +116,33 @@ func (core *Core) Logger() inbound.LoggerPort {
 	return core.logger
 }
 
-// Shutdown closes the core. It is still a stub: it returns the zero result and does nothing, so it neither flushes the
-// queues nor stops the workers of the delivery (T-05.4 gives it the flush, the stop of the workers and the result,
-// REQ-DLV-010). It never panics, a nil *Core included.
-func (core *Core) Shutdown(_ context.Context) dtos.ShutdownResult {
-	return dtos.ShutdownResult{}
+// Flush sends the events that are queued and keeps the core running. Because there is no synchronous send, a program MUST
+// call Shutdown before it exits, or the events that are still queued are lost; Flush alone does not protect them.
+//
+// The time is the deadline of ctx; without a deadline it is 5 seconds (domain.DefaultShutdownTimeoutMilliseconds), so no
+// call waits for ever. The result says how many events were sent and how many were dropped (the events that a destination
+// failed, dropped or did not finish in time; there is no retry yet); Spooled is zero until the spool exists. It never
+// panics and never returns an error, a nil *Core included (the zero result), and a Flush after Shutdown is the zero result.
+func (core *Core) Flush(ctx context.Context) dtos.ShutdownResult {
+	if core == nil || core.delivery == nil {
+		return dtos.ShutdownResult{}
+	}
+	return core.delivery.Flush(ctx)
+}
+
+// Shutdown flushes the queues and closes the core. Because there is no synchronous send, a program MUST call Shutdown
+// before it exits, or the events that are still queued are lost.
+//
+// The time is the deadline of ctx; without a deadline it is 5 seconds (domain.DefaultShutdownTimeoutMilliseconds), so the
+// call never waits for ever: a destination that hangs is abandoned at that time (its goroutine leaks until its Send
+// returns) and its events are counted as dropped. After Shutdown every log call and Emit is Dropped 1 with the reason
+// "shutdown", counted in the stats of the destinations. A second call returns the first result. It never panics and never
+// returns an error, a nil *Core included (the zero result).
+func (core *Core) Shutdown(ctx context.Context) dtos.ShutdownResult {
+	if core == nil || core.delivery == nil {
+		return dtos.ShutdownResult{}
+	}
+	return core.delivery.Shutdown(ctx)
 }
 
 // ----- HELPERS --------------------------------------------------------------

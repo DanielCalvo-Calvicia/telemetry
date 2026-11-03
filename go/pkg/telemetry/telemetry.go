@@ -27,7 +27,7 @@ import (
 
 // ----- TYPES: THE CORE AND ITS CONFIGURATION --------------------------------
 
-// Telemetry is the core of one project, built by New. Its methods are Emit, Logger and Shutdown.
+// Telemetry is the core of one project, built by New. Its methods are Emit, Logger, Flush and Shutdown.
 type Telemetry = containers.Core
 
 // Config is the configuration of the core, in plain values. The project chooses a profile and sets what it wants.

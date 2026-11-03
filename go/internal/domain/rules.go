@@ -97,6 +97,9 @@ const (
 	DefaultFlushIntervalMilliseconds = 2000
 	// DefaultTimeoutMilliseconds is the default time before a network operation gives up, in milliseconds.
 	DefaultTimeoutMilliseconds = 3000
+	// DefaultShutdownTimeoutMilliseconds is the time that Flush and Shutdown wait, in milliseconds, when the context of the
+	// call has no deadline, so no call can wait for ever.
+	DefaultShutdownTimeoutMilliseconds = 5000
 )
 
 // === HTTP retries ===

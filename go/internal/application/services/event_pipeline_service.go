@@ -84,6 +84,10 @@ func (service *EventPipelineService) Emit(ctx context.Context, input dtos.NewEve
 		}
 	}()
 
+	if closed_result, is_closed := service.delivery.RejectIfClosed(DestinationKindOf(input.EventType)); is_closed {
+		return closed_result
+	}
+
 	if input.Context == nil {
 		input.Context = context_of_call(ctx)
 	}

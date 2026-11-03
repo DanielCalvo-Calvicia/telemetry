@@ -61,7 +61,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 37 | [T-05.1](T-05_delivery/T-05.1_bounded-queue-and-worker.md) | Bounded queue and worker | code | Done | done (2026-11-03) | T-04.5 | 2026-10-28 |
 | 38 | [T-05.2](T-05_delivery/T-05.2_backpressure-and-priorities.md) | Backpressure and priorities | code | Done | done (2026-11-03) | T-05.1 | 2026-10-28 |
 | 39 | [T-05.3](T-05_delivery/T-05.3_delivery-modes-best-effort-and-retry.md) | Delivery modes `best_effort` and `retry` | code | Todo | todo | T-05.1 | 2026-10-28 |
-| 40 | [T-05.4](T-05_delivery/T-05.4_flush-and-shutdown.md) | `flush` and `shutdown` | code | Todo | todo | T-05.1 | 2026-10-28 |
+| 40 | [T-05.4](T-05_delivery/T-05.4_flush-and-shutdown.md) | `flush` and `shutdown` | code | Done | done (2026-11-03) | T-05.1 | 2026-10-28 |
 | 41 | [T-05.5](T-05_delivery/T-05.5_diagnostics.md) | Diagnostics | code | Todo | todo | T-05.1 | 2026-10-28 |
 | 42 | [T-05.6](T-05_delivery/T-05.6_failure-matrix-tests.md) | Failure-matrix tests | test | Todo | todo | T-05.3, T-05.5, T-04.8 | 2026-10-28 |
 | 43 | [T-06](T-06_spool-and-sqlite-destination/T-06_spool-and-sqlite-destination.md) | The spool (`durable` mode) and the SQLite destination | epic | Todo | todo | T-05 | 2026-10-28 |

@@ -1,0 +1,168 @@
+{
+  "description": "What flush and shutdown report (REQ-DLV-010). The core is built with the given destinations (each one a log sink with the behavior given: ok answers Accepted for the whole batch after delay_ms, hang never answers, fail answers Failed for the whole batch, drop answers Dropped for the whole batch), with batch_size and flush_interval_ms as given, then events log events are emitted, then flush or shutdown is called with timeout_ms. Counting: each destination has its own queue, so one event for two destinations is two deliveries; sent is the number of events a destination accepted, dropped is every other event that was queued (or being sent) when the call began and was not accepted by the end: dropped or failed by the destination, or still queued or in flight at the timeout (their outcome is not known); spooled is always 0 until the spool exists (T-06). A flush sends the partial batches at once (it does not wait for the flush interval). returns_before_timeout says whether the call may return before timeout_ms (true) or only at the timeout (false); a test checks that a call with true returns in less than timeout_ms, and a call with false in at least 80% of timeout_ms and in at most timeout_ms plus a margin. The shape of the expected values is the same for flush and shutdown.",
+  "cases": [
+    {
+      "name": "healthy_destination",
+      "description": "A healthy destination: every queued event is sent at once, although the flush interval is 60 s and the batch is not full, and the call returns before its timeout.",
+      "batch_size": 100,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 1000,
+      "events": 5,
+      "destinations": [
+        {
+          "behavior": "ok"
+        }
+      ],
+      "expected": {
+        "sent": 5,
+        "spooled": 0,
+        "dropped": 0,
+        "returns_before_timeout": true
+      }
+    },
+    {
+      "name": "two_healthy_destinations",
+      "description": "Each destination has its own queue: 3 events are 6 deliveries.",
+      "batch_size": 100,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 1000,
+      "events": 3,
+      "destinations": [
+        {
+          "behavior": "ok"
+        },
+        {
+          "behavior": "ok"
+        }
+      ],
+      "expected": {
+        "sent": 6,
+        "spooled": 0,
+        "dropped": 0,
+        "returns_before_timeout": true
+      }
+    },
+    {
+      "name": "nothing_queued",
+      "description": "Nothing queued: the result is zero and the call returns at once.",
+      "batch_size": 100,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 1000,
+      "events": 0,
+      "destinations": [
+        {
+          "behavior": "ok"
+        }
+      ],
+      "expected": {
+        "sent": 0,
+        "spooled": 0,
+        "dropped": 0,
+        "returns_before_timeout": true
+      }
+    },
+    {
+      "name": "a_hanging_destination",
+      "description": "A destination that never answers: the call returns at its timeout, the 4 events of that destination are dropped, and the healthy destination sent its 4.",
+      "batch_size": 100,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 300,
+      "events": 4,
+      "destinations": [
+        {
+          "behavior": "hang"
+        },
+        {
+          "behavior": "ok"
+        }
+      ],
+      "expected": {
+        "sent": 4,
+        "spooled": 0,
+        "dropped": 4,
+        "returns_before_timeout": false
+      }
+    },
+    {
+      "name": "a_failing_destination",
+      "description": "A destination that answers Failed for every event: those events are lost and counted as dropped (there is no retry yet).",
+      "batch_size": 100,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 1000,
+      "events": 3,
+      "destinations": [
+        {
+          "behavior": "fail"
+        },
+        {
+          "behavior": "ok"
+        }
+      ],
+      "expected": {
+        "sent": 3,
+        "spooled": 0,
+        "dropped": 3,
+        "returns_before_timeout": true
+      }
+    },
+    {
+      "name": "a_dropping_destination",
+      "description": "A destination that answers Dropped for every event.",
+      "batch_size": 100,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 1000,
+      "events": 3,
+      "destinations": [
+        {
+          "behavior": "drop"
+        }
+      ],
+      "expected": {
+        "sent": 0,
+        "spooled": 0,
+        "dropped": 3,
+        "returns_before_timeout": true
+      }
+    },
+    {
+      "name": "a_slow_destination_that_finishes",
+      "description": "Each send takes 100 ms and the batch is 2: 6 events take 300 ms, inside the timeout of 1500 ms.",
+      "batch_size": 2,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 1500,
+      "events": 6,
+      "destinations": [
+        {
+          "behavior": "ok",
+          "delay_ms": 100
+        }
+      ],
+      "expected": {
+        "sent": 6,
+        "spooled": 0,
+        "dropped": 0,
+        "returns_before_timeout": true
+      }
+    },
+    {
+      "name": "a_slow_destination_that_does_not_finish",
+      "description": "Each send takes 500 ms and the batch is 2: at the timeout of 750 ms one batch was sent (2) and the other 4 events are dropped (the second send is still running).",
+      "batch_size": 2,
+      "flush_interval_ms": 60000,
+      "timeout_ms": 750,
+      "events": 6,
+      "destinations": [
+        {
+          "behavior": "ok",
+          "delay_ms": 500
+        }
+      ],
+      "expected": {
+        "sent": 2,
+        "spooled": 0,
+        "dropped": 4,
+        "returns_before_timeout": false
+      }
+    }
+  ]
+}

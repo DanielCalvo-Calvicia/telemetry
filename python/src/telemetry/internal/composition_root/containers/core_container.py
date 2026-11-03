@@ -17,6 +17,7 @@ from telemetry.internal.composition_root.dependencies.uuid_generator_dependencie
 from telemetry.internal.domain.errors import DeliveryModeUnknownError
 from telemetry.internal.domain.operations.event_validation.event_validation import validate_event
 from telemetry.internal.domain.operations.masking.sensitive_data_masker import SensitiveDataMasker
+from telemetry.internal.domain.rules import DEFAULT_SHUTDOWN_TIMEOUT_MILLISECONDS
 from telemetry.internal.domain.value_objects.delivery_mode import parse_delivery_mode
 from telemetry.internal.domain.value_objects.enums_generated import DeliveryMode
 from telemetry.internal.domain.value_objects.error_codes_generated import ERROR_CODE_CONFIG_FIELD_INVALID
@@ -63,14 +64,43 @@ class Core:
         """
         return self._pipeline.emit(new_event)
 
-    def shutdown(self) -> ShutdownResult:
-        """Shut the core down and say what became of the events still waiting.
+    def flush(self, timeout_ms: int = DEFAULT_SHUTDOWN_TIMEOUT_MILLISECONDS) -> ShutdownResult:
+        """Send what is queued now and keep running; return what became of it. It never raises.
 
-        This is a STUB that returns the zero result: T-05.4 gives it the flush and the shutdown (REQ-DLV-010). It stops
-        nothing and drains nothing yet: the workers of the destinations are DAEMON threads, so they never keep the
-        process alive, and T-05.4 is the one that stops them and sends what is still queued.
+        BECAUSE THERE IS NO SYNCHRONOUS SEND, a program MUST call ``shutdown()`` before it exits, or the events still
+        queued are lost: the library is passive and registers no hook at interpreter exit. ``flush`` is for a
+        checkpoint in a program that goes on.
+
+        Per destination it counts the events queued plus the ones being sent when it is called, makes the workers send
+        them at once (the flush interval does not apply) and waits at most ``timeout_ms`` milliseconds. ``sent`` are the
+        events the destinations accepted, ``dropped`` all the others (dropped or failed by the destination, displaced
+        from a full queue, or still waiting when the time ends: there is no retry yet) and ``spooled`` is 0 until the
+        spool (T-06). A timeout of 0 or less returns at once with everything pending counted as dropped; after
+        ``shutdown`` it returns the zero result. It blocks the calling thread for its duration, also in asyncio.
         """
-        return ShutdownResult()
+        try:
+            return self._delivery.flush(timeout_ms)
+        except Exception:  # never fails the caller (ADR-005)
+            return ShutdownResult()
+
+    def shutdown(self, timeout_ms: int = DEFAULT_SHUTDOWN_TIMEOUT_MILLISECONDS) -> ShutdownResult:
+        """Flush, then stop the workers and close the core; return what became of the events. It never raises.
+
+        BECAUSE THERE IS NO SYNCHRONOUS SEND, a program MUST call ``shutdown()`` before it exits, or the events still
+        queued are lost: the library is passive and registers no hook at interpreter exit.
+
+        The flush and the stop share the budget of ``timeout_ms`` milliseconds (``flush`` says how the events are
+        counted). The workers are joined only for the time that is left: a destination that never answers does not hold
+        the call past the timeout, because its worker is a DAEMON thread that is abandoned and ends with the process.
+        After it the core is closed: ``emit`` and every log method return ``dropped=1`` with the reason ``shutdown``
+        and the drop is counted in the stats of the destinations. A second call returns the FIRST result and ``flush``
+        returns the zero result. It blocks the calling thread for its duration, and so the event loop when it is
+        called from asyncio; it may be called there, but it is better to run it in a thread (``asyncio.to_thread``).
+        """
+        try:
+            return self._delivery.shutdown(timeout_ms)
+        except Exception:  # never fails the caller (ADR-005)
+            return ShutdownResult()
 
 
 def new_core(config: Config, *options: Option) -> Core:

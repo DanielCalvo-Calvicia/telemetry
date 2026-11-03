@@ -4,10 +4,12 @@ import (
 	"context"
 	"maps"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/outbound"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/batching"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/classification"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/full_queue"
@@ -31,6 +33,9 @@ const (
 	ReasonBlockTimeout = full_queue.ReasonBlockTimeout
 	// ReasonUnspecified is the reason under which a drop that a sink reported without a reason is counted.
 	ReasonUnspecified = "unspecified"
+	// ReasonShutdown is the reason of an event that was dropped because the service was already closed by Shutdown, and of
+	// the events that were still queued when the shutdown ended.
+	ReasonShutdown = "shutdown"
 )
 
 // DeliverySettings are the numbers the delivery service works with: the events one queue holds, the events of one batch,
@@ -90,6 +95,24 @@ type DeliveryService struct {
 	stopped         bool
 	cancel_workers  context.CancelFunc
 	workers         sync.WaitGroup
+
+	// admission_mutex guards closed: an offer holds it for reading, Shutdown for writing, so no event is admitted to a
+	// queue once Shutdown has closed the service. close_signal is closed at that moment, to wake the callers that wait
+	// for room.
+	admission_mutex sync.RWMutex
+	closed          bool
+	close_signal    chan struct{}
+
+	// flush_pending is the number of flushes in progress: while it is above zero the workers send partial batches at
+	// once. progress is closed (and set to nil) each time a destination resolves events, to wake the flushes that wait.
+	flush_pending  atomic.Int32
+	progress_mutex sync.Mutex
+	progress       chan struct{}
+
+	// shutdown_mutex is held for the whole Shutdown, so a second call waits for the first and returns its result.
+	shutdown_mutex  sync.Mutex
+	shutdown_done   bool
+	shutdown_result dtos.ShutdownResult
 }
 
 // delivery_destination is one sink with its queue, its wake-up signal and its counters.
@@ -104,6 +127,13 @@ type delivery_destination struct {
 	// block_with_timeout. It is nil while nobody waits, so the usual path allocates nothing.
 	room_mutex sync.Mutex
 	room       chan struct{}
+
+	// flow_mutex makes the movements of the events atomic for a flush: an offer (and the removal of an event it displaces),
+	// a take and the end of a send. in_flight is the events taken and not yet counted; resolved is the events that left
+	// the queue for good (sent, failed or dropped by the sink, or displaced). It is taken before stats_mutex.
+	flow_mutex sync.Mutex
+	in_flight  int
+	resolved   int
 
 	stats_mutex sync.Mutex
 	stats       DestinationStats
@@ -120,10 +150,11 @@ func NewDeliveryService(
 	new_queue func(capacity int) outbound.EventQueuePort,
 ) *DeliveryService {
 	service := &DeliveryService{
-		settings:    settings,
-		clock:       clock,
-		by_kind:     map[DestinationKind][]*delivery_destination{},
-		stop_signal: make(chan struct{}),
+		settings:     settings,
+		clock:        clock,
+		by_kind:      map[DestinationKind][]*delivery_destination{},
+		stop_signal:  make(chan struct{}),
+		close_signal: make(chan struct{}),
 	}
 	for _, kind := range destination_kinds() {
 		for index, send := range send_functions_of(destinations, kind) {
@@ -162,10 +193,16 @@ func (service *DeliveryService) Start() {
 }
 
 // Stop signals every worker to stop and waits until they have returned. A call to a sink that is in flight gets its
-// context cancelled; a sink that ignores its context holds Stop up. A caller of Enqueue that waits for room
-// (block_with_timeout) is woken, and its event is dropped with ReasonBlockTimeout. It is idempotent and it does not
-// drain: what is still queued is left (draining, flush and shutdown with a result are T-05.4).
+// context cancelled; a sink that ignores its context holds Stop up (Shutdown does not wait for it for ever). A caller of
+// Enqueue that waits for room (block_with_timeout) is woken, and its event is dropped with ReasonBlockTimeout. It is
+// idempotent and it does not drain: what is still queued is left (Shutdown flushes first).
 func (service *DeliveryService) Stop() {
+	service.signal_stop()
+	service.workers.Wait()
+}
+
+// signal_stop tells the workers to stop and the callers that wait for room to give up, without waiting for anything.
+func (service *DeliveryService) signal_stop() {
 	service.stop_once.Do(func() { close(service.stop_signal) })
 	service.lifecycle_mutex.Lock()
 	service.stopped = true
@@ -174,7 +211,81 @@ func (service *DeliveryService) Stop() {
 	if cancel_workers != nil {
 		cancel_workers()
 	}
-	service.workers.Wait()
+}
+
+// Flush sends what is queued and keeps running. Because there is no synchronous send, the events that are still queued
+// when a program exits are lost: a program MUST call Shutdown (not only Flush) before it exits.
+//
+// For each destination the target is the number of events queued plus the ones being sent at the moment of the call. The
+// workers send partial batches at once while a flush is pending, and the call waits on a signal of the workers (never a
+// loop that spins) until every destination has finished its target or the time is over. The time is the deadline of ctx;
+// without a deadline it is domain.DefaultShutdownTimeoutMilliseconds. Per destination, Sent is the events that the sink
+// accepted since the call began (at most the target) and Dropped is the rest of the target: events the sink dropped or
+// failed (there is no retry yet), events displaced from the queue and events still queued or in flight at the end of the
+// time. Spooled is zero until the spool exists (T-06). A ctx that is already done returns at once with the whole target
+// dropped. A flush after Shutdown returns the zero result. It never panics and never returns an error.
+func (service *DeliveryService) Flush(ctx context.Context) (result dtos.ShutdownResult) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result = dtos.ShutdownResult{}
+		}
+	}()
+	if service.is_closed() {
+		return dtos.ShutdownResult{}
+	}
+	budget_context, cancel_budget := shutdown_budget(ctx)
+	defer cancel_budget()
+	return service.flush(budget_context)
+}
+
+// Shutdown closes the service and flushes it. Because there is no synchronous send, a program MUST call Shutdown before
+// it exits, or the events that are still queued are lost.
+//
+// It first closes the service (from then on Enqueue drops every event with ReasonShutdown and counts it), then it does a
+// Flush with the same time (the deadline of ctx, or domain.DefaultShutdownTimeoutMilliseconds), then it stops the workers
+// and waits for them only for the time that is left. A sink that ignores its context cannot hold Shutdown past that time:
+// its goroutine is abandoned and it leaks until its Send returns. What is still queued at the end is removed and counted
+// as dropped under ReasonShutdown in the stats. A second call returns the first result (it waits for the first if it is
+// still running). It never panics and never returns an error.
+func (service *DeliveryService) Shutdown(ctx context.Context) (result dtos.ShutdownResult) {
+	service.shutdown_mutex.Lock()
+	defer service.shutdown_mutex.Unlock()
+	if service.shutdown_done {
+		return service.shutdown_result
+	}
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result = dtos.ShutdownResult{}
+		}
+		service.shutdown_done = true
+		service.shutdown_result = result
+	}()
+
+	budget_context, cancel_budget := shutdown_budget(ctx)
+	defer cancel_budget()
+
+	service.admission_mutex.Lock()
+	service.closed = true
+	close(service.close_signal)
+	service.admission_mutex.Unlock()
+
+	result = service.flush(budget_context)
+
+	service.signal_stop()
+	workers_done := make(chan struct{})
+	go func() {
+		service.workers.Wait()
+		close(workers_done)
+	}()
+	select {
+	case <-workers_done:
+	case <-budget_context.Done():
+	}
+
+	for _, destination := range service.destinations {
+		destination.drain_for_shutdown()
+	}
+	return result
 }
 
 // Enqueue classifies the envelope (classification.ClassifyEvent, with its event type, its severity and the classes of
@@ -183,7 +294,8 @@ func (service *DeliveryService) Stop() {
 // event was displaced to make room, the displaced event is counted as dropped in the stats of that destination under its
 // reason, and the result of this call does not change because of it; a refused event is Dropped 1 with the reason of the
 // drop (ReasonQueueFullNewest, or ReasonBlockTimeout after a wait). The result is the sum over the destinations and
-// Reason is the first one that is not empty.
+// Reason is the first one that is not empty. After Shutdown the event is Dropped 1 with ReasonShutdown and the drop is
+// counted in the stats of every destination of the kind.
 //
 // A call returns at once, except in ONE case: with the policy block_with_timeout and a full queue that holds nothing
 // the event may displace, the call WAITS for room, at most BlockTimeoutMS milliseconds (a real wait on a signal of the
@@ -191,6 +303,9 @@ func (service *DeliveryService) Stop() {
 // event is Accepted 1; if the time is over, the service is stopped or ctx is done, it is Dropped 1 with
 // ReasonBlockTimeout. With any other policy the call never waits.
 func (service *DeliveryService) Enqueue(ctx context.Context, kind DestinationKind, envelope value_objects.Envelope) dtos.EmitResult {
+	if closed_result, is_closed := service.RejectIfClosed(kind); is_closed {
+		return closed_result
+	}
 	kind_destinations := service.by_kind[kind]
 	if len(kind_destinations) == 0 {
 		return dtos.EmitResult{Dropped: 1, Reason: ReasonNoDestination}
@@ -220,6 +335,19 @@ func (service *DeliveryService) Enqueue(ctx context.Context, kind DestinationKin
 	return total
 }
 
+// RejectIfClosed says whether Shutdown has closed the service. When it has, the result is Dropped 1 with ReasonShutdown
+// for any event (a kind with no destination included) and the drop is counted under ReasonShutdown in the stats of every
+// destination of the kind, when there are some. The pipeline calls it before it builds the event.
+func (service *DeliveryService) RejectIfClosed(kind DestinationKind) (dtos.EmitResult, bool) {
+	if !service.is_closed() {
+		return dtos.EmitResult{}, false
+	}
+	for _, destination := range service.by_kind[kind] {
+		destination.count(func(stats *DestinationStats) { stats.count_drop(ReasonShutdown) })
+	}
+	return dtos.EmitResult{Dropped: 1, Reason: ReasonShutdown}, true
+}
+
 // Stats returns a snapshot of every destination: by kind, in the order of the kinds, and by index inside a kind.
 func (service *DeliveryService) Stats() []DestinationStats {
 	snapshot := make([]DestinationStats, 0, len(service.destinations))
@@ -247,7 +375,7 @@ func (service *DeliveryService) offer_to(
 ) outbound.OfferResult {
 	offer := func() outbound.OfferResult {
 		arrival_ms := service.clock.MonotonicNanoseconds(ctx) / 1_000_000
-		return destination.queue.Offer(envelope, event_class, arrival_ms, service.settings.QueuePolicy)
+		return service.try_offer(destination, envelope, event_class, arrival_ms)
 	}
 	offer_result := offer()
 	if !offer_result.MustWait {
@@ -270,6 +398,7 @@ func (service *DeliveryService) offer_to(
 		}
 		select {
 		case <-room:
+		case <-service.close_signal:
 		case <-timer.C:
 			return timed_out
 		case <-service.stop_signal:
@@ -280,6 +409,190 @@ func (service *DeliveryService) offer_to(
 		offer_result = offer()
 	}
 	return offer_result
+}
+
+// try_offer makes one offer to the queue, unless the service is closed: then nothing is admitted and the reason is
+// ReasonShutdown. The closed check and the offer are one step for Shutdown (admission_mutex), and the offer and the count
+// of a displaced event are one step for a flush (flow_mutex).
+func (service *DeliveryService) try_offer(
+	destination *delivery_destination,
+	envelope value_objects.Envelope,
+	event_class value_objects.EventClass,
+	arrival_ms int64,
+) outbound.OfferResult {
+	service.admission_mutex.RLock()
+	defer service.admission_mutex.RUnlock()
+	if service.closed {
+		return outbound.OfferResult{Reason: ReasonShutdown}
+	}
+	destination.flow_mutex.Lock()
+	offer_result := destination.queue.Offer(envelope, event_class, arrival_ms, service.settings.QueuePolicy)
+	if offer_result.Displaced != nil {
+		destination.resolved++
+	}
+	destination.flow_mutex.Unlock()
+	if offer_result.Displaced != nil {
+		service.signal_progress()
+	}
+	return offer_result
+}
+
+// ----- THE FLUSH ------------------------------------------------------------
+
+// flush_target is what a flush knows about one destination when it begins: the events to finish (queued plus being sent),
+// and the counters at that moment.
+type flush_target struct {
+	destination      *delivery_destination
+	target           int
+	resolved_before  int
+	delivered_before int
+}
+
+// flush does the work of Flush and of Shutdown with a context that already carries the time. It does not check whether
+// the service is closed.
+func (service *DeliveryService) flush(budget_context context.Context) dtos.ShutdownResult {
+	// The targets are read BEFORE the flush is marked as pending: once it is pending the workers send partial batches, and
+	// a batch sent between the mark and the snapshot would be left out of the target.
+	targets := make([]flush_target, 0, len(service.destinations))
+	for _, destination := range service.destinations {
+		targets = append(targets, destination.flush_target())
+	}
+	service.flush_pending.Add(1)
+	defer service.flush_pending.Add(-1)
+	for _, destination := range service.destinations {
+		destination.notify()
+	}
+
+	var result dtos.ShutdownResult
+	if budget_context.Err() != nil || !service.is_running() {
+		// Nobody can finish the events in time (or at all): all of them are dropped, none is sent.
+		for _, target := range targets {
+			result.Dropped += target.target
+		}
+		return result
+	}
+
+	for !service.targets_finished(targets) {
+		progress := service.progress_channel()
+		if service.targets_finished(targets) {
+			break
+		}
+		select {
+		case <-progress:
+		case <-budget_context.Done():
+			return service.tally(targets)
+		}
+	}
+	return service.tally(targets)
+}
+
+// tally is the result of a flush: for each target the events the sink accepted since the flush began, at most the target,
+// are sent and the rest of the target is dropped.
+func (service *DeliveryService) tally(targets []flush_target) dtos.ShutdownResult {
+	var result dtos.ShutdownResult
+	for _, target := range targets {
+		sent := min(target.destination.delivered()-target.delivered_before, target.target)
+		sent = max(sent, 0)
+		result.Sent += sent
+		result.Dropped += target.target - sent
+	}
+	return result
+}
+
+// targets_finished says whether every destination has resolved as many events as its target since the flush began.
+func (service *DeliveryService) targets_finished(targets []flush_target) bool {
+	for _, target := range targets {
+		if target.destination.resolved_count()-target.resolved_before < target.target {
+			return false
+		}
+	}
+	return true
+}
+
+// is_closed says whether Shutdown has closed the service.
+func (service *DeliveryService) is_closed() bool {
+	service.admission_mutex.RLock()
+	defer service.admission_mutex.RUnlock()
+	return service.closed
+}
+
+// is_running says whether the workers have been started and not stopped.
+func (service *DeliveryService) is_running() bool {
+	service.lifecycle_mutex.Lock()
+	defer service.lifecycle_mutex.Unlock()
+	return service.started && !service.stopped
+}
+
+// progress_channel returns the channel that the next signal_progress closes, and makes it when nobody waits.
+func (service *DeliveryService) progress_channel() <-chan struct{} {
+	service.progress_mutex.Lock()
+	defer service.progress_mutex.Unlock()
+	if service.progress == nil {
+		service.progress = make(chan struct{})
+	}
+	return service.progress
+}
+
+// signal_progress wakes the flushes that wait: a destination has resolved events. It does nothing when nobody waits.
+func (service *DeliveryService) signal_progress() {
+	service.progress_mutex.Lock()
+	defer service.progress_mutex.Unlock()
+	if service.progress != nil {
+		close(service.progress)
+		service.progress = nil
+	}
+}
+
+// shutdown_budget returns the context a flush or a shutdown works with: ctx itself when it has a deadline, and ctx with
+// the default timeout when it has none. A nil ctx is a background context.
+func shutdown_budget(ctx context.Context) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, has_deadline := ctx.Deadline(); has_deadline {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, time.Duration(domain.DefaultShutdownTimeoutMilliseconds)*time.Millisecond)
+}
+
+// flush_target reads the target and the counters of the destination in one step with the offers, the takes and the ends
+// of the sends.
+func (destination *delivery_destination) flush_target() flush_target {
+	destination.flow_mutex.Lock()
+	defer destination.flow_mutex.Unlock()
+	return flush_target{
+		destination:      destination,
+		target:           destination.queue.Len() + destination.in_flight,
+		resolved_before:  destination.resolved,
+		delivered_before: destination.delivered(),
+	}
+}
+
+// resolved_count returns the events that left the queue for good.
+func (destination *delivery_destination) resolved_count() int {
+	destination.flow_mutex.Lock()
+	defer destination.flow_mutex.Unlock()
+	return destination.resolved
+}
+
+// delivered returns the events the sink has accepted.
+func (destination *delivery_destination) delivered() int {
+	destination.stats_mutex.Lock()
+	defer destination.stats_mutex.Unlock()
+	return destination.stats.Delivered
+}
+
+// drain_for_shutdown removes what is still queued and counts it as dropped with ReasonShutdown. The events were already
+// counted as dropped in the result of the shutdown.
+func (destination *delivery_destination) drain_for_shutdown() {
+	destination.flow_mutex.Lock()
+	defer destination.flow_mutex.Unlock()
+	left := len(destination.queue.Take(destination.queue.Len()))
+	if left == 0 {
+		return
+	}
+	destination.resolved += left
+	destination.count(func(stats *DestinationStats) { stats.count_drops(left, ReasonShutdown) })
 }
 
 // ----- THE WORKER -----------------------------------------------------------
@@ -313,14 +626,25 @@ func (service *DeliveryService) plan_for(ctx context.Context, destination *deliv
 	if !has_oldest {
 		queued = 0
 	}
-	return batching.PlanBatch(now_ms, queued, oldest_arrival_ms, service.settings.BatchSize, int64(service.settings.FlushIntervalMS))
+	flush_interval_ms := int64(service.settings.FlushIntervalMS)
+	if service.flush_pending.Load() > 0 {
+		// A flush is waiting: a batch that is not full leaves at once. PlanBatch itself does not change.
+		flush_interval_ms = 0
+	}
+	return batching.PlanBatch(now_ms, queued, oldest_arrival_ms, service.settings.BatchSize, flush_interval_ms)
 }
 
 // send_batch takes the events from the queue, wakes the callers that wait for room, calls the sink once with the timeout
 // of the settings and adds the result to the counters. There is no retry here (T-05.3). A panic of the sink is Failed
 // with ReasonSinkPanicked.
 func (service *DeliveryService) send_batch(ctx context.Context, destination *delivery_destination, take int) {
+	if ctx.Err() != nil {
+		return
+	}
+	destination.flow_mutex.Lock()
 	batch := destination.queue.Take(take)
+	destination.in_flight += len(batch)
+	destination.flow_mutex.Unlock()
 	if len(batch) == 0 {
 		return
 	}
@@ -328,6 +652,8 @@ func (service *DeliveryService) send_batch(ctx context.Context, destination *del
 	send_context, cancel_send := context.WithTimeout(ctx, time.Duration(service.settings.TimeoutMS)*time.Millisecond)
 	defer cancel_send()
 	result := send_protected(len(batch), func() dtos.SendResult { return destination.send(send_context, batch) })
+	// The counters and the end of the send are one step for a flush: it reads both to know what the sink accepted.
+	destination.flow_mutex.Lock()
 	destination.count(func(stats *DestinationStats) {
 		stats.Batches++
 		stats.Delivered += result.Accepted
@@ -342,6 +668,10 @@ func (service *DeliveryService) send_batch(ctx context.Context, destination *del
 			stats.LastReason = result.Reason
 		}
 	})
+	destination.in_flight -= len(batch)
+	destination.resolved += len(batch)
+	destination.flow_mutex.Unlock()
+	service.signal_progress()
 }
 
 // wait_for_signal blocks until the wake channel has a signal, the context is done or, when the duration is above zero,

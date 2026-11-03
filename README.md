@@ -25,7 +25,8 @@ The new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md
 | The old library | Removed (T-04.7) |
 | A bounded queue and a worker per destination, batching by size and by time; a log call only enqueues (T-05.1) | Built |
 | What a full queue does (`drop_newest`, `drop_oldest`, `block_with_timeout`) and the priority classes (T-05.2) | Built (one policy for the core) |
-| Retries, flush and shutdown, diagnostics (T-05.3 to T-05.6), the spool (T-06), events, devices, AI, OpenTelemetry and the rest | Planned |
+| `Flush` and `Shutdown` with a timeout and a result of what was sent and dropped (T-05.4); a program must call `Shutdown` before it exits | Built |
+| Retries, diagnostics, the failure matrix (T-05.3, T-05.5, T-05.6), the spool (T-06), events, devices, AI, OpenTelemetry and the rest | Planned |
 | CI (format, vet, build, tests and a coverage gate of 95%, for every Go module and for Python 3.10 and 3.11) | Written and checked locally; not yet run on GitHub, it needs a pull request |
 | Deployment | None, by design: it is a library ([ADR-010](docs/decisions/ADR-010-no-deployment-release-by-tags.md)) |
 
@@ -68,7 +69,7 @@ core.logger.info(LogEntry(category="http", function="handle", message="request r
 core.shutdown()
 ```
 
-The library **never reads environment variables** (ADR-004): the project loads its configuration, with the env names listed in [docs/configuration/environment-variables.md](docs/configuration/environment-variables.md) and in `.env.example`, and passes the settings in. The project also passes the destinations it chose, in code: nothing registers itself. A destination that fails never fails the log call. The whole API is in [docs/api/api.md](docs/api/api.md).
+The library **never reads environment variables** (ADR-004): the project loads its configuration, with the env names listed in [docs/configuration/environment-variables.md](docs/configuration/environment-variables.md) and in `.env.example`, and passes the settings in. The project also passes the destinations it chose, in code: nothing registers itself. A destination that fails never fails the log call. **Call `Shutdown` / `shutdown` before the program exits**, or the events still queued are lost. The whole API is in [docs/api/api.md](docs/api/api.md).
 
 ## Try it
 

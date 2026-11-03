@@ -55,6 +55,9 @@ class EventPipelineService:
            called later, by their workers, never by this call. With the policy ``block_with_timeout`` a full queue
            makes this call WAIT for room, at most the configured timeout: the one case in which a call can wait.
 
+        After ``shutdown`` none of these steps runs: the result is ``dropped=1`` with the reason ``shutdown``, and the
+        drop is counted in the stats of the destinations of the kind.
+
         A failure of step 2, 3 or 4 gives ``dropped=1`` and the code of the error as the reason. Any unexpected
         exception gives ``dropped=1`` and the reason ``event_build_failed``. The result adds what became of the event in
         every destination: ``accepted`` means QUEUED, not delivered, and the reason is the first that is not empty. What
@@ -62,6 +65,8 @@ class EventPipelineService:
         the result of this call.
         """
         try:
+            if self._delivery.closed:  # after shutdown nothing is built or queued: the event is dropped and counted
+                return self._delivery.reject_closed(destination_kind_of(new_event.event_type))
             return self._emit(new_event)
         except Exception:  # the last resort of ADR-005: nothing escapes to the caller of a log call
             return EmitResult(dropped=1, reason=ERROR_CODE_EVENT_BUILD_FAILED)
