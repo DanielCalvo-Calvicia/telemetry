@@ -24,7 +24,7 @@ from telemetry.internal.application.dtos.new_event_input import NewEventInput
 from telemetry.internal.application.dtos.send_result import SendResult
 from telemetry.internal.application.services.delivery_service import (
     REASON_NO_DESTINATION,
-    REASON_QUEUE_FULL,
+    REASON_QUEUE_FULL_NEWEST,
     REASON_SINK_PANICKED,
     DeliveryService,
     Destinations,
@@ -213,7 +213,7 @@ class DeliveryTest(unittest.TestCase):
 
     def test_what_a_sink_answers_is_not_part_of_the_result_of_the_call(self):
         first, second, third = FakeLogSink(), FakeLogSink(), FakeLogSink()
-        first.set_result(SendResult(accepted=0, dropped=1, failed=0, reason="queue_full"))
+        first.set_result(SendResult(accepted=0, dropped=1, failed=0, reason="queue_full_newest"))
         second.set_result(SendResult(accepted=0, dropped=0, failed=1, reason="send_failed"))
         result = make_pipeline(self, Destinations(log=(first, second, third))).emit(log_event())
         self.assertEqual((result.accepted, result.dropped, result.failed, result.reason), (3, 0, 0, ""))
@@ -229,7 +229,7 @@ class DeliveryTest(unittest.TestCase):
         delivered(after, 1)
         eventually(5.0, lambda: raising.calls == 1, "the raising sink being called")
         self.assertEqual(REASON_SINK_PANICKED, "sink_panicked")
-        self.assertEqual(REASON_QUEUE_FULL, "queue_full")
+        self.assertEqual(REASON_QUEUE_FULL_NEWEST, "queue_full_newest")
         self.assertNotIn("hunter2secret", result.reason)
 
     def test_a_sink_that_returns_garbage_does_not_stop_the_others(self):
@@ -251,7 +251,7 @@ class DeliveryTest(unittest.TestCase):
         result = make_pipeline(self, Destinations(log=(FakeLogSink(), FakeLogSink()))).emit(log_event())
         self.assertEqual(result.reason, "")
 
-    def test_a_full_queue_drops_the_new_event_with_queue_full(self):
+    def test_a_full_queue_drops_the_new_event_with_queue_full_newest(self):
         sink = FakeLogSink()
         delivery = DeliveryService(
             Destinations(log=(sink,)),
@@ -267,7 +267,7 @@ class DeliveryTest(unittest.TestCase):
         first = pipeline.emit(log_event())
         second = pipeline.emit(log_event())
         self.assertEqual((first.accepted, first.dropped, first.reason), (1, 0, ""))
-        self.assertEqual((second.accepted, second.dropped, second.reason), (0, 1, REASON_QUEUE_FULL))
+        self.assertEqual((second.accepted, second.dropped, second.reason), (0, 1, REASON_QUEUE_FULL_NEWEST))
 
 
 class DropTest(unittest.TestCase):

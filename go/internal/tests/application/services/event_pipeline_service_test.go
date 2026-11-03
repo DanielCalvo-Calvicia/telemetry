@@ -178,7 +178,7 @@ func Test_a_panicking_sink_does_not_change_the_result_and_the_others_still_recei
 
 func Test_the_result_is_the_sum_over_the_sinks_of_the_kind_and_says_queued_not_delivered(t *testing.T) {
 	first_sink, second_sink, third_sink := &fakes.FakeLogSink{}, &fakes.FakeLogSink{}, &fakes.FakeLogSink{}
-	second_sink.SetResult(dtos.SendResult{Dropped: 2, Failed: 1, Reason: "queue_full"})
+	second_sink.SetResult(dtos.SendResult{Dropped: 2, Failed: 1, Reason: "queue_full_newest"})
 	third_sink.SetResult(dtos.SendResult{Failed: 3, Reason: "send_failed"})
 	pipeline := pipeline_for(t, permissive_validator, services.Destinations{Log: []outbound_log{first_sink, second_sink, third_sink}})
 

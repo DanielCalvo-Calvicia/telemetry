@@ -83,6 +83,9 @@ func NewConfigurationProvider(ctx context.Context, config Config, id_generator o
 			BatchSize:                 config.Delivery.BatchSize,
 			FlushIntervalMilliseconds: config.Delivery.FlushIntervalMS,
 			TimeoutMilliseconds:       config.Delivery.TimeoutMS,
+			QueuePolicy:               value_objects.QueuePolicy(config.Delivery.QueuePolicy),
+			BlockTimeoutMilliseconds:  config.Delivery.BlockTimeoutMS,
+			EventClasses:              event_classes_of(config.Delivery.EventClasses),
 		},
 		Limits: limits,
 		Spool:  dtos.SpoolSettings{Directory: config.Spool.Directory, QuotaBytes: config.Spool.QuotaBytes},
@@ -98,15 +101,25 @@ func NewConfigurationProvider(ctx context.Context, config Config, id_generator o
 
 // ----- METHODS --------------------------------------------------------------
 
-// Configuration returns a copy of the validated configuration: the lists and maps of the masking options are not shared
-// with the provider, so a caller that changes them changes nothing else.
+// Configuration returns a copy of the validated configuration: the lists and maps of the masking options and the event
+// classes are not shared with the provider, so a caller that changes them changes nothing else.
 func (provider *ConfigurationProvider) Configuration(_ context.Context) (dtos.Configuration, error) {
 	configuration := provider.configuration
 	configuration.Masking = clone_masker_options(configuration.Masking)
+	configuration.Delivery.EventClasses = maps.Clone(configuration.Delivery.EventClasses)
 	return configuration, nil
 }
 
 // ----- HELPERS --------------------------------------------------------------
+
+// event_classes_of returns a new map with the classes of the configuration, typed. It is never nil.
+func event_classes_of(event_classes map[string]string) map[string]value_objects.EventClass {
+	typed_classes := make(map[string]value_objects.EventClass, len(event_classes))
+	for event_type, event_class := range event_classes {
+		typed_classes[event_type] = value_objects.EventClass(event_class)
+	}
+	return typed_classes
+}
 
 // clone_masker_options copies the lists and maps of the options. A nil list stays nil, because for FieldNames nil and
 // empty mean different things.

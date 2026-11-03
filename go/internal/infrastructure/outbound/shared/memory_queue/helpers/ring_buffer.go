@@ -7,9 +7,10 @@ import "github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objec
 // RING BUFFER
 // =============================================================================
 
-// Entry is one queued event with the time it arrived, in milliseconds of the monotonic clock.
+// Entry is one queued event with its class and the time it arrived, in milliseconds of the monotonic clock.
 type Entry struct {
 	Envelope  value_objects.Envelope
+	Class     value_objects.EventClass
 	ArrivalMS int64
 }
 
@@ -57,6 +58,31 @@ func (ring *RingBuffer) Take(n int) []Entry {
 	ring.head = (ring.head + n) % len(ring.entries)
 	ring.size -= n
 	return taken
+}
+
+// Classes returns the class of every entry, oldest first.
+func (ring *RingBuffer) Classes() []value_objects.EventClass {
+	classes := make([]value_objects.EventClass, ring.size)
+	for index := 0; index < ring.size; index++ {
+		classes[index] = ring.entries[(ring.head+index)%len(ring.entries)].Class
+	}
+	return classes
+}
+
+// RemoveAt removes and returns the entry at the position index (the oldest is zero), keeping the order of the others. It
+// returns false and changes nothing when index is out of range. The slot it frees is cleared.
+func (ring *RingBuffer) RemoveAt(index int) (Entry, bool) {
+	if index < 0 || index >= ring.size {
+		return Entry{}, false
+	}
+	capacity := len(ring.entries)
+	removed := ring.entries[(ring.head+index)%capacity]
+	for position := index; position < ring.size-1; position++ {
+		ring.entries[(ring.head+position)%capacity] = ring.entries[(ring.head+position+1)%capacity]
+	}
+	ring.entries[(ring.head+ring.size-1)%capacity] = Entry{}
+	ring.size--
+	return removed, true
 }
 
 // Len returns the number of entries held.

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"slices"
+
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/base_value_objects"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/masking"
@@ -62,6 +64,20 @@ func Validate(config Config) error {
 	}
 	if config.Delivery.TimeoutMS <= 0 {
 		invalid("delivery.timeout_ms", "it must be greater than zero")
+	}
+	if !slices.Contains(value_objects.QueuePolicyValues(), value_objects.QueuePolicy(config.Delivery.QueuePolicy)) {
+		invalid("delivery.queue_policy", "the queue policy must be drop_newest, drop_oldest or block_with_timeout")
+	}
+	if config.Delivery.BlockTimeoutMS < 0 {
+		invalid("delivery.block_timeout_ms", "it must not be negative")
+	} else if config.Delivery.BlockTimeoutMS == 0 && config.Delivery.QueuePolicy == string(value_objects.QueuePolicyBlockWithTimeout) {
+		invalid("delivery.block_timeout_ms", "it must be greater than zero when the queue policy is block_with_timeout")
+	}
+	for event_type, event_class := range config.Delivery.EventClasses {
+		if event_type == "" || !slices.Contains(value_objects.EventClassValues(), value_objects.EventClass(event_class)) {
+			invalid("delivery.event_classes", "every event type must be a text and every class must be critical, normal or bulk")
+			break
+		}
 	}
 
 	// ----- limits -----

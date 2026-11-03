@@ -1,0 +1,104 @@
+{
+  "description": "The class of an event (REQ-DLV-009), by its event_type, its severity and the assignments of the configuration (delivery.event_classes). The rule: an assignment for the EXACT event_type wins; otherwise an event type that starts with log. is bulk at TRACE and DEBUG and normal at every other severity; any other event type is normal. The class is a priority for a full queue and never a delivery guarantee.",
+  "cases": [
+    {
+      "description": "an info log is normal",
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "overrides": {},
+      "expected": "normal"
+    },
+    {
+      "description": "a warn log is normal",
+      "event_type": "log.entry.recorded",
+      "severity": "WARN",
+      "overrides": {},
+      "expected": "normal"
+    },
+    {
+      "description": "an error log is normal",
+      "event_type": "log.entry.recorded",
+      "severity": "ERROR",
+      "overrides": {},
+      "expected": "normal"
+    },
+    {
+      "description": "a critical log is normal (the class is not the severity)",
+      "event_type": "log.entry.recorded",
+      "severity": "CRITICAL",
+      "overrides": {},
+      "expected": "normal"
+    },
+    {
+      "description": "a debug log is bulk",
+      "event_type": "log.entry.recorded",
+      "severity": "DEBUG",
+      "overrides": {},
+      "expected": "bulk"
+    },
+    {
+      "description": "a trace log is bulk",
+      "event_type": "log.entry.recorded",
+      "severity": "TRACE",
+      "overrides": {},
+      "expected": "bulk"
+    },
+    {
+      "description": "another log type follows the same default",
+      "event_type": "log.custom.thing",
+      "severity": "DEBUG",
+      "overrides": {},
+      "expected": "bulk"
+    },
+    {
+      "description": "an event type that is in no assignment is normal",
+      "event_type": "execution.step.finished",
+      "severity": "INFO",
+      "overrides": {},
+      "expected": "normal"
+    },
+    {
+      "description": "the assignment of the type wins over the default",
+      "event_type": "log.entry.recorded",
+      "severity": "DEBUG",
+      "overrides": {
+        "log.entry.recorded": "critical"
+      },
+      "expected": "critical"
+    },
+    {
+      "description": "the assignment of the type wins whatever the severity",
+      "event_type": "log.entry.recorded",
+      "severity": "INFO",
+      "overrides": {
+        "log.entry.recorded": "bulk"
+      },
+      "expected": "bulk"
+    },
+    {
+      "description": "an assignment for another type changes nothing",
+      "event_type": "log.entry.recorded",
+      "severity": "DEBUG",
+      "overrides": {
+        "x.y": "critical"
+      },
+      "expected": "bulk"
+    },
+    {
+      "description": "a type with an assignment",
+      "event_type": "device.fault.raised",
+      "severity": "ERROR",
+      "overrides": {
+        "device.fault.raised": "critical"
+      },
+      "expected": "critical"
+    },
+    {
+      "description": "a type with no assignment and a severity: normal",
+      "event_type": "device.fault.raised",
+      "severity": "TRACE",
+      "overrides": {},
+      "expected": "normal"
+    }
+  ]
+}

@@ -51,7 +51,9 @@ class EventPipelineService:
         5. Route it by the first segment of the event type (see destination_kind_of) and hand it to
            ``DeliveryService.enqueue``, which puts it in the queue of EVERY destination of that kind. No destination of
            that kind gives ``dropped=1`` with the reason ``no_destination``; a full queue gives ``dropped=1`` with the
-           reason ``queue_full``. The sinks are called later, by their workers, never by this call.
+           reason of its policy (``queue_full_newest`` by default, see ``DeliveryService.enqueue``). The sinks are
+           called later, by their workers, never by this call. With the policy ``block_with_timeout`` a full queue
+           makes this call WAIT for room, at most the configured timeout: the one case in which a call can wait.
 
         A failure of step 2, 3 or 4 gives ``dropped=1`` and the code of the error as the reason. Any unexpected
         exception gives ``dropped=1`` and the reason ``event_build_failed``. The result adds what became of the event in

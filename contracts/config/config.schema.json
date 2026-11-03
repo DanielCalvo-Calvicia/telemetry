@@ -76,6 +76,25 @@
           "description": "Milliseconds before a network operation gives up (default 3000, REQ-DLV-004).",
           "x-env": "TELEMETRY_TIMEOUT_MS",
           "minimum": 1
+        },
+        "queue_policy": {
+          "type": "string",
+          "description": "What a full queue does: drop_newest (the default), drop_oldest or block_with_timeout (contracts/enums/queue_policy.json, REQ-DLV-007). It applies to every destination of the core.",
+          "x-env": "TELEMETRY_QUEUE_POLICY"
+        },
+        "block_timeout_ms": {
+          "type": "integer",
+          "description": "Milliseconds a log call waits for room in a full queue. Required, greater than zero, when queue_policy is block_with_timeout; 0 (the default) otherwise. It is the one case where a call can wait.",
+          "x-env": "TELEMETRY_BLOCK_TIMEOUT_MS",
+          "minimum": 0
+        },
+        "event_classes": {
+          "type": "object",
+          "description": "Event type to class (critical, normal or bulk, contracts/enums/event_class.json, REQ-DLV-009). The default is empty: a log.* event is bulk at DEBUG and TRACE and normal above, any other event type is normal. A class is a priority for a full queue and never a delivery guarantee.",
+          "x-env": "TELEMETRY_EVENT_CLASSES",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     },

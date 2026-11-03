@@ -1,0 +1,19 @@
+{
+  "description": "A queue policy that is not drop_newest, drop_oldest or block_with_timeout is invalid.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "queue_policy": "lazy"
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.queue_policy",
+      "code": "config_field_invalid"
+    }
+  ]
+}

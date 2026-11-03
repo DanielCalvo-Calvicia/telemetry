@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/queue_policy.json",
+  "title": "Queue policy",
+  "description": "What a destination does when its bounded queue is full (section 10.2 of PR-001, REQ-DLV-007): drop_newest (the default) drops the new event, drop_oldest drops the oldest event of a class not higher than the new one and takes its place, block_with_timeout makes the caller wait for room for at most a mandatory timeout and drops the new event when it ends. Adding a value is a MINOR change of the contract (REQ-VER-003).",
+  "type": "string",
+  "enum": [
+    "drop_newest",
+    "drop_oldest",
+    "block_with_timeout"
+  ]
+}

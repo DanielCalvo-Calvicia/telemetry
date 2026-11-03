@@ -10,8 +10,9 @@ import (
 // =============================================================================
 
 // Defaults returns the configuration with the documented defaults: delivery mode best_effort, a queue of 10000 events,
-// a batch of 100, a flush every 2000 ms, a timeout of 3000 ms, the default size limits and a spool quota of 256 MiB.
-// Every text is empty (not set), the lists and maps of the masking are empty and not nil, and FieldNames is nil so the
+// a batch of 100, a flush every 2000 ms, a timeout of 3000 ms, the queue policy drop_newest with no block timeout, no
+// class assigned to an event type, the default size limits and a spool quota of 256 MiB. Every text is empty (not set),
+// the lists and maps (the masking ones and the event classes) are empty and not nil, and FieldNames is nil so the
 // default list of sensitive field names applies. It is a new value on every call, so the caller may change it.
 func Defaults() Config {
 	return Config{
@@ -21,6 +22,9 @@ func Defaults() Config {
 			BatchSize:       domain.DefaultBatchSize,
 			FlushIntervalMS: domain.DefaultFlushIntervalMilliseconds,
 			TimeoutMS:       domain.DefaultTimeoutMilliseconds,
+			QueuePolicy:     string(value_objects.QueuePolicyDropNewest),
+			BlockTimeoutMS:  0,
+			EventClasses:    map[string]string{},
 		},
 		Limits: LimitsConfig{
 			MaxAttributeKeys:       domain.DefaultMaxAttributeKeys,

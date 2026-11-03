@@ -7,6 +7,7 @@ from telemetry.internal.application.errors import ConfigurationInstanceIdFailedE
 from telemetry.internal.application.ports.outbound.id_generator_port import IDGeneratorPort
 from telemetry.internal.domain.operations.masking.sensitive_data_masker import MaskerOptions
 from telemetry.internal.domain.value_objects.delivery_mode import parse_delivery_mode
+from telemetry.internal.domain.value_objects.enums_generated import EventClass, QueuePolicy
 from telemetry.internal.domain.value_objects.limits import Limits
 from telemetry.internal.domain.value_objects.resource_identity import ResourceIdentity
 from telemetry.internal.infrastructure.config.config import Config
@@ -57,6 +58,11 @@ class ConfigurationProvider:
                 batch_size=delivery.batch_size,
                 flush_interval_milliseconds=delivery.flush_interval_ms,
                 timeout_milliseconds=delivery.timeout_ms,
+                queue_policy=QueuePolicy(delivery.queue_policy),
+                block_timeout_milliseconds=delivery.block_timeout_ms,
+                event_classes={
+                    event_type: EventClass(event_class) for event_type, event_class in delivery.event_classes.items()
+                },
             ),
             limits=Limits(
                 max_attribute_keys=limits.max_attribute_keys,

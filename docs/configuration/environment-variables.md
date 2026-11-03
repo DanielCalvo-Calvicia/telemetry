@@ -26,6 +26,9 @@ The new core (`go/`, `python/`) has **one logical model of the configuration** (
 | `TELEMETRY_BATCH_SIZE` | `100` | `delivery.batch_size` | not greater than the queue size |
 | `TELEMETRY_FLUSH_INTERVAL_MS` | `2000` | `delivery.flush_interval_ms` | milliseconds |
 | `TELEMETRY_TIMEOUT_MS` | `3000` | `delivery.timeout_ms` | milliseconds; no network operation waits for ever (REQ-DLV-004) |
+| `TELEMETRY_QUEUE_POLICY` | `drop_newest` | `delivery.queue_policy` | what a full queue does: `drop_newest`, `drop_oldest` or `block_with_timeout` (REQ-DLV-007); one policy for every destination of the core |
+| `TELEMETRY_BLOCK_TIMEOUT_MS` | `0` | `delivery.block_timeout_ms` | milliseconds a log call may wait for room in a full queue; required and greater than zero with `block_with_timeout`, the one case where a call can wait |
+| `TELEMETRY_EVENT_CLASSES` | empty | `delivery.event_classes` | `event_type:class` pairs separated by `,`, the class being `critical`, `normal` or `bulk` (REQ-DLV-009); a class is a priority for a full queue, never a delivery guarantee |
 | `TELEMETRY_MAX_ATTRIBUTE_KEYS` | `32` | `limits.max_attribute_keys` |  |
 | `TELEMETRY_MAX_ATTRIBUTE_KEY_CHARS` | `64` | `limits.max_attribute_key_chars` | characters |
 | `TELEMETRY_MAX_ATTRIBUTE_VALUE_CHARS` | `256` | `limits.max_attribute_value_chars` | characters |

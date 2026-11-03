@@ -122,6 +122,8 @@ DEFAULT_BATCH_SIZE = 100  # events in one batch
 DEFAULT_FLUSH_INTERVAL_MILLISECONDS = 2000  # milliseconds between flushes
 DEFAULT_TIMEOUT_MILLISECONDS = 3000  # milliseconds before a network operation gives up
 DEFAULT_SPOOL_QUOTA_BYTES = 268435456  # 256 MiB of disk per destination
+DEFAULT_QUEUE_POLICY = "drop_newest"  # what a full queue does (contracts/enums/queue_policy.json)
+DEFAULT_BLOCK_TIMEOUT_MILLISECONDS = 0  # milliseconds a call waits for room; above zero with block_with_timeout
 
 # The retry policy of the shared HTTP client (T-04.4). A CONTRACT shared with Go.
 DEFAULT_HTTP_MAX_ATTEMPTS = 5  # attempts at most for one batch, the first included

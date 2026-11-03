@@ -265,7 +265,7 @@ func Test_stop_cancels_a_call_in_flight_and_returns(t *testing.T) {
 	}
 }
 
-func Test_a_full_queue_drops_the_new_event_with_queue_full(t *testing.T) {
+func Test_a_full_queue_drops_the_new_event_with_queue_full_newest(t *testing.T) {
 	sink := &fakes.FakeLogSink{}
 	delivery := new_delivery(t, log_destinations(sink), settings_of(3, 3, 10000)) // not started: the queue only fills
 
@@ -277,14 +277,14 @@ func Test_a_full_queue_drops_the_new_event_with_queue_full(t *testing.T) {
 	for index, result := range results {
 		want := dtos.EmitResult{Accepted: 1}
 		if index >= 3 {
-			want = dtos.EmitResult{Dropped: 1, Reason: services.ReasonQueueFull}
+			want = dtos.EmitResult{Dropped: 1, Reason: services.ReasonQueueFullNewest}
 		}
 		if result != want {
 			t.Fatalf("result %d is %+v, want %+v", index, result, want)
 		}
 	}
 	stats := delivery.Stats()[0]
-	if stats.Accepted != 3 || stats.Dropped != 2 || stats.Queued != 3 || stats.LastReason != services.ReasonQueueFull {
+	if stats.Accepted != 3 || stats.Dropped != 2 || stats.Queued != 3 || stats.LastReason != services.ReasonQueueFullNewest || stats.DroppedByReason[services.ReasonQueueFullNewest] != 2 {
 		t.Fatalf("stats %+v", stats)
 	}
 }
@@ -304,7 +304,7 @@ func Test_the_result_sums_the_destinations_of_the_kind_and_the_reason_is_the_fir
 	first := delivery.Enqueue(context.Background(), services.DestinationKindLog, numbered(1))
 	second := delivery.Enqueue(context.Background(), services.DestinationKindLog, numbered(2))
 
-	if first != (dtos.EmitResult{Accepted: 2}) || second != (dtos.EmitResult{Accepted: 1, Dropped: 1, Reason: services.ReasonQueueFull}) {
+	if first != (dtos.EmitResult{Accepted: 2}) || second != (dtos.EmitResult{Accepted: 1, Dropped: 1, Reason: services.ReasonQueueFullNewest}) {
 		t.Fatalf("results %+v and %+v", first, second)
 	}
 	if created != 2 {
@@ -342,7 +342,7 @@ func Test_the_stats_count_what_the_sink_answers(t *testing.T) {
 
 	waiting.Eventually(t, waiting.DefaultTimeout, "the batch is counted", func() bool { return delivery.Stats()[0].Batches == 1 })
 	stats := delivery.Stats()[0]
-	if stats.Accepted != 3 || stats.Delivered != 1 || stats.Dropped != 1 || stats.Failed != 1 || stats.LastReason != "status_503" || stats.Queued != 0 {
+	if stats.Accepted != 3 || stats.Delivered != 1 || stats.Dropped != 1 || stats.Failed != 1 || stats.LastReason != "status_503" || stats.Queued != 0 || stats.DroppedByReason["status_503"] != 1 || len(stats.DroppedByReason) != 1 {
 		t.Fatalf("stats %+v", stats)
 	}
 }

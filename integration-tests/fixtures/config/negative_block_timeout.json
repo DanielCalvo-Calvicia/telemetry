@@ -1,0 +1,19 @@
+{
+  "description": "A negative block timeout is invalid whatever the policy.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "block_timeout_ms": -5
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.block_timeout_ms",
+      "code": "config_field_invalid"
+    }
+  ]
+}

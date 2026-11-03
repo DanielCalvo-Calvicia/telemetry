@@ -1,0 +1,22 @@
+{
+  "description": "An event class that is not critical, normal or bulk, or an empty event type, is invalid (one problem for the field).",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "event_classes": {
+        "log.entry.recorded": "urgent",
+        "": "normal"
+      }
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.event_classes",
+      "code": "config_field_invalid"
+    }
+  ]
+}

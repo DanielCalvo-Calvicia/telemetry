@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/event_class.json",
+  "title": "Event class",
+  "description": "The priority class of an event (section 10.3 of PR-001, REQ-DLV-009): critical takes the place of an event of a lower class when a queue is full, normal and bulk follow the policy of the queue. A class is a priority for a full queue and NEVER a delivery guarantee. Adding a value is a MINOR change of the contract (REQ-VER-003).",
+  "type": "string",
+  "enum": [
+    "critical",
+    "normal",
+    "bulk"
+  ]
+}

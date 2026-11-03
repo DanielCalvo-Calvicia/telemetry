@@ -521,13 +521,26 @@ capabilities:
           - { language: python, path: python/internal/tests/infrastructure/outbound/shared/memory_queue/test_memory_queue.py }
       # REQ-DLV-007: When a queue fills, the policy is configurable per destination: drop_n...
       - id: REQ-DLV-007
-        pending: T-05.2
+        # a full queue drops the new event (the default), the oldest of a class not higher, or makes the caller wait for at most a mandatory timeout: 54 shared cases; the policy is one for the whole core, a policy per destination is planned (T-05.2)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/full_queue/resolve_full_queue_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/full_queue/test_resolve_full_queue.py }
+          - { language: go, path: go/internal/tests/application/services/delivery_backpressure_test.go }
+          - { language: python, path: python/internal/tests/application/services/test_delivery_backpressure.py }
+          - { language: go, path: go/internal/tests/composition_root/core_test.go }
+          - { language: python, path: python/internal/tests/infrastructure/config/test_queue_policy_config.py }
       # REQ-DLV-008: Every drop MUST be counted per destination and reason (section 12).
       - id: REQ-DLV-008
-        pending: T-05.2
+        # every drop of a queue, a displacement and a drop reported by a sink is counted per destination and reason in the stats of the destination (public counters are T-05.5) (T-05.2)
+        tests:
+          - { language: go, path: go/internal/tests/application/services/delivery_backpressure_test.go }
+          - { language: python, path: python/internal/tests/application/services/test_delivery_backpressure.py }
       # REQ-DLV-009: Priority MUST NOT imply a delivery guarantee.
       - id: REQ-DLV-009
-        pending: T-05.2
+        # the class of an event by its type, its severity and the configuration decides only who is dropped from a full queue, never a delivery guarantee: 13 shared cases (T-05.2)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/classification/classify_event_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/classification/test_classify_event.py }
       # REQ-DLV-010: The library MUST offer flush and shutdown with a timeout. When they fi...
       - id: REQ-DLV-010
         pending: T-05.4

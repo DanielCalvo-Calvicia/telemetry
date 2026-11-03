@@ -25,7 +25,7 @@ Sections 10 and 12 of the specification: the bounded queue, the worker, the deli
 | Order | Task | Status |
 |---|---|---|
 | 1 | [T-05.1 Bounded queue and worker](T-05.1_bounded-queue-and-worker.md) | done (2026-11-03) |
-| 2 | [T-05.2 Backpressure and priorities](T-05.2_backpressure-and-priorities.md) | todo |
+| 2 | [T-05.2 Backpressure and priorities](T-05.2_backpressure-and-priorities.md) | done (2026-11-03) |
 | 3 | [T-05.3 Delivery modes `best_effort` and `retry`](T-05.3_delivery-modes-best-effort-and-retry.md) | todo |
 | 4 | [T-05.4 `flush` and `shutdown`](T-05.4_flush-and-shutdown.md) | todo |
 | 5 | [T-05.5 Diagnostics](T-05.5_diagnostics.md) | todo |

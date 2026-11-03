@@ -59,7 +59,7 @@ Written on 2026-10-28 from PR-001 version 0.2 and the answers of Q01 to Q09, wit
 | 35 | [T-04.8](T-04_logging-and-core-adapters/T-04.8_fake-receiver-for-tests.md) | Fake receiver for tests | test | Done | done (2026-11-03) | T-04.4 | 2026-10-28 |
 | 36 | [T-05](T-05_delivery/T-05_delivery.md) | Delivery, buffering and failures | epic | Todo | todo | T-04 | 2026-10-28 |
 | 37 | [T-05.1](T-05_delivery/T-05.1_bounded-queue-and-worker.md) | Bounded queue and worker | code | Done | done (2026-11-03) | T-04.5 | 2026-10-28 |
-| 38 | [T-05.2](T-05_delivery/T-05.2_backpressure-and-priorities.md) | Backpressure and priorities | code | Todo | todo | T-05.1 | 2026-10-28 |
+| 38 | [T-05.2](T-05_delivery/T-05.2_backpressure-and-priorities.md) | Backpressure and priorities | code | Done | done (2026-11-03) | T-05.1 | 2026-10-28 |
 | 39 | [T-05.3](T-05_delivery/T-05.3_delivery-modes-best-effort-and-retry.md) | Delivery modes `best_effort` and `retry` | code | Todo | todo | T-05.1 | 2026-10-28 |
 | 40 | [T-05.4](T-05_delivery/T-05.4_flush-and-shutdown.md) | `flush` and `shutdown` | code | Todo | todo | T-05.1 | 2026-10-28 |
 | 41 | [T-05.5](T-05_delivery/T-05.5_diagnostics.md) | Diagnostics | code | Todo | todo | T-05.1 | 2026-10-28 |

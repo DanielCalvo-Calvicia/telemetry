@@ -26,7 +26,7 @@ func valid_config() config.Config {
 
 func Test_the_defaults_are_the_documented_ones(t *testing.T) {
 	expected := config.Config{
-		Delivery: config.DeliveryConfig{Mode: "best_effort", QueueSize: 10000, BatchSize: 100, FlushIntervalMS: 2000, TimeoutMS: 3000},
+		Delivery: config.DeliveryConfig{Mode: "best_effort", QueueSize: 10000, BatchSize: 100, FlushIntervalMS: 2000, TimeoutMS: 3000, QueuePolicy: "drop_newest", EventClasses: map[string]string{}},
 		Limits: config.LimitsConfig{
 			MaxAttributeKeys: 32, MaxAttributeKeyChars: 64, MaxAttributeValueChars: 256, MaxEventBytes: 65536, MaxBatchBytes: 1048576,
 		},
@@ -118,6 +118,7 @@ func Test_the_zero_config_reports_several_problems_together_in_the_order_of_the_
 		"delivery.batch_size config_field_invalid",
 		"delivery.flush_interval_ms config_field_invalid",
 		"delivery.timeout_ms config_field_invalid",
+		"delivery.queue_policy config_field_invalid",
 		"limits.max_attribute_keys config_field_invalid",
 		"limits.max_attribute_key_chars config_field_invalid",
 		"limits.max_attribute_value_chars config_field_invalid",
@@ -153,6 +154,12 @@ func Test_each_rule_of_the_validation_reports_its_field(t *testing.T) {
 		{"batch over queue", func(c *config.Config) { c.Delivery.QueueSize = 5; c.Delivery.BatchSize = 6 }, "delivery.batch_size", "config_field_invalid"},
 		{"zero flush", func(c *config.Config) { c.Delivery.FlushIntervalMS = 0 }, "delivery.flush_interval_ms", "config_field_invalid"},
 		{"zero timeout", func(c *config.Config) { c.Delivery.TimeoutMS = -1 }, "delivery.timeout_ms", "config_field_invalid"},
+		{"unknown queue policy", func(c *config.Config) { c.Delivery.QueuePolicy = "lazy" }, "delivery.queue_policy", "config_field_invalid"},
+		{"empty queue policy", func(c *config.Config) { c.Delivery.QueuePolicy = "" }, "delivery.queue_policy", "config_field_invalid"},
+		{"negative block timeout", func(c *config.Config) { c.Delivery.BlockTimeoutMS = -1 }, "delivery.block_timeout_ms", "config_field_invalid"},
+		{"block policy without timeout", func(c *config.Config) { c.Delivery.QueuePolicy = "block_with_timeout" }, "delivery.block_timeout_ms", "config_field_invalid"},
+		{"empty event type", func(c *config.Config) { c.Delivery.EventClasses = map[string]string{"": "normal"} }, "delivery.event_classes", "config_field_invalid"},
+		{"unknown event class", func(c *config.Config) { c.Delivery.EventClasses = map[string]string{"a.b": "urgent"} }, "delivery.event_classes", "config_field_invalid"},
 		{"zero keys", func(c *config.Config) { c.Limits.MaxAttributeKeys = 0 }, "limits.max_attribute_keys", "config_field_invalid"},
 		{"zero key chars", func(c *config.Config) { c.Limits.MaxAttributeKeyChars = 0 }, "limits.max_attribute_key_chars", "config_field_invalid"},
 		{"zero value chars", func(c *config.Config) { c.Limits.MaxAttributeValueChars = 0 }, "limits.max_attribute_value_chars", "config_field_invalid"},
@@ -229,7 +236,7 @@ func Test_a_validation_error_is_found_by_errors_is_and_errors_as(t *testing.T) {
 	if !strings.Contains(validation_error.Error(), "delivery.mode: ") || !strings.Contains(validation_error.Error(), "(delivery_mode_unknown)") {
 		t.Errorf("the message lacks the field, the reason or the code: %s", validation_error.Error())
 	}
-	if strings.Count(validation_error.Error(), "\n") != 11 {
+	if strings.Count(validation_error.Error(), "\n") != 12 {
 		t.Errorf("expected one line per problem: %s", validation_error.Error())
 	}
 
@@ -325,7 +332,8 @@ func Test_the_provider_maps_every_section_of_the_configuration(t *testing.T) {
 		Resource: config.ResourceConfig{
 			ServiceName: "sensor-hub", InstanceID: "hub-01", Environment: "staging", ServiceVersion: "1.2.3", Host: "host-a", TimeZone: "Europe/Madrid",
 		},
-		Delivery: config.DeliveryConfig{Mode: "durable", QueueSize: 2000, BatchSize: 50, FlushIntervalMS: 500, TimeoutMS: 1500},
+		Delivery: config.DeliveryConfig{Mode: "durable", QueueSize: 2000, BatchSize: 50, FlushIntervalMS: 500, TimeoutMS: 1500,
+			QueuePolicy: "block_with_timeout", BlockTimeoutMS: 250, EventClasses: map[string]string{"log.entry.recorded": "critical"}},
 		Limits: config.LimitsConfig{
 			MaxAttributeKeys: 16, MaxAttributeKeyChars: 32, MaxAttributeValueChars: 128, MaxEventBytes: 32768, MaxBatchBytes: 524288,
 		},
@@ -356,9 +364,21 @@ func Test_the_provider_maps_every_section_of_the_configuration(t *testing.T) {
 	if time_zone, present := got.Resource.TimeZone(); !present || time_zone != "Europe/Madrid" {
 		t.Error("time zone")
 	}
-	expected_delivery := dtos.DeliverySettings{Mode: value_objects.DeliveryModeDurable, QueueSize: 2000, BatchSize: 50, FlushIntervalMilliseconds: 500, TimeoutMilliseconds: 1500}
-	if got.Delivery != expected_delivery {
+	expected_delivery := dtos.DeliverySettings{
+		Mode: value_objects.DeliveryModeDurable, QueueSize: 2000, BatchSize: 50, FlushIntervalMilliseconds: 500, TimeoutMilliseconds: 1500,
+		QueuePolicy: value_objects.QueuePolicyBlockWithTimeout, BlockTimeoutMilliseconds: 250,
+		EventClasses: map[string]value_objects.EventClass{"log.entry.recorded": value_objects.EventClassCritical},
+	}
+	if !reflect.DeepEqual(got.Delivery, expected_delivery) {
 		t.Errorf("delivery: %+v", got.Delivery)
+	}
+	got.Delivery.EventClasses["log.entry.recorded"] = value_objects.EventClassBulk
+	if again, _ := provider.Configuration(context.Background()); again.Delivery.EventClasses["log.entry.recorded"] != value_objects.EventClassCritical {
+		t.Error("the event classes of the provider are shared with a copy")
+	}
+	configuration.Delivery.EventClasses["log.entry.recorded"] = "bulk"
+	if again, _ := provider.Configuration(context.Background()); again.Delivery.EventClasses["log.entry.recorded"] != value_objects.EventClassCritical {
+		t.Error("the event classes of the provider are shared with the config the consumer passed")
 	}
 	expected_limits, _ := value_objects.NewLimits(16, 32, 128, 32768, 524288)
 	if got.Limits != expected_limits {
@@ -428,5 +448,38 @@ func Test_the_configuration_is_independent_of_later_changes(t *testing.T) {
 	second, _ := provider.Configuration(context.Background())
 	if second.Masking.ClassRules["pii"] != "drop" || second.Masking.ExtraPatterns[0] != "ID-[0-9]{4}" {
 		t.Errorf("a returned copy changes the provider: %+v", second.Masking)
+	}
+}
+
+func Test_the_queue_policy_and_class_problems_never_contain_the_configured_value(t *testing.T) {
+	configuration := valid_config()
+	configuration.Delivery.QueuePolicy = "secret-policy"
+	configuration.Delivery.EventClasses = map[string]string{"secret.type": "secret-class"}
+	configuration.Delivery.BlockTimeoutMS = -987654
+
+	validation_error := config.Validate(configuration)
+
+	for _, secret := range []string{"secret-policy", "secret.type", "secret-class", "987654"} {
+		if strings.Contains(validation_error.Error(), secret) {
+			t.Errorf("the error contains %q: %v", secret, validation_error)
+		}
+	}
+}
+
+func Test_a_nil_event_class_map_and_block_with_a_timeout_are_valid(t *testing.T) {
+	configuration := valid_config()
+	configuration.Delivery.EventClasses = nil
+	configuration.Delivery.QueuePolicy = "block_with_timeout"
+	configuration.Delivery.BlockTimeoutMS = 10
+	if validation_error := config.Validate(configuration); validation_error != nil {
+		t.Fatal(validation_error)
+	}
+	provider, provider_error := config.NewConfigurationProvider(context.Background(), configuration, fakes.NewFakeIDGenerator())
+	if provider_error != nil {
+		t.Fatal(provider_error)
+	}
+	got, _ := provider.Configuration(context.Background())
+	if got.Delivery.EventClasses == nil || len(got.Delivery.EventClasses) != 0 || got.Delivery.BlockTimeoutMilliseconds != 10 {
+		t.Errorf("delivery %+v", got.Delivery)
 	}
 }

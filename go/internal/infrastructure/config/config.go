@@ -48,6 +48,15 @@ type DeliveryConfig struct {
 	FlushIntervalMS int `json:"flush_interval_ms" env:"TELEMETRY_FLUSH_INTERVAL_MS"`
 	// TimeoutMS is the milliseconds before a network operation gives up.
 	TimeoutMS int `json:"timeout_ms" env:"TELEMETRY_TIMEOUT_MS"`
+	// QueuePolicy is what a full queue does with a new event: drop_newest (the default), drop_oldest or
+	// block_with_timeout. The profiles keep the default.
+	QueuePolicy string `json:"queue_policy" env:"TELEMETRY_QUEUE_POLICY"`
+	// BlockTimeoutMS is the milliseconds a call may wait for room when QueuePolicy is block_with_timeout. It must be
+	// greater than zero with that policy and is not used with the others.
+	BlockTimeoutMS int `json:"block_timeout_ms" env:"TELEMETRY_BLOCK_TIMEOUT_MS"`
+	// EventClasses maps an event type to its class: critical, normal or bulk. The class is the priority of the event
+	// when a queue is full (never a guarantee of delivery). An event type that is not here has a default class.
+	EventClasses map[string]string `json:"event_classes" env:"TELEMETRY_EVENT_CLASSES"`
 }
 
 // LimitsConfig is the size limits of an event and of a batch.

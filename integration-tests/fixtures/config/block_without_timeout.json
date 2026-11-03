@@ -1,0 +1,19 @@
+{
+  "description": "block_with_timeout needs a block timeout greater than zero: it is never the default and never has an implicit timeout (REQ-DLV-007).",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "queue_policy": "block_with_timeout"
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.block_timeout_ms",
+      "code": "config_field_invalid"
+    }
+  ]
+}

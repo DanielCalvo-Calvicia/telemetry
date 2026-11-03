@@ -67,14 +67,16 @@ func NewEventPipelineService(
 //  3. Mask (MaskingService.Mask), with the same outcome on an error.
 //  4. Apply the limits (LimitsService.Apply), with the same outcome on an error (for example limit_exceeded).
 //  5. Route by the first segment of the event type (DestinationKindOf).
-//  6. Enqueue: DeliveryService.Enqueue puts the event in the queue of EVERY sink of the kind and returns at once; the
+//  6. Enqueue: DeliveryService.Enqueue classifies the event and offers it to the queue of EVERY sink of the kind; the
 //     worker of each sink sends it later, in a batch. No sink of that kind is Dropped 1 with the reason
-//     ReasonNoDestination; a full queue is Dropped 1 with ReasonQueueFull. Accepted means queued, not delivered: a
-//     failing sink is counted by the delivery (T-05.5) and is not part of the result. The result is the sum over the
-//     sinks of the kind, and Reason is the first reason that is not empty.
+//     ReasonNoDestination; a full queue is Dropped 1 with ReasonQueueFullNewest (drop_newest, or when nothing may be
+//     displaced) or ReasonBlockTimeout (block_with_timeout). Accepted means queued, not delivered: a failing sink is
+//     counted by the delivery (T-05.5) and is not part of the result. The result is the sum over the sinks of the
+//     kind, and Reason is the first reason that is not empty.
 //
 // Only the masked and limited envelope reaches a queue, so no path sends an envelope that was not masked (ADR-006). A call
-// never waits for the network, the disk or a slow sink. Counting the rejected events as diagnostics is T-05.5.
+// never waits for the network, the disk or a slow sink; the one wait is the one of block_with_timeout on a full queue, at
+// most the configured timeout (DeliveryService.Enqueue). Counting the rejected events as diagnostics is T-05.5.
 func (service *EventPipelineService) Emit(ctx context.Context, input dtos.NewEventInput) (result dtos.EmitResult) {
 	defer func() {
 		if recovered := recover(); recovered != nil {

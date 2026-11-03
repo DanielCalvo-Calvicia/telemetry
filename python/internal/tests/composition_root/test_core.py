@@ -277,8 +277,29 @@ class DeliveryOfTheCoreTest(unittest.TestCase):
         results += [core.emit(log_event(f"event {number}")) for number in range(3, 9)]
         reasons = [result.reason for result in results]
         self.assertEqual(reasons[:3], ["", "", ""])
-        self.assertEqual(reasons[3:].count("queue_full"), 3)  # the queue holds 3 more while the worker is stuck
+        self.assertEqual(reasons[3:].count("queue_full_newest"), 3)  # the queue holds 3 more while the worker is stuck
         self.assertEqual(sum(result.accepted for result in results), 6)
+
+    def test_the_queue_policy_and_the_classes_of_the_configuration_decide_what_a_full_queue_drops(self):
+        base = config_for()
+        delivery = dataclasses.replace(
+            base.delivery,
+            queue_size=2,
+            batch_size=2,
+            flush_interval_ms=60_000,
+            queue_policy="drop_oldest",
+            event_classes={"log.entry.recorded": "bulk"},
+        )
+        sink = BlockingLogSink()
+        core = build(self, dataclasses.replace(base, delivery=delivery), telemetry.with_log_sink(sink))
+        self.addCleanup(sink.release)
+        for number in range(2):
+            core.emit(log_event(f"event {number}"))
+        self.assertTrue(sink.entered.wait(5.0))  # the worker holds a full batch of 2 inside the sink
+        results = [core.emit(log_event(f"event {number}")) for number in range(2, 6)]
+        self.assertEqual([(result.accepted, result.dropped) for result in results], [(1, 0)] * 4)  # no refusal
+        stats = core._delivery.stats()[0]
+        self.assertEqual((stats.queued, stats.dropped, stats.dropped_by_reason), (2, 2, {"queue_full_oldest": 2}))
 
     def test_the_clock_of_the_options_does_not_decide_when_a_batch_leaves(self):
         sink = FakeLogSink()

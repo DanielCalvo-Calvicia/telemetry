@@ -1,0 +1,2237 @@
+{
+  "description": "What a FULL queue does with a new event (REQ-DLV-007, REQ-DLV-009). queue is the queue, oldest first, with the class of each event; new is the event that arrives. The rule: (1) a new critical event displaces the OLDEST queued event of class bulk, or when there is none the OLDEST one of class normal, with the reason displaced_by_critical; the new event takes the last place. (2) When it displaces nothing (a non-critical event, or a critical one with no lower class queued) the policy decides: drop_newest drops the new event (reason queue_full_newest); drop_oldest displaces the oldest queued event whose class is not higher than the class of the new one (reason queue_full_oldest, the new event takes the last place) and, when there is none, drops the new event (queue_full_newest); block_with_timeout answers wait (nothing changes now; if no room appears within the timeout the new event is dropped with the reason block_timeout). outcome is drop_new, displace or wait; removed lists the events taken out of the queue with their reason; queue_after is the order of the ids after the case (the new event has id 100) and reason is the reason of the decision. The order of the events that stay is kept. The class order is bulk < normal < critical.",
+  "cases": [
+    {
+      "name": "drop_newest_drops_the_new_normal",
+      "description": "With drop_newest a new normal event is dropped, whatever the queue holds.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "drop_newest_drops_the_new_bulk",
+      "description": "A new bulk event is dropped too.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "drop_newest_critical_displaces_the_oldest_bulk",
+      "description": "A critical event takes the place of the OLDEST bulk event, even with drop_newest.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        },
+        {
+          "id": 5,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          5,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "critical_displaces_a_normal_when_there_is_no_bulk",
+      "description": "With no bulk event the oldest normal one is displaced.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "critical_with_only_critical_and_drop_newest",
+      "description": "When nothing of a lower class is queued the policy applies: drop_newest drops the new critical event.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "critical_with_only_critical_and_drop_oldest",
+      "description": "With drop_oldest the oldest critical event is displaced by the new one.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "drop_oldest_takes_the_oldest_of_a_class_not_higher",
+      "description": "A new normal event displaces the oldest event that is normal or bulk, here the first normal one, and never a critical one.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "drop_oldest_new_bulk_displaces_only_a_bulk",
+      "description": "A new bulk event displaces the oldest bulk event only.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "drop_oldest_new_bulk_with_no_bulk_is_dropped",
+      "description": "With nothing of class bulk queued the new bulk event is dropped (queue_full_newest).",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "drop_oldest_new_normal_with_only_critical_is_dropped",
+      "description": "A normal event never displaces a critical one: it is dropped.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "block_waits_for_room",
+      "description": "block_with_timeout asks the caller to wait for room: nothing is removed.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "block_critical_displaces_first",
+      "description": "A critical event that can displace a lower-class event does not wait.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          2,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "block_critical_with_only_critical_waits",
+      "description": "With nothing to displace a critical event waits like the others.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "a_queue_of_one",
+      "description": "A queue of one event: drop_oldest replaces it.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_01",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        },
+        {
+          "id": 7,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_02",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        },
+        {
+          "id": 7,
+          "class": "bulk"
+        },
+        {
+          "id": 8,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_03",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          5,
+          6,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_04",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          4,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_05",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_06",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        },
+        {
+          "id": 5,
+          "class": "critical"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        },
+        {
+          "id": 7,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_07",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_08",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 4,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_09",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          5,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_10",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          4,
+          5,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_11",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_12",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        },
+        {
+          "id": 7,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_13",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_14",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_15",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "critical"
+        },
+        {
+          "id": 6,
+          "class": "bulk"
+        },
+        {
+          "id": 7,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 6,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          7,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_16",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "bulk"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 3,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          2,
+          4,
+          5,
+          6,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_17",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_18",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_19",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_20",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          2,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_21",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "critical"
+        },
+        {
+          "id": 7,
+          "class": "bulk"
+        },
+        {
+          "id": 8,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_22",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_23",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_24",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_25",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "bulk"
+        },
+        {
+          "id": 7,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_26",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_27",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "bulk"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_28",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        },
+        {
+          "id": 6,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_29",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "critical"
+        },
+        {
+          "id": 6,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          5,
+          6,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_30",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "critical"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 3,
+            "reason": "displaced_by_critical"
+          }
+        ],
+        "queue_after": [
+          1,
+          2,
+          100
+        ],
+        "reason": "displaced_by_critical"
+      }
+    },
+    {
+      "name": "random_31",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_32",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "bulk"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 3,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          2,
+          4,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_33",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 2,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          1,
+          3,
+          4,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_34",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "bulk"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "displace",
+        "removed": [
+          {
+            "id": 1,
+            "reason": "queue_full_oldest"
+          }
+        ],
+        "queue_after": [
+          2,
+          100
+        ],
+        "reason": "queue_full_oldest"
+      }
+    },
+    {
+      "name": "random_35",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "critical"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "normal"
+        },
+        {
+          "id": 5,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_36",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_37",
+      "description": "A seeded random case.",
+      "policy": "drop_oldest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "queue_full_newest"
+      }
+    },
+    {
+      "name": "random_38",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "normal"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "normal"
+        },
+        {
+          "id": 4,
+          "class": "critical"
+        },
+        {
+          "id": 5,
+          "class": "bulk"
+        },
+        {
+          "id": 6,
+          "class": "bulk"
+        },
+        {
+          "id": 7,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_39",
+      "description": "A seeded random case.",
+      "policy": "block_with_timeout",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "critical"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        },
+        {
+          "id": 4,
+          "class": "bulk"
+        },
+        {
+          "id": 5,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "normal"
+      },
+      "expected": {
+        "outcome": "wait",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "reason": "block_timeout"
+      }
+    },
+    {
+      "name": "random_40",
+      "description": "A seeded random case.",
+      "policy": "drop_newest",
+      "queue": [
+        {
+          "id": 1,
+          "class": "bulk"
+        },
+        {
+          "id": 2,
+          "class": "normal"
+        },
+        {
+          "id": 3,
+          "class": "critical"
+        }
+      ],
+      "new": {
+        "id": 100,
+        "class": "bulk"
+      },
+      "expected": {
+        "outcome": "drop_new",
+        "removed": [],
+        "queue_after": [
+          1,
+          2,
+          3
+        ],
+        "reason": "queue_full_newest"
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "description": "The problems of the delivery section come in the order of the schema: queue size, batch size, flush interval, timeout, queue policy, block timeout, event classes.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "queue_size": 0,
+      "queue_policy": "lazy",
+      "block_timeout_ms": -1,
+      "event_classes": {
+        "a": "x"
+      }
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.queue_size",
+      "code": "config_field_invalid"
+    },
+    {
+      "field": "delivery.queue_policy",
+      "code": "config_field_invalid"
+    },
+    {
+      "field": "delivery.block_timeout_ms",
+      "code": "config_field_invalid"
+    },
+    {
+      "field": "delivery.event_classes",
+      "code": "config_field_invalid"
+    }
+  ]
+}

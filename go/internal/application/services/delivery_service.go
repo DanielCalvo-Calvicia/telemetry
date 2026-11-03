@@ -2,12 +2,15 @@ package services
 
 import (
 	"context"
+	"maps"
 	"sync"
 	"time"
 
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/outbound"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/batching"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/classification"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/full_queue"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 )
 
@@ -15,45 +18,72 @@ import (
 // DELIVERY SERVICE
 // =============================================================================
 
-// ReasonQueueFull is the reason of an event that was dropped because the queue of its destination was full.
-const ReasonQueueFull = "queue_full"
+// The reasons of the events that a queue dropped or displaced (REQ-DLV-008). They are the keys of
+// DestinationStats.DroppedByReason.
+const (
+	// ReasonQueueFullNewest is the reason of a new event that was dropped because the queue of its destination was full.
+	ReasonQueueFullNewest = full_queue.ReasonQueueFullNewest
+	// ReasonQueueFullOldest is the reason of a queued event that was removed to make room for a new one (drop_oldest).
+	ReasonQueueFullOldest = full_queue.ReasonQueueFullOldest
+	// ReasonDisplacedByCritical is the reason of a queued event that was removed to make room for a critical one.
+	ReasonDisplacedByCritical = full_queue.ReasonDisplacedByCritical
+	// ReasonBlockTimeout is the reason of a new event that found no room within the timeout of block_with_timeout.
+	ReasonBlockTimeout = full_queue.ReasonBlockTimeout
+	// ReasonUnspecified is the reason under which a drop that a sink reported without a reason is counted.
+	ReasonUnspecified = "unspecified"
+)
 
 // DeliverySettings are the numbers the delivery service works with: the events one queue holds, the events of one batch,
-// the milliseconds before a batch that is not full leaves, and the milliseconds before a call to a sink gives up. They
-// are already validated (greater than zero, and the batch not greater than the queue).
+// the milliseconds before a batch that is not full leaves, the milliseconds before a call to a sink gives up, what a full
+// queue does (QueuePolicy; empty is drop_newest), the milliseconds a call may wait for room with block_with_timeout
+// (BlockTimeoutMS) and the class assigned to an event type (EventClasses; nil is none, and then the default class of the
+// event applies). They are already validated (greater than zero, and the batch not greater than the queue).
 type DeliverySettings struct {
 	QueueSize       int
 	BatchSize       int
 	FlushIntervalMS int
 	TimeoutMS       int
+	QueuePolicy     value_objects.QueuePolicy
+	BlockTimeoutMS  int
+	EventClasses    map[string]value_objects.EventClass
 }
 
 // DestinationStats is a snapshot of one destination, the minimum needed to observe its worker. Kind and Index say which
 // sink it is (Index counts the sinks of the kind, from zero, in the order given). Queued is the events waiting now.
-// Batches is the calls to the sink. Accepted is the events that were queued; Dropped is the events that were not queued
-// plus the ones the sink dropped; Failed is the events the sink failed to take; Delivered is the events the sink accepted.
-// LastReason is the last reason that was not empty.
+// Batches is the calls to the sink. Accepted is the events that were queued; Dropped is the events that were not queued,
+// the ones that were removed from the queue to make room and the ones the sink dropped; Failed is the events the sink
+// failed to take; Delivered is the events the sink accepted. LastReason is the last reason that was not empty.
+// DroppedByReason counts every dropped event per reason (REQ-DLV-008): the ones the queue dropped or displaced
+// (queue_full_newest, queue_full_oldest, displaced_by_critical, block_timeout) and the ones a sink reported as dropped,
+// under the reason of its result or ReasonUnspecified when it gave none. Its sum is equal to Dropped. The map is a copy:
+// the caller may change it.
 type DestinationStats struct {
-	Kind       DestinationKind
-	Index      int
-	Queued     int
-	Batches    int
-	Accepted   int
-	Dropped    int
-	Failed     int
-	Delivered  int
-	LastReason string
+	Kind            DestinationKind
+	Index           int
+	Queued          int
+	Batches         int
+	Accepted        int
+	Dropped         int
+	Failed          int
+	Delivered       int
+	LastReason      string
+	DroppedByReason map[string]int
 }
 
 // DeliveryService holds one bounded queue and one worker per destination. Enqueue only touches the queue, so a call
 // never waits for the network, the disk or a slow destination; the worker of each destination sends the events in
 // batches (REQ-DLV-002, REQ-DLV-006). The order of the events of one destination is kept. A slow destination blocks
 // only its own worker. It holds no global state and is safe for concurrent use.
+//
+// Priority is not a guarantee (REQ-DLV-009): the class of an event decides who is dropped when a queue is full, and
+// nothing more; any event can still be lost.
 type DeliveryService struct {
 	settings     DeliverySettings
 	clock        outbound.ClockPort
 	destinations []*delivery_destination
 	by_kind      map[DestinationKind][]*delivery_destination
+	stop_signal  chan struct{}
+	stop_once    sync.Once
 
 	lifecycle_mutex sync.Mutex
 	started         bool
@@ -70,6 +100,11 @@ type delivery_destination struct {
 	queue outbound.EventQueuePort
 	wake  chan struct{}
 
+	// room is closed (and set to nil) each time the worker takes events, to wake the callers that wait for room with
+	// block_with_timeout. It is nil while nobody waits, so the usual path allocates nothing.
+	room_mutex sync.Mutex
+	room       chan struct{}
+
 	stats_mutex sync.Mutex
 	stats       DestinationStats
 }
@@ -84,7 +119,12 @@ func NewDeliveryService(
 	clock outbound.ClockPort,
 	new_queue func(capacity int) outbound.EventQueuePort,
 ) *DeliveryService {
-	service := &DeliveryService{settings: settings, clock: clock, by_kind: map[DestinationKind][]*delivery_destination{}}
+	service := &DeliveryService{
+		settings:    settings,
+		clock:       clock,
+		by_kind:     map[DestinationKind][]*delivery_destination{},
+		stop_signal: make(chan struct{}),
+	}
 	for _, kind := range destination_kinds() {
 		for index, send := range send_functions_of(destinations, kind) {
 			destination := &delivery_destination{
@@ -93,7 +133,7 @@ func NewDeliveryService(
 				send:  send,
 				queue: new_queue(settings.QueueSize),
 				wake:  make(chan struct{}, 1),
-				stats: DestinationStats{Kind: kind, Index: index},
+				stats: DestinationStats{Kind: kind, Index: index, DroppedByReason: map[string]int{}},
 			}
 			service.destinations = append(service.destinations, destination)
 			service.by_kind[kind] = append(service.by_kind[kind], destination)
@@ -122,9 +162,11 @@ func (service *DeliveryService) Start() {
 }
 
 // Stop signals every worker to stop and waits until they have returned. A call to a sink that is in flight gets its
-// context cancelled; a sink that ignores its context holds Stop up. It is idempotent and it does not drain: what is
-// still queued is left (draining, flush and shutdown with a result are T-05.4).
+// context cancelled; a sink that ignores its context holds Stop up. A caller of Enqueue that waits for room
+// (block_with_timeout) is woken, and its event is dropped with ReasonBlockTimeout. It is idempotent and it does not
+// drain: what is still queued is left (draining, flush and shutdown with a result are T-05.4).
 func (service *DeliveryService) Stop() {
+	service.stop_once.Do(func() { close(service.stop_signal) })
 	service.lifecycle_mutex.Lock()
 	service.stopped = true
 	cancel_workers := service.cancel_workers
@@ -135,32 +177,44 @@ func (service *DeliveryService) Stop() {
 	service.workers.Wait()
 }
 
-// Enqueue puts the envelope in the queue of every destination of the kind and returns at once. No destination of the
-// kind is Dropped 1 with ReasonNoDestination. For each destination, a queued event is Accepted 1 (accepted means
-// queued) and a full queue is Dropped 1 with ReasonQueueFull: for now the new event is the one dropped (the drop
-// policies are T-05.2). The result is the sum over the destinations and Reason is the first one that is not empty.
+// Enqueue classifies the envelope (classification.ClassifyEvent, with its event type, its severity and the classes of
+// the settings) and offers it to the queue of every destination of the kind. No destination of the kind is Dropped 1
+// with ReasonNoDestination. For each destination: an admitted event is Accepted 1 (accepted means queued); when a queued
+// event was displaced to make room, the displaced event is counted as dropped in the stats of that destination under its
+// reason, and the result of this call does not change because of it; a refused event is Dropped 1 with the reason of the
+// drop (ReasonQueueFullNewest, or ReasonBlockTimeout after a wait). The result is the sum over the destinations and
+// Reason is the first one that is not empty.
+//
+// A call returns at once, except in ONE case: with the policy block_with_timeout and a full queue that holds nothing
+// the event may displace, the call WAITS for room, at most BlockTimeoutMS milliseconds (a real wait on a signal of the
+// worker and a timer, never a loop that spins), and offers again each time the worker takes events. If room appears the
+// event is Accepted 1; if the time is over, the service is stopped or ctx is done, it is Dropped 1 with
+// ReasonBlockTimeout. With any other policy the call never waits.
 func (service *DeliveryService) Enqueue(ctx context.Context, kind DestinationKind, envelope value_objects.Envelope) dtos.EmitResult {
 	kind_destinations := service.by_kind[kind]
 	if len(kind_destinations) == 0 {
 		return dtos.EmitResult{Dropped: 1, Reason: ReasonNoDestination}
 	}
 
-	arrival_ms := service.clock.MonotonicNanoseconds(ctx) / 1_000_000
+	event_class := classification.ClassifyEvent(envelope.EventType, envelope.Severity, service.settings.EventClasses)
 	var total dtos.EmitResult
 	for _, destination := range kind_destinations {
-		if destination.queue.Push(envelope, arrival_ms) {
+		offer_result := service.offer_to(ctx, destination, envelope, event_class)
+		if offer_result.Admitted {
 			total.Accepted++
-			destination.count(func(stats *DestinationStats) { stats.Accepted++ })
+			destination.count(func(stats *DestinationStats) {
+				stats.Accepted++
+				if offer_result.Displaced != nil {
+					stats.count_drop(offer_result.Reason)
+				}
+			})
 			destination.notify()
 			continue
 		}
 		total.Dropped++
-		destination.count(func(stats *DestinationStats) {
-			stats.Dropped++
-			stats.LastReason = ReasonQueueFull
-		})
+		destination.count(func(stats *DestinationStats) { stats.count_drop(offer_result.Reason) })
 		if total.Reason == "" {
-			total.Reason = ReasonQueueFull
+			total.Reason = offer_result.Reason
 		}
 	}
 	return total
@@ -172,11 +226,60 @@ func (service *DeliveryService) Stats() []DestinationStats {
 	for _, destination := range service.destinations {
 		destination.stats_mutex.Lock()
 		stats := destination.stats
+		stats.DroppedByReason = maps.Clone(destination.stats.DroppedByReason)
 		destination.stats_mutex.Unlock()
 		stats.Queued = destination.queue.Len()
 		snapshot = append(snapshot, stats)
 	}
 	return snapshot
+}
+
+// ----- THE OFFER ------------------------------------------------------------
+
+// offer_to offers the envelope to the queue of one destination and, only when the queue says MustWait (the policy is
+// block_with_timeout), waits for room and offers again until the event is admitted, the time is over, the service is
+// stopped or ctx is done. A wait that ended without room is not admitted, with ReasonBlockTimeout.
+func (service *DeliveryService) offer_to(
+	ctx context.Context,
+	destination *delivery_destination,
+	envelope value_objects.Envelope,
+	event_class value_objects.EventClass,
+) outbound.OfferResult {
+	offer := func() outbound.OfferResult {
+		arrival_ms := service.clock.MonotonicNanoseconds(ctx) / 1_000_000
+		return destination.queue.Offer(envelope, event_class, arrival_ms, service.settings.QueuePolicy)
+	}
+	offer_result := offer()
+	if !offer_result.MustWait {
+		return offer_result
+	}
+
+	timed_out := outbound.OfferResult{Reason: ReasonBlockTimeout}
+	if service.settings.BlockTimeoutMS <= 0 {
+		return timed_out
+	}
+	timer := time.NewTimer(time.Duration(service.settings.BlockTimeoutMS) * time.Millisecond)
+	defer timer.Stop()
+	for offer_result.MustWait {
+		// The channel is taken BEFORE the offer is repeated, so room that appears between the two is not missed: the
+		// worker closes the channel after it takes events, and a closed channel ends the wait at once.
+		room := destination.room_channel()
+		offer_result = offer()
+		if !offer_result.MustWait {
+			break
+		}
+		select {
+		case <-room:
+		case <-timer.C:
+			return timed_out
+		case <-service.stop_signal:
+			return timed_out
+		case <-ctx.Done():
+			return timed_out
+		}
+		offer_result = offer()
+	}
+	return offer_result
 }
 
 // ----- THE WORKER -----------------------------------------------------------
@@ -213,22 +316,29 @@ func (service *DeliveryService) plan_for(ctx context.Context, destination *deliv
 	return batching.PlanBatch(now_ms, queued, oldest_arrival_ms, service.settings.BatchSize, int64(service.settings.FlushIntervalMS))
 }
 
-// send_batch takes the events from the queue, calls the sink once with the timeout of the settings and adds the result to
-// the counters. There is no retry here (T-05.3). A panic of the sink is Failed with ReasonSinkPanicked.
+// send_batch takes the events from the queue, wakes the callers that wait for room, calls the sink once with the timeout
+// of the settings and adds the result to the counters. There is no retry here (T-05.3). A panic of the sink is Failed
+// with ReasonSinkPanicked.
 func (service *DeliveryService) send_batch(ctx context.Context, destination *delivery_destination, take int) {
 	batch := destination.queue.Take(take)
 	if len(batch) == 0 {
 		return
 	}
+	destination.signal_room()
 	send_context, cancel_send := context.WithTimeout(ctx, time.Duration(service.settings.TimeoutMS)*time.Millisecond)
 	defer cancel_send()
 	result := send_protected(len(batch), func() dtos.SendResult { return destination.send(send_context, batch) })
 	destination.count(func(stats *DestinationStats) {
 		stats.Batches++
 		stats.Delivered += result.Accepted
-		stats.Dropped += result.Dropped
 		stats.Failed += result.Failed
-		if result.Reason != "" {
+		if result.Dropped > 0 {
+			drop_reason := result.Reason
+			if drop_reason == "" {
+				drop_reason = ReasonUnspecified
+			}
+			stats.count_drops(result.Dropped, drop_reason)
+		} else if result.Reason != "" {
 			stats.LastReason = result.Reason
 		}
 	})
@@ -269,6 +379,38 @@ func (destination *delivery_destination) notify() {
 	case destination.wake <- struct{}{}:
 	default:
 	}
+}
+
+// room_channel returns the channel that the next signal_room closes, and makes it when nobody waits.
+func (destination *delivery_destination) room_channel() <-chan struct{} {
+	destination.room_mutex.Lock()
+	defer destination.room_mutex.Unlock()
+	if destination.room == nil {
+		destination.room = make(chan struct{})
+	}
+	return destination.room
+}
+
+// signal_room wakes every caller that waits for room: the queue has just lost events. It does nothing when nobody waits.
+func (destination *delivery_destination) signal_room() {
+	destination.room_mutex.Lock()
+	defer destination.room_mutex.Unlock()
+	if destination.room != nil {
+		close(destination.room)
+		destination.room = nil
+	}
+}
+
+// count_drop counts one event dropped under its reason, which becomes the last reason too.
+func (stats *DestinationStats) count_drop(reason string) {
+	stats.count_drops(1, reason)
+}
+
+// count_drops counts several dropped events under one reason, which becomes the last reason too.
+func (stats *DestinationStats) count_drops(count int, reason string) {
+	stats.Dropped += count
+	stats.LastReason = reason
+	stats.DroppedByReason[reason] += count
 }
 
 // count changes the counters under their lock.

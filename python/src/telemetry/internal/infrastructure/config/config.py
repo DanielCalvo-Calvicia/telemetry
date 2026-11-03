@@ -9,7 +9,11 @@ property names of the schema, so ``dataclasses.asdict(config)`` has the shape of
 from dataclasses import dataclass, field
 from typing import Mapping, Optional
 
-from telemetry.internal.domain.rules import DEFAULT_SPOOL_QUOTA_BYTES
+from telemetry.internal.domain.rules import (
+    DEFAULT_BLOCK_TIMEOUT_MILLISECONDS,
+    DEFAULT_QUEUE_POLICY,
+    DEFAULT_SPOOL_QUOTA_BYTES,
+)
 
 
 @dataclass(frozen=True)
@@ -26,13 +30,22 @@ class ResourceConfig:
 
 @dataclass(frozen=True)
 class DeliveryConfig:
-    """How events leave the process; ``mode`` is the text best_effort, retry or durable."""
+    """How events leave the process; ``mode`` is the text best_effort, retry or durable.
+
+    ``queue_policy`` is the text drop_newest, drop_oldest or block_with_timeout (what a full queue does) and
+    ``block_timeout_ms`` the milliseconds a log call waits for room: it must be greater than zero with
+    block_with_timeout. ``event_classes`` maps an event type to its class, critical, normal or bulk; an empty
+    mapping means the defaults of the classification.
+    """
 
     mode: str
     queue_size: int
     batch_size: int
     flush_interval_ms: int
     timeout_ms: int
+    queue_policy: str = DEFAULT_QUEUE_POLICY
+    block_timeout_ms: int = DEFAULT_BLOCK_TIMEOUT_MILLISECONDS
+    event_classes: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

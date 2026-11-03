@@ -2,12 +2,14 @@
 
 from telemetry.internal.domain.rules import (
     DEFAULT_BATCH_SIZE,
+    DEFAULT_BLOCK_TIMEOUT_MILLISECONDS,
     DEFAULT_FLUSH_INTERVAL_MILLISECONDS,
     DEFAULT_MAX_ATTRIBUTE_KEY_CHARS,
     DEFAULT_MAX_ATTRIBUTE_KEYS,
     DEFAULT_MAX_ATTRIBUTE_VALUE_CHARS,
     DEFAULT_MAX_BATCH_BYTES,
     DEFAULT_MAX_EVENT_BYTES,
+    DEFAULT_QUEUE_POLICY,
     DEFAULT_QUEUE_SIZE,
     DEFAULT_SPOOL_QUOTA_BYTES,
     DEFAULT_TIMEOUT_MILLISECONDS,
@@ -36,6 +38,9 @@ def defaults() -> Config:
             batch_size=DEFAULT_BATCH_SIZE,
             flush_interval_ms=DEFAULT_FLUSH_INTERVAL_MILLISECONDS,
             timeout_ms=DEFAULT_TIMEOUT_MILLISECONDS,
+            queue_policy=DEFAULT_QUEUE_POLICY,
+            block_timeout_ms=DEFAULT_BLOCK_TIMEOUT_MILLISECONDS,
+            event_classes={},
         ),
         limits=LimitsConfig(
             max_attribute_keys=DEFAULT_MAX_ATTRIBUTE_KEYS,

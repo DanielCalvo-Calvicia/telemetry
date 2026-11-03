@@ -12,7 +12,7 @@ from telemetry.internal.domain.errors import ClassifiedError, DeliveryModeUnknow
 from telemetry.internal.domain.operations.masking.sensitive_data_masker import MaskerOptions, SensitiveDataMasker
 from telemetry.internal.domain.rules import MASK_RULES
 from telemetry.internal.domain.value_objects.delivery_mode import parse_delivery_mode
-from telemetry.internal.domain.value_objects.enums_generated import DeliveryMode
+from telemetry.internal.domain.value_objects.enums_generated import DeliveryMode, EventClass, QueuePolicy
 from telemetry.internal.domain.value_objects.error_codes_generated import (
     ERROR_CODE_CONFIG_FIELD_INVALID,
     ERROR_CODE_DELIVERY_MODE_UNKNOWN,
@@ -56,6 +56,22 @@ def _delivery_mode(value: object) -> bool:
     except DeliveryModeUnknownError:
         return False
     return True
+
+
+def _queue_policy(value: object) -> bool:
+    return isinstance(value, str) and value in {policy.value for policy in QueuePolicy}
+
+
+def _non_negative(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _event_classes_valid(event_classes: object) -> bool:
+    classes = {event_class.value for event_class in EventClass}
+    return isinstance(event_classes, Mapping) and all(
+        isinstance(event_type, str) and event_type != "" and isinstance(event_class, str) and event_class in classes
+        for event_type, event_class in event_classes.items()
+    )
 
 
 def _patterns_compile(patterns: object) -> bool:
@@ -110,6 +126,16 @@ def validate_config(config: Config) -> tuple[ConfigProblem, ...]:
         invalid("delivery.flush_interval_ms", "it must be an integer greater than zero")
     if not _positive(delivery.timeout_ms):
         invalid("delivery.timeout_ms", "it must be an integer greater than zero")
+    policy_valid = _queue_policy(delivery.queue_policy)
+    if not policy_valid:
+        invalid("delivery.queue_policy", "the queue policy must be drop_newest, drop_oldest or block_with_timeout")
+    blocks = policy_valid and QueuePolicy(delivery.queue_policy) is QueuePolicy.BLOCK_WITH_TIMEOUT
+    if not _non_negative(delivery.block_timeout_ms):
+        invalid("delivery.block_timeout_ms", "it must be an integer of zero or more")
+    elif blocks and delivery.block_timeout_ms == 0:
+        invalid("delivery.block_timeout_ms", "it must be greater than zero when the queue policy is block_with_timeout")
+    if not _event_classes_valid(delivery.event_classes):
+        invalid("delivery.event_classes", "every event type must be text and every class critical, normal or bulk")
 
     limits = config.limits
     limits_valid = {}

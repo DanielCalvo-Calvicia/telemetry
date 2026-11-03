@@ -1,5 +1,8 @@
 """Black-box tests of DeliveryService over fakes: the queue, the worker, the batches, the stats and the lifecycle.
 
+The full-queue rules (policies, classes, drops per reason, the wait of block_with_timeout) are in
+``test_delivery_backpressure.py``.
+
 The time is real and short (milliseconds): a worker waits on a condition, so a test waits for the asynchronous fact
 with ``eventually`` and never for a fixed time, except to prove that something does NOT happen.
 """
@@ -12,19 +15,50 @@ from typing import Any, Optional, Sequence
 from internal.tests.eventually import eventually
 from internal.tests.fakes import BlockingLogSink, FakeEventSink, FakeLogSink
 from telemetry.internal.application.dtos.delivery_settings import DeliverySettings
+from telemetry.internal.application.dtos.offer_result import OfferResult
 from telemetry.internal.application.dtos.send_result import SendResult
 from telemetry.internal.application.services.delivery_service import (
     REASON_NO_DESTINATION,
-    REASON_QUEUE_FULL,
+    REASON_QUEUE_FULL_NEWEST,
     REASON_SINK_PANICKED,
     DeliveryService,
     Destinations,
     DestinationStats,
 )
 from telemetry.internal.composition_root.dependencies.memory_queue_dependencies import new_memory_queue
+from telemetry.internal.domain.value_objects.enums_generated import EventClass, QueuePolicy, Severity
 from telemetry.internal.infrastructure.outbound.shared.system_clock.system_clock import SystemClock
 
+LOG_EVENT_TYPE = "log.entry.recorded"
 WORKER_PREFIX = "telemetry-delivery-"
+
+
+class Item:
+    """A stand-in for an envelope: the service reads only ``event_type`` and ``severity``.
+
+    It equals and hashes like its ``value``, so a test compares what a sink received with plain values.
+    """
+
+    def __init__(self, value: Any, event_type: str = LOG_EVENT_TYPE, severity: Severity = Severity.INFO) -> None:
+        self.value = value
+        self.event_type = event_type
+        self.severity = severity
+
+    def __eq__(self, other: object) -> bool:
+        return self.value == (other.value if isinstance(other, Item) else other)
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __repr__(self) -> str:
+        return f"Item({self.value!r})"
+
+
+class ItemDeliveryService(DeliveryService):
+    """A DeliveryService whose ``enqueue`` wraps a plain value in an Item, so the tests can enqueue plain values."""
+
+    def enqueue(self, kind: str, envelope: Any) -> Any:
+        return super().enqueue(kind, envelope if isinstance(envelope, Item) else Item(envelope))
 
 
 def worker_threads() -> list[threading.Thread]:
@@ -66,7 +100,7 @@ class DeliveryServiceTestCase(unittest.TestCase):
         settings = DeliverySettings(
             queue_size=queue_size, batch_size=batch_size, flush_interval_milliseconds=flush_interval_milliseconds
         )
-        service = DeliveryService(destinations, settings, SystemClock(), new_memory_queue)
+        service = ItemDeliveryService(destinations, settings, SystemClock(), new_memory_queue)
         self.addCleanup(self.release_then_stop, service)
         if start:
             service.start()
@@ -146,7 +180,7 @@ class LogCallNeverWaitsTest(DeliveryServiceTestCase):
         for thread in threads:
             thread.join()
         self.wait_for_events(sink, 1600)
-        events = received(sink)
+        events = [event.value for event in received(sink)]
         self.assertEqual(len(events), 1600)
         self.assertEqual(len(set(events)), 1600)
         for number in range(8):  # the order of one caller is kept
@@ -224,16 +258,20 @@ class EnqueueResultTest(DeliveryServiceTestCase):
         self.assertEqual(REASON_NO_DESTINATION, "no_destination")
         self.assertEqual(service.enqueue("not_a_kind", "x").reason, REASON_NO_DESTINATION)
 
-    def test_a_full_queue_drops_the_new_event_and_counts_it_with_queue_full(self):
+    def test_a_full_queue_drops_the_new_event_and_counts_it_with_queue_full_newest(self):
         sink = FakeLogSink()
         service = self.make(Destinations(log=(sink,)), queue_size=2, batch_size=2, start=False)
         results = [service.enqueue("log", number) for number in range(3)]
         self.assertEqual(
-            [(r.accepted, r.dropped, r.reason) for r in results], [(1, 0, ""), (1, 0, ""), (0, 1, "queue_full")]
+            [(r.accepted, r.dropped, r.reason) for r in results], [(1, 0, ""), (1, 0, ""), (0, 1, "queue_full_newest")]
         )
-        self.assertEqual(REASON_QUEUE_FULL, "queue_full")
+        self.assertEqual(REASON_QUEUE_FULL_NEWEST, "queue_full_newest")
         stats = service.stats()[0]
-        self.assertEqual((stats.queued, stats.accepted, stats.dropped, stats.last_reason), (2, 2, 1, "queue_full"))
+        self.assertEqual(
+            (stats.queued, stats.accepted, stats.dropped, stats.last_reason),
+            (2, 2, 1, "queue_full_newest"),
+        )
+        self.assertEqual(stats.dropped_by_reason, {"queue_full_newest": 1})
         service.start()
         self.wait_for_events(sink, 2)
         self.assertEqual(received(sink), [0, 1])  # the NEW event was the one dropped
@@ -245,7 +283,7 @@ class EnqueueResultTest(DeliveryServiceTestCase):
         service = self.make(Destinations(log=(full, roomy)), queue_size=1, batch_size=1, start=False)
         self.assertEqual(service.enqueue("log", 1).accepted, 2)
         result = service.enqueue("log", 2)
-        self.assertEqual((result.accepted, result.dropped, result.reason), (0, 2, "queue_full"))
+        self.assertEqual((result.accepted, result.dropped, result.reason), (0, 2, "queue_full_newest"))
 
     def test_the_arrival_uses_the_clock_in_milliseconds(self):
         class Clock(SystemClock):
@@ -253,20 +291,22 @@ class EnqueueResultTest(DeliveryServiceTestCase):
                 return 7_999_999
 
         sink = FakeLogSink()
-        service = DeliveryService(
+        service = ItemDeliveryService(
             Destinations(log=(sink,)), DeliverySettings(batch_size=1), Clock(), self.recording_queue()
         )
         service.enqueue("log", "x")
-        self.assertEqual(self.pushed, [("x", 7)])
+        self.assertEqual(self.pushed, [("x", EventClass.NORMAL, 7, QueuePolicy.DROP_NEWEST)])
 
     def recording_queue(self):
         self.pushed: list = []
         pushed = self.pushed
 
         class Queue:
-            def push(self, envelope: Any, arrival_ms: int) -> bool:
-                pushed.append((envelope, arrival_ms))
-                return True
+            def offer(
+                self, envelope: Any, event_class: EventClass, arrival_ms: int, policy: QueuePolicy
+            ) -> OfferResult:
+                pushed.append((envelope, event_class, arrival_ms, policy))
+                return OfferResult(admitted=True)
 
             def take(self, n: int) -> list:
                 return []
