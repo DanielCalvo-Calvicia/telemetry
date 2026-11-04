@@ -1,5 +1,6 @@
 """The core container: it wires the services of the chain and hands out the two operations of the core."""
 
+from telemetry.internal.application.dtos.diagnostics_snapshot import DiagnosticsSnapshot
 from telemetry.internal.application.dtos.emit_result import EmitResult
 from telemetry.internal.application.dtos.new_event_input import NewEventInput
 from telemetry.internal.application.dtos.shutdown_result import ShutdownResult
@@ -11,6 +12,7 @@ from telemetry.internal.application.services.limits_service import LimitsService
 from telemetry.internal.application.services.logger_service import LoggerService
 from telemetry.internal.application.services.masking_service import MaskingService
 from telemetry.internal.composition_root.config.options import Option, Options
+from telemetry.internal.composition_root.dependencies.diagnostics_channel_dependencies import new_diagnostics_channel
 from telemetry.internal.composition_root.dependencies.memory_queue_dependencies import new_memory_queue
 from telemetry.internal.composition_root.dependencies.system_clock_dependencies import new_system_clock
 from telemetry.internal.composition_root.dependencies.system_random_dependencies import new_system_random
@@ -67,6 +69,21 @@ class Core:
         """
         return self._pipeline.emit(new_event)
 
+    def diagnostics(self) -> DiagnosticsSnapshot:
+        """Return a COPY of the diagnostics of every destination and of the diagnostics channel (REQ-DGN-001).
+
+        Per destination: queue depth and capacity, events accepted, delivered and dropped (and the drops by reason),
+        export failures, attempts, retries, batches and their size, the latency of the calls, the last success, the
+        configuration and serialization failures and the result of the last flush. The spool figures are 0 until
+        T-06.5. Changing the snapshot does not change the library. It never raises and it still answers after
+        ``shutdown``. Diagnostics are not a health signal: a failing destination does not make the application
+        unhealthy.
+        """
+        try:
+            return self._delivery.diagnostics()
+        except Exception:  # never fails the caller (ADR-005)
+            return DiagnosticsSnapshot()
+
     def flush(self, timeout_ms: int = DEFAULT_SHUTDOWN_TIMEOUT_MILLISECONDS) -> ShutdownResult:
         """Send what is queued now and keep running; return what became of it. It never raises.
 
@@ -119,7 +136,8 @@ def new_core(config: Config, *options: Option) -> Core:
 
     This is the one place that starts the delivery: it builds the DeliveryService (a bounded queue and a daemon worker
     thread per destination, sized by the delivery section of the configuration, with the mode ``best_effort`` or
-    ``retry`` and the system random source for the jitter) and calls ``start()``; nothing runs on
+    ``retry``, the system random source for the jitter and the diagnostics channel with the callbacks and the writer
+    of the options) and calls ``start()``; nothing runs on
     import or in a constructor. The delivery measures time with the system clock, not with the clock of the options:
     that clock stamps the events, and a fake one would never let a batch age.
     """
@@ -148,8 +166,14 @@ def new_core(config: Config, *options: Option) -> Core:
         device_telemetry=tuple(applied.device_telemetry_sinks),
         ai_telemetry=tuple(applied.ai_telemetry_sinks),
     )
+    delivery_clock = new_system_clock()
     delivery = DeliveryService(
-        destinations, configuration.delivery, new_system_clock(), new_memory_queue, new_system_random()
+        destinations,
+        configuration.delivery,
+        delivery_clock,
+        new_memory_queue,
+        new_system_random(),
+        new_diagnostics_channel(applied.diagnostics_callbacks, applied.diagnostics_writer, delivery_clock),
     )
     pipeline = EventPipelineService(builder, masking, limits, delivery)
     delivery.start()

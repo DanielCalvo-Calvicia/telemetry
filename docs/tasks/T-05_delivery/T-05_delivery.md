@@ -28,7 +28,7 @@ Sections 10 and 12 of the specification: the bounded queue, the worker, the deli
 | 2 | [T-05.2 Backpressure and priorities](T-05.2_backpressure-and-priorities.md) | done (2026-11-03) |
 | 3 | [T-05.3 Delivery modes `best_effort` and `retry`](T-05.3_delivery-modes-best-effort-and-retry.md) | done (2026-11-03) |
 | 4 | [T-05.4 `flush` and `shutdown`](T-05.4_flush-and-shutdown.md) | done (2026-11-03) |
-| 5 | [T-05.5 Diagnostics](T-05.5_diagnostics.md) | todo |
+| 5 | [T-05.5 Diagnostics](T-05.5_diagnostics.md) | done (2026-11-04) |
 | 6 | [T-05.6 Failure-matrix tests](T-05.6_failure-matrix-tests.md) | todo |
 
 Order: T-05.1 first. Then T-05.2, T-05.3, T-05.4 and T-05.5 are independent of each other and can run in parallel, each on the queue and worker of T-05.1 (T-05.2 and T-05.5 touch the same counters, so they agree on the drop reasons first). T-05.6 goes last because it exercises the modes (T-05.3) and the counters (T-05.5). T-06 can start when T-05.3 is done.

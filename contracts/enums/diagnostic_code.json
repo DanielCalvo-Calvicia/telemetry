@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/diagnostic_code.json",
+  "title": "Diagnostic code",
+  "description": "The code of one diagnostic of the library about itself (REQ-DGN-002, REQ-DGN-003). A diagnostic carries a code, the kind and the index of the destination, a fixed reason, a count and the number of diagnostics the rate limit suppressed before it: never the message or a field of an event and never a credential. export_failed: an attempt in which a destination failed to take events (transient); events_dropped: events that were not delivered and are lost (the reason says why); serialization_failed: a destination dropped events because it could not write them; configuration_error: a destination reported that its own configuration is wrong. Adding a value is a MINOR change of the contract (REQ-VER-003).",
+  "type": "string",
+  "enum": [
+    "export_failed",
+    "events_dropped",
+    "serialization_failed",
+    "configuration_error"
+  ]
+}

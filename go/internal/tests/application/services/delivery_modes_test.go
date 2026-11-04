@@ -58,7 +58,7 @@ func mode_settings(mode value_objects.DeliveryMode, retry_max_attempts int) serv
 func new_mode_delivery(test *testing.T, sink *fakes.ScriptedLogSink, settings services.DeliverySettings) *services.DeliveryService {
 	test.Helper()
 	delivery := services.NewDeliveryService(
-		log_destinations(sink), settings, dependencies.NewSystemClock(), fakes.NewFakeRandom(0.5), dependencies.NewMemoryQueue)
+		log_destinations(sink), settings, dependencies.NewSystemClock(), fakes.NewFakeRandom(0.5), nil, dependencies.NewMemoryQueue)
 	test.Cleanup(delivery.Stop)
 	delivery.Start()
 	return delivery
@@ -179,7 +179,7 @@ func Test_an_empty_mode_is_best_effort_and_the_retry_settings_are_not_used(t *te
 func Test_a_service_built_by_hand_with_no_retry_settings_uses_the_defaults_and_no_random_source(t *testing.T) {
 	sink := fakes.NewScriptedLogSink(dtos.SendResult{Failed: 3, Reason: "status_503"}, dtos.SendResult{Accepted: 3})
 	settings := services.DeliverySettings{QueueSize: 100, BatchSize: 3, FlushIntervalMS: 5, TimeoutMS: 5000, Mode: value_objects.DeliveryModeRetry}
-	delivery := services.NewDeliveryService(log_destinations(sink), settings, dependencies.NewSystemClock(), nil, dependencies.NewMemoryQueue)
+	delivery := services.NewDeliveryService(log_destinations(sink), settings, dependencies.NewSystemClock(), nil, nil, dependencies.NewMemoryQueue)
 	t.Cleanup(delivery.Stop)
 	delivery.Start()
 
@@ -308,7 +308,7 @@ func Test_a_destination_that_retries_never_delays_the_healthy_one(t *testing.T) 
 	settings := mode_settings(value_objects.DeliveryModeRetry, 5)
 	settings.BatchSize = 1
 	delivery := services.NewDeliveryService(
-		log_destinations(failing_sink, healthy_sink), settings, dependencies.NewSystemClock(), fakes.NewFakeRandom(0.5), dependencies.NewMemoryQueue)
+		log_destinations(failing_sink, healthy_sink), settings, dependencies.NewSystemClock(), fakes.NewFakeRandom(0.5), nil, dependencies.NewMemoryQueue)
 	t.Cleanup(delivery.Stop)
 	delivery.Start()
 
@@ -358,7 +358,7 @@ func Test_the_wait_between_attempts_uses_the_backoff_of_the_domain_with_the_rand
 	settings := mode_settings(value_objects.DeliveryModeRetry, 3)
 	settings.RetryBaseDelayMS, settings.RetryMaxDelayMS = 40, 40
 	fake_random := fakes.NewFakeRandom(0)
-	delivery := services.NewDeliveryService(log_destinations(sink), settings, dependencies.NewSystemClock(), fake_random, dependencies.NewMemoryQueue)
+	delivery := services.NewDeliveryService(log_destinations(sink), settings, dependencies.NewSystemClock(), fake_random, nil, dependencies.NewMemoryQueue)
 	t.Cleanup(delivery.Stop)
 	delivery.Start()
 

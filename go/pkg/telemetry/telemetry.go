@@ -10,6 +10,7 @@ package telemetry
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"time"
 
@@ -27,7 +28,7 @@ import (
 
 // ----- TYPES: THE CORE AND ITS CONFIGURATION --------------------------------
 
-// Telemetry is the core of one project, built by New. Its methods are Emit, Logger, Flush and Shutdown.
+// Telemetry is the core of one project, built by New. Its methods are Emit, Logger, Diagnostics, Flush and Shutdown.
 type Telemetry = containers.Core
 
 // Config is the configuration of the core, in plain values. The project chooses a profile and sets what it wants.
@@ -68,6 +69,47 @@ type ValidationError = infra_config.ValidationError
 
 // Option chooses an adapter of the core in code.
 type Option = config_options.Option
+
+// ----- TYPES: DIAGNOSTICS ---------------------------------------------------
+
+// DiagnosticsSnapshot is a copy of how the delivery is doing: one DestinationDiagnostics per destination and the
+// counters of the diagnostics channel. Get it from Telemetry.Diagnostics. Changing it changes nothing in the library.
+type DiagnosticsSnapshot = dtos.DiagnosticsSnapshot
+
+// DestinationDiagnostics is how the delivery to one destination is doing: queue depth and capacity, events accepted,
+// delivered, dropped (and why) and failed, export failures, attempts, retries, batches, export latency, the last
+// success, configuration errors, serialization failures, the spool figures (zero until the spool exists) and the last
+// flush.
+type DestinationDiagnostics = dtos.DestinationDiagnostics
+
+// ChannelDiagnostics are the counters of the diagnostics channel: the diagnostics published, suppressed by its rate
+// limit, dropped because its queue was full, and the callbacks that failed.
+type ChannelDiagnostics = dtos.ChannelDiagnostics
+
+// FlushOutcome is the result of the last flush or shutdown for one destination.
+type FlushOutcome = dtos.FlushOutcome
+
+// DiagnosticEvent is one diagnostic that is given to a callback of WithDiagnosticsCallback: what happened (Code), to which
+// destination (Kind and Index), why (Reason, a short cleaned word, never a message), how many events (Count), how many
+// diagnostics the rate limit suppressed before it (Suppressed) and when (AtMS, unix milliseconds). It is never a telemetry
+// event and holds no message, no field value and no credential.
+type DiagnosticEvent = dtos.DiagnosticEvent
+
+// DiagnosticCode says what a diagnostic reports.
+type DiagnosticCode = value_objects.DiagnosticCode
+
+// The codes of a diagnostic.
+const (
+	// DiagnosticCodeExportFailed means a call to a destination failed some events.
+	DiagnosticCodeExportFailed DiagnosticCode = value_objects.DiagnosticCodeExportFailed
+	// DiagnosticCodeEventsDropped means events were dropped: by a full queue, by the destination, at the shutdown or after
+	// the attempts of the retry mode.
+	DiagnosticCodeEventsDropped DiagnosticCode = value_objects.DiagnosticCodeEventsDropped
+	// DiagnosticCodeSerializationFailed means a destination dropped events because they could not be serialized.
+	DiagnosticCodeSerializationFailed DiagnosticCode = value_objects.DiagnosticCodeSerializationFailed
+	// DiagnosticCodeConfigurationError means a destination dropped events because of a configuration error.
+	DiagnosticCodeConfigurationError DiagnosticCode = value_objects.DiagnosticCodeConfigurationError
+)
 
 // ----- TYPES: INPUTS AND RESULTS --------------------------------------------
 
@@ -239,6 +281,21 @@ func WithClock(clock ClockPort) Option { return config_options.WithClock(clock) 
 // WithIDGenerator sets the identifier generator, instead of the UUIDv7 generator.
 func WithIDGenerator(id_generator IDGeneratorPort) Option {
 	return config_options.WithIDGenerator(id_generator)
+}
+
+// WithDiagnosticsCallback adds a function that is called with every diagnostic that passes the rate limit (10 in each
+// second). It runs on a goroutine of its own, outside the send path: a callback that panics or hangs does not affect the
+// delivery, and a diagnostic is never a telemetry event. It may be given several times (they are called in the order
+// given); a nil function is ignored.
+func WithDiagnosticsCallback(callback func(DiagnosticEvent)) Option {
+	return config_options.WithDiagnosticsCallback(callback)
+}
+
+// WithDiagnosticsWriter sets the writer that receives one line for every diagnostic that passes the rate limit, in the
+// form "telemetry diagnostics: code=<code> destination=<kind>/<index> reason=<reason> count=<n> suppressed=<n>". A nil
+// writer is ignored.
+func WithDiagnosticsWriter(writer io.Writer) Option {
+	return config_options.WithDiagnosticsWriter(writer)
 }
 
 // ----- VALUES ---------------------------------------------------------------

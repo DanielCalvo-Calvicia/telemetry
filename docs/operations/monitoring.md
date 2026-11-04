@@ -1,6 +1,6 @@
 # Monitoring and operations
 
-The library is not a service, so it has no probes and no metrics endpoint. What a consumer can observe today is what the destinations write and the result that each call answers. The diagnostics of the library itself (counters by destination, reason and error code, and a report of the health of the library) are **planned** (T-05.5): nothing is emitted yet.
+The library is not a service, so it has no probes and no metrics endpoint. What a consumer can observe today is what the destinations write and the result that each call answers. The diagnostics of the library itself (a snapshot per destination, callbacks and an optional writer, section *Diagnostics* below) are **built** (T-05.5); a report of the health of the library is planned (T-07.4).
 
 ## What the library reports
 
@@ -9,9 +9,10 @@ The library is not a service, so it has no probes and no metrics endpoint. What 
 | The events of the consumer | every destination that was passed to the core | built: the console writes them (canonical JSON or a readable line), the file appends JSON Lines, the HTTP destination and the AWS HTTP adapter send them |
 | The result of a call | `Emit` returns an `EmitResult`; a destination returns a `SendResult` (accepted, dropped, failed and a reason); the HTTP destinations also return a `Delivery` with the full outcome | built; a log call returns nothing |
 | The counters of the file destination | `Counters()` (Go), `counters` (Python) | built |
-| Counters and diagnostics of the library (events dropped by reason and destination, rejected, truncated; a health report) | the diagnostics of T-05.5 | **planned**; the results above are their source |
+| The diagnostics of the library (queue depth, drops by reason, failures, retries, latency, batch size, last success, last flush, per destination) | `Diagnostics()` (Go), `diagnostics()` (Python), the callbacks and the writer | built (T-05.5) |
+| Rejected and truncated events, a health report | the result of the call; the health report is T-07.4 | the rejections are **not** in the snapshot yet; the health report is planned |
 
-A log call never fails the caller and a failing destination never stops another one ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). Until the diagnostics exist, a failure is visible only in the result of the call (a consumer that uses `Emit` sees it) and in the destination that did receive the event; a log call by itself shows nothing.
+A log call never fails the caller and a failing destination never stops another one ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). A log call by itself shows nothing: a failure is visible in the diagnostics below (and, for a consumer that uses `Emit`, in the result of the call).
 
 ## What to watch in a consumer
 
@@ -36,8 +37,39 @@ The reasons are fixed texts: they never hold a URL, a path or a value the caller
 
 ## Timeouts, retries and shutdown
 
-- The HTTP destinations time out after **3 seconds** by default (`TELEMETRY_HTTP_TIMEOUT_MS`, `TELEMETRY_AWS_HTTP_TIMEOUT_MS`) and a worker sends each batch **once with `best_effort`** (the `microservice` profile: a failed event is not sent again) and **again after a transient failure with `retry`** (the `cronjob` and `worker` profiles: up to `delivery.retry_max_attempts` attempts, an exponential backoff with jitter from `delivery.retry_base_delay_ms` to `delivery.retry_max_delay_ms`, honoring `Retry-After`; a permanent rejection, 4xx other than 408 and 429, is never retried; at the limit the batch is dropped with the reason `retry_limit_reached`). **An event can arrive twice** after a retry: it is not exactly-once, and the `event_id` lets the receiver deduplicate. Neither mode survives a restart: `durable` is refused at start until the spool exists (T-06.5). Every destination has a **bounded queue** (10,000 events by default) and a worker that sends a batch when it holds 100 events or when the oldest is 2 seconds old (`delivery.queue_size`, `batch_size`, `flush_interval_ms`, `timeout_ms`); a log call only queues and never waits for the network. What a full queue does is `delivery.queue_policy`: `drop_newest` (the default) drops the new event (`queue_full_newest`), `drop_oldest` drops the oldest event of a class not higher (`queue_full_oldest`) and `block_with_timeout` makes the caller wait up to `delivery.block_timeout_ms` and then drops it (`block_timeout`, the one case where a log call waits). A `critical` event displaces a `bulk` one first, then a `normal` one (`displaced_by_critical`). Every drop is counted per destination and reason in the stats of the destination (public with T-05.5); a drop a sink reports counts under its own reason or `unspecified`. A class is a priority for a full queue, not a guarantee of delivery.
+- The HTTP destinations time out after **3 seconds** by default (`TELEMETRY_HTTP_TIMEOUT_MS`, `TELEMETRY_AWS_HTTP_TIMEOUT_MS`) and a worker sends each batch **once with `best_effort`** (the `microservice` profile: a failed event is not sent again) and **again after a transient failure with `retry`** (the `cronjob` and `worker` profiles: up to `delivery.retry_max_attempts` attempts, an exponential backoff with jitter from `delivery.retry_base_delay_ms` to `delivery.retry_max_delay_ms`, honoring `Retry-After`; a permanent rejection, 4xx other than 408 and 429, is never retried; at the limit the batch is dropped with the reason `retry_limit_reached`). **An event can arrive twice** after a retry: it is not exactly-once, and the `event_id` lets the receiver deduplicate. Neither mode survives a restart: `durable` is refused at start until the spool exists (T-06.5). Every destination has a **bounded queue** (10,000 events by default) and a worker that sends a batch when it holds 100 events or when the oldest is 2 seconds old (`delivery.queue_size`, `batch_size`, `flush_interval_ms`, `timeout_ms`); a log call only queues and never waits for the network. What a full queue does is `delivery.queue_policy`: `drop_newest` (the default) drops the new event (`queue_full_newest`), `drop_oldest` drops the oldest event of a class not higher (`queue_full_oldest`) and `block_with_timeout` makes the caller wait up to `delivery.block_timeout_ms` and then drops it (`block_timeout`, the one case where a log call waits). A `critical` event displaces a `bulk` one first, then a `normal` one (`displaced_by_critical`). Every drop is counted per destination and reason in the diagnostics of the destination; a drop a sink reports counts under its own reason or `unspecified`. A class is a priority for a full queue, not a guarantee of delivery.
 - **Call `Shutdown` (Go) or `shutdown` (Python) before the process exits**: it flushes the queues within its timeout (5,000 ms by default, or the deadline of the context) and returns how many events were sent and dropped. **Events still queued when the process ends without it are lost.** A destination that hangs makes the call return at the timeout, with that destination's queued events counted as dropped. After it every log call is dropped with the reason `shutdown`. `Flush` / `flush` does the same without stopping.
+
+## Diagnostics (built, T-05.5)
+
+Read them with `Diagnostics()` (Go) or `diagnostics()` (Python), and register `WithDiagnosticsCallback` / `with_diagnostics_callback` or `WithDiagnosticsWriter` / `with_diagnostics_writer` to be told when something goes wrong. The snapshot is a copy, so it can be kept or changed.
+
+| Counter (per destination) | What it means | What to do when it grows |
+|---|---|---|
+| `queue_depth`, `queue_capacity` | events waiting now, and the size of the queue | depth near capacity: the destination is slower than the events; see `dropped_by_reason` |
+| `accepted` | events that entered the queue | |
+| `delivered` | events the destination accepted (the answer that ends a batch) | |
+| `dropped`, `dropped_by_reason` | events lost, by reason: `queue_full_newest`, `queue_full_oldest`, `displaced_by_critical`, `block_timeout`, `shutdown`, `retry_limit_reached`, `unspecified`, or the reason of the destination (`status_400`, `write_failed` ...) | the reason says where to look: a full queue, a receiver that rejects, a retry limit |
+| `failed_events` | events a `best_effort` batch failed (not sent again) | the destination is failing; consider the `retry` mode |
+| `export_failures`, `attempts`, `retries`, `batches` | calls whose answer had failed or dropped events; all the calls; calls beyond the first of a batch; batches finished | many failures with few retries: `best_effort`; `retry_limit_reached` drops: the destination is down longer than the backoff |
+| `last_batch_size`, `max_batch_size` | events in the last batch and in the largest | |
+| `last_export_latency_ms`, `max_export_latency_ms`, `total_export_latency_ms` | the time of each call to the destination in whole milliseconds; the average is the total over `attempts` | latency near `delivery.timeout_ms` (3,000 by default): the destination times out |
+| `last_success_at_ms` | Unix ms of the last batch that delivered events, 0 = never | old or 0 while events flow: nothing is arriving |
+| `configuration_errors`, `serialization_failures` | events with the reason `configuration_error` or `serialization_failed` | the destination's settings are wrong, or an event cannot be written |
+| `spool_events`, `spool_bytes`, `spool_quota_bytes` | 0 until the spool exists (T-06.5) | |
+| `last_flush` | `done`, `sent`, `spooled`, `dropped`, `at_ms` of the last `Flush` or `Shutdown` | `dropped` above 0: events were lost at the end |
+| `last_reason` | the last reason that was not empty (cleaned) | |
+
+| Counter (the channel) | What it means |
+|---|---|
+| `published` | diagnostics that entered the queue of the channel |
+| `suppressed` | diagnostics held back by the rate limit (10 per 1,000 ms): a storm of failures shows here, not as a flood of callbacks; the next diagnostic that passes carries the number held back in its `suppressed` |
+| `dropped` | diagnostics lost because a callback is stuck and the queue of 64 is full |
+| `callback_errors` | callbacks or writers that panicked or raised, or a writer that returned an error |
+
+**A diagnostic** has a code (`export_failed`, `events_dropped`, `serialization_failed`, `configuration_error`), the kind and index of the destination, a fixed reason, a count, `suppressed` and `at_ms`. It never holds the message or a field of an event, a credential or the value of a panic; the reason is cleaned to `A-Z a-z 0-9 _ . : -` and 64 characters. It is **not an event**: it does not go through the queues or a destination and cannot fail again. The writer prints one line: `telemetry diagnostics: code=export_failed destination=log/0 reason=timeout count=3 suppressed=0`. A failing exporter is not an unhealthy application: diagnostics are not a health signal (REQ-HLT-003).
+
+**Limits to know:** a drop after `Shutdown` is counted in the snapshot but not published (the channel is stopped); the counts of the events rejected by validation or the limits are in the result of the call, not in the snapshot; the rate limit is a constant.
 
 ## Manual end-to-end check of a deployment
 
@@ -48,4 +80,4 @@ The reasons are fixed texts: they never hold a URL, a path or a value the caller
 
 Metrics, tracing, a retry queue and a disk buffer for delivery (the spool). Delivery is best effort today ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)); the queue and the retries are T-05 and the spool is T-06.
 
-> **Planned (T-02.6, T-03.5, T-05.5):** the diagnostics count the events rejected by the validation at the source (a counter by event type and error code, REQ-DGN-001), the results of the sink calls (accepted, dropped and failed by destination and reason, REQ-DLV-008) and the counters of the limits (attribute keys dropped, attribute keys truncated, attribute values truncated, events rejected; they count items, never text). The validator, the results and the counters exist and are returned with each call; wiring them into the diagnostics is T-05.5. Nothing is emitted yet.
+> **Planned (T-02.6, T-03.5):** the diagnostics will also count the events rejected by the validation at the source (a counter by event type and error code) and the counters of the limits (attribute keys dropped, attribute keys truncated, attribute values truncated, events rejected; they count items, never text). The validator and the counters exist and are returned with each call; they are **not** in the snapshot of T-05.5 yet.

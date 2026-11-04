@@ -100,6 +100,15 @@ const (
 	// DefaultShutdownTimeoutMilliseconds is the time that Flush and Shutdown wait, in milliseconds, when the context of the
 	// call has no deadline, so no call can wait for ever.
 	DefaultShutdownTimeoutMilliseconds = 5000
+	// DefaultDiagnosticsRateLimit is the number of diagnostics that the diagnostics channel publishes in one window; the
+	// ones beyond it are suppressed and counted (REQ-DGN-003).
+	DefaultDiagnosticsRateLimit = 10
+	// DefaultDiagnosticsRateWindowMilliseconds is the length of the window of the rate limit of the diagnostics channel, in
+	// milliseconds.
+	DefaultDiagnosticsRateWindowMilliseconds = 1000
+	// DefaultDiagnosticsQueueSize is the number of diagnostics that the channel keeps for its callbacks; when it is full the
+	// next diagnostics are dropped and counted.
+	DefaultDiagnosticsQueueSize = 64
 )
 
 // === HTTP retries ===

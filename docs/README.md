@@ -10,7 +10,7 @@ State of the documents: 2026-11-03. Start with [architecture](architecture/archi
 | [decisions/](decisions/) | the decision records ADR-001 to ADR-013 |
 | [requirements/requirements.md](requirements/requirements.md) | what the library must do, and the state of each requirement |
 | [security/security.md](security/security.md) | masking, what the library holds, the checklist before anything is pushed to the public repository |
-| [operations/monitoring.md](operations/monitoring.md) | what a consumer can observe, the reasons in a result, timeouts, the manual end-to-end check (the diagnostics are planned, T-05.5) |
+| [operations/monitoring.md](operations/monitoring.md) | what a consumer can observe, the reasons in a result, timeouts, the manual end-to-end check (the diagnostics: counters, codes and the rate limit) |
 | [deployment/deployment.md](deployment/deployment.md) | there is no deployment: build, CI, releases by tag and how a consumer takes one |
 | [proposals/](proposals/) | the proposals that are not built yet |
 | [tasks/](tasks/README.md) | the task plan to build the new standard: 13 epics, 85 subtasks, the order and the board |

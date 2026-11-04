@@ -3,6 +3,9 @@
 package config
 
 import (
+	"io"
+
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/dtos"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/ports/outbound"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/application/services"
 )
@@ -12,12 +15,15 @@ import (
 // =============================================================================
 
 // Options are the adapters a project passed to the core. A nil Clock or IDGenerator means that the composition root
-// uses its default.
+// uses its default. DiagnosticsCallbacks are called, in order, with every diagnostic that passes the rate limit, and
+// DiagnosticsWriter (nil is none) receives one line for it (REQ-DGN-002, REQ-DGN-003).
 type Options struct {
-	Destinations services.Destinations
-	Spool        outbound.LocalSpoolPort
-	Clock        outbound.ClockPort
-	IDGenerator  outbound.IDGeneratorPort
+	Destinations         services.Destinations
+	Spool                outbound.LocalSpoolPort
+	Clock                outbound.ClockPort
+	IDGenerator          outbound.IDGeneratorPort
+	DiagnosticsCallbacks []func(event dtos.DiagnosticEvent)
+	DiagnosticsWriter    io.Writer
 }
 
 // Option sets one thing of the Options. An option whose argument is nil changes nothing.
@@ -102,6 +108,27 @@ func WithIDGenerator(id_generator outbound.IDGeneratorPort) Option {
 	return func(options *Options) {
 		if id_generator != nil {
 			options.IDGenerator = id_generator
+		}
+	}
+}
+
+// WithDiagnosticsCallback adds a function that is called, outside the send path, with every diagnostic that passes the
+// rate limit of the diagnostics channel. It may be given several times: the functions are called in the order given. A
+// nil function is ignored, and one that panics or hangs does not affect the delivery.
+func WithDiagnosticsCallback(callback func(event dtos.DiagnosticEvent)) Option {
+	return func(options *Options) {
+		if callback != nil {
+			options.DiagnosticsCallbacks = append(options.DiagnosticsCallbacks, callback)
+		}
+	}
+}
+
+// WithDiagnosticsWriter sets the writer that receives one line of text for every diagnostic that passes the rate limit.
+// A nil writer changes nothing.
+func WithDiagnosticsWriter(writer io.Writer) Option {
+	return func(options *Options) {
+		if writer != nil {
+			options.DiagnosticsWriter = writer
 		}
 	}
 }

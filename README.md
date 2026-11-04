@@ -27,7 +27,8 @@ The new standard ([PR-001](docs/proposals/PR-001-telemetry-standard-go-python.md
 | What a full queue does (`drop_newest`, `drop_oldest`, `block_with_timeout`) and the priority classes (T-05.2) | Built (one policy for the core) |
 | `Flush` and `Shutdown` with a timeout and a result of what was sent and dropped (T-05.4); a program must call `Shutdown` before it exits | Built |
 | The delivery modes `best_effort` and `retry` with backoff and jitter (T-05.3); `durable` is refused at start until the spool exists | Built (one mode for the core) |
-| Public diagnostics, the failure matrix (T-05.5, T-05.6), the spool and the `durable` mode (T-06), events, devices, AI, OpenTelemetry and the rest | Planned |
+| Diagnostics: a snapshot per destination, callbacks, an optional writer and a rate-limited channel of their own (T-05.5) | Built |
+| The failure matrix (T-05.6), the spool and the `durable` mode (T-06), events, devices, AI, OpenTelemetry and the rest | Planned |
 | CI (format, vet, build, tests and a coverage gate of 95%, for every Go module and for Python 3.10 and 3.11) | Written and checked locally; not yet run on GitHub, it needs a pull request |
 | Deployment | None, by design: it is a library ([ADR-010](docs/decisions/ADR-010-no-deployment-release-by-tags.md)) |
 

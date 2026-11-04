@@ -1,0 +1,2371 @@
+{
+  "description": "What the diagnostics of ONE destination show after a scenario (REQ-DGN-001, REQ-DGN-002). One destination; batch_size 10 and a flush interval of 60000 ms, so nothing is sent until the scenario calls Flush once with a generous timeout; events (at most 10) are queued first, so the Flush sends ONE batch of all of them. Backoff base 1 ms and ceiling 5 ms, a random source that always answers 0.5. answers are the SendResult of each call to the destination (when they are used up the last one repeats) and are consistent: accepted + dropped + failed is events. Rules of the batch are those of mode_scenarios.json. Counters: attempts (calls), retries (calls beyond the first), batches (always 1), delivered (the accepted events of the answer that ends the batch), dropped (events lost: dropped by the destination, or failed until retry_limit_reached), failed_events (events a best_effort answer failed), export_failures (calls in which the answer had failed or dropped events), serialization_failures and configuration_errors (the failed plus dropped events of EACH answer whose reason is serialization_failed or configuration_error), last_batch_size and max_batch_size (the events of the batch), dropped_by_reason (an empty reason counts as unspecified). has_last_success is true when the destination accepted at least one event. last_flush is the result of the Flush for this destination (sent = delivered, dropped = events - delivered, spooled 0). diagnostics is the list of the diagnostics the channel publishes, in order, with the rate limit set high enough to suppress none: an answer with failed events gives export_failed (the reason, unspecified when empty, and the failed count) at EACH call; the answer that ends the batch gives, for its dropped events, the code of the reason (serialization_failed, configuration_error or events_dropped) with its dropped count, or events_dropped with the reason retry_limit_reached and the failed count when the batch ran out of attempts. The latency of the calls and the times are not part of this file.",
+  "cases": [
+    {
+      "name": "best_effort_all_accepted",
+      "description": "Nothing goes wrong: every counter of a failure stays at zero.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 3,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 3,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "best_effort_transient_failure_is_not_retried",
+      "description": "A failing answer is one export failure, the events count as failed and one diagnostic says so.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 0,
+          "failed_events": 3,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_failure_without_reason",
+      "description": "A failure without a reason is reported as unspecified.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 2,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 0,
+          "failed_events": 2,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 2,
+          "max_batch_size": 2,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 2
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "unspecified",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_partial",
+      "description": "Two events taken and one failed.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 2,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 2,
+          "dropped": 0,
+          "failed_events": 1,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 2,
+          "spooled": 0,
+          "dropped": 1
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_permanent_rejection",
+      "description": "Dropped events are counted under the reason of the answer and reported once.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 4,
+          "failed": 0,
+          "reason": "status_400",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 4,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {
+            "status_400": 4
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 4
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "status_400",
+            "count": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_serialization_failed",
+      "description": "The reason serialization_failed is also counted as a serialization failure and has its own code.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 2,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 2,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 2,
+          "configuration_errors": 0,
+          "last_batch_size": 2,
+          "max_batch_size": 2,
+          "dropped_by_reason": {
+            "serialization_failed": 2
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 2
+        },
+        "diagnostics": [
+          {
+            "code": "serialization_failed",
+            "reason": "serialization_failed",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_configuration_error",
+      "description": "The reason configuration_error is counted as a configuration error and has its own code.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 2,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 2,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 2,
+          "last_batch_size": 2,
+          "max_batch_size": 2,
+          "dropped_by_reason": {
+            "configuration_error": 2
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 2
+        },
+        "diagnostics": [
+          {
+            "code": "configuration_error",
+            "reason": "configuration_error",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_dropped_without_reason",
+      "description": "A drop without a reason is counted under unspecified.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 2,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 2,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 2,
+          "max_batch_size": 2,
+          "dropped_by_reason": {
+            "unspecified": 2
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 2
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "unspecified",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "best_effort_failed_and_dropped",
+      "description": "One answer with failed and dropped events gives two diagnostics, the failure first.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 5,
+      "answers": [
+        {
+          "accepted": 1,
+          "dropped": 2,
+          "failed": 2,
+          "reason": "status_500",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 1,
+          "dropped": 2,
+          "failed_events": 2,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 5,
+          "max_batch_size": 5,
+          "dropped_by_reason": {
+            "status_500": 2
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 1,
+          "spooled": 0,
+          "dropped": 4
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "status_500",
+            "count": 2
+          },
+          {
+            "code": "events_dropped",
+            "reason": "status_500",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "retry_recovers",
+      "description": "Two transient failures and a success: three attempts, two retries, two export failures and delivered once.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 3,
+          "retries": 2,
+          "batches": 1,
+          "delivered": 3,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 2,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 3,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 3
+          },
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "retry_limit_reached",
+      "description": "Every attempt fails: the events are dropped under retry_limit_reached after the last attempt.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 3,
+          "retries": 2,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 3,
+          "failed_events": 0,
+          "export_failures": 3,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {
+            "retry_limit_reached": 3
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 3
+          },
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 3
+          },
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 3
+          },
+          {
+            "code": "events_dropped",
+            "reason": "retry_limit_reached",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "retry_permanent_rejection_is_not_retried",
+      "description": "A permanent rejection ends the batch at once.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "status_422",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 3,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {
+            "status_422": 3
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "status_422",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "retry_partial_failure_resends_whole_batch",
+      "description": "A partial failure sends the whole batch again; only the last answer decides what was delivered.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 2,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "status_502",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 4,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 2,
+          "retries": 1,
+          "batches": 1,
+          "delivered": 4,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 4,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "status_502",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "retry_limit_with_partial_acceptance",
+      "description": "At the limit the accepted events of the last answer are delivered and the failed ones are dropped.",
+      "mode": "retry",
+      "retry_max_attempts": 2,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 2,
+          "retries": 1,
+          "batches": 1,
+          "delivered": 1,
+          "dropped": 3,
+          "failed_events": 0,
+          "export_failures": 2,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {
+            "retry_limit_reached": 3
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 1,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 3
+          },
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 3
+          },
+          {
+            "code": "events_dropped",
+            "reason": "retry_limit_reached",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_00",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 3,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 4,
+          "reason": "status_400",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 2,
+          "dropped": 0,
+          "failed": 5,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 7,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 6,
+          "dropped": 1,
+          "failed": 0,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 0,
+          "failed_events": 7,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 7
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_01",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 2,
+      "events": 6,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 6,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 6,
+          "failed": 0,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 6,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 6,
+          "max_batch_size": 6,
+          "dropped_by_reason": {
+            "write_failed": 6
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 6
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "write_failed",
+            "count": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_02",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 2,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 3,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 3,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {
+            "serialization_failed": 3
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "serialization_failed",
+            "reason": "serialization_failed",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_03",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 2,
+      "events": 1,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 1,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 1,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 1,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 1,
+          "max_batch_size": 1,
+          "dropped_by_reason": {
+            "write_failed": 1
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 1
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "write_failed",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_04",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 3,
+      "events": 5,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 4,
+          "failed": 1,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 4,
+          "failed_events": 1,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 5,
+          "max_batch_size": 5,
+          "dropped_by_reason": {
+            "unspecified": 4
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 5
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "unspecified",
+            "count": 1
+          },
+          {
+            "code": "events_dropped",
+            "reason": "unspecified",
+            "count": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_05",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 2,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 2,
+          "dropped": 1,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 2,
+          "dropped": 1,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 3,
+          "max_batch_size": 3,
+          "dropped_by_reason": {
+            "unspecified": 1
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 2,
+          "spooled": 0,
+          "dropped": 1
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "unspecified",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_06",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 4,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 4,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 2,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 4,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 4,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {
+            "unspecified": 4
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 4
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "unspecified",
+            "count": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_07",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 5,
+      "answers": [
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 4,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 1,
+          "failed": 3,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 2,
+          "retries": 1,
+          "batches": 1,
+          "delivered": 1,
+          "dropped": 1,
+          "failed_events": 3,
+          "export_failures": 2,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 5,
+          "max_batch_size": 5,
+          "dropped_by_reason": {
+            "write_failed": 1
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 1,
+          "spooled": 0,
+          "dropped": 4
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "network_error",
+            "count": 4
+          },
+          {
+            "code": "export_failed",
+            "reason": "write_failed",
+            "count": 3
+          },
+          {
+            "code": "events_dropped",
+            "reason": "write_failed",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_08",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 6,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 6,
+          "failed": 0,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 6,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 6,
+          "last_batch_size": 6,
+          "max_batch_size": 6,
+          "dropped_by_reason": {
+            "configuration_error": 6
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 6
+        },
+        "diagnostics": [
+          {
+            "code": "configuration_error",
+            "reason": "configuration_error",
+            "count": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_09",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 4,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 2,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 1,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 2,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 4,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 4,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "seeded_10",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 5,
+      "answers": [
+        {
+          "accepted": 5,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 1,
+          "failed": 4,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 5,
+          "failed": 0,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 5,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 5,
+          "max_batch_size": 5,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 5,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "seeded_11",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 1,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 4,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 1,
+          "dropped": 3,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 3,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {
+            "serialization_failed": 3
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 1,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "serialization_failed",
+            "reason": "serialization_failed",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_12",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 1,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 2,
+          "retries": 1,
+          "batches": 1,
+          "delivered": 1,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 1,
+          "max_batch_size": 1,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 1,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "network_error",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_13",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 4,
+      "events": 8,
+      "answers": [
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 5,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 8,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 4,
+          "dropped": 4,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 3,
+          "dropped": 0,
+          "failed_events": 5,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 8,
+          "max_batch_size": 8,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 3,
+          "spooled": 0,
+          "dropped": 5
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 5
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_14",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 4,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 7,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "status_503",
+          "retry_after_ms": 3
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "",
+          "retry_after_ms": 3
+        },
+        {
+          "accepted": 4,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 7,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 7,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "seeded_15",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "timeout",
+          "retry_after_ms": 1
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 3,
+          "retries": 2,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 7,
+          "failed_events": 0,
+          "export_failures": 3,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {
+            "retry_limit_reached": 7
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 7
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 7
+          },
+          {
+            "code": "export_failed",
+            "reason": "network_error",
+            "count": 7
+          },
+          {
+            "code": "export_failed",
+            "reason": "network_error",
+            "count": 7
+          },
+          {
+            "code": "events_dropped",
+            "reason": "retry_limit_reached",
+            "count": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_16",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 7,
+          "failed": 0,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 4,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "status_503",
+          "retry_after_ms": 3
+        },
+        {
+          "accepted": 3,
+          "dropped": 4,
+          "failed": 0,
+          "reason": "configuration_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 7,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 7,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 7,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {
+            "configuration_error": 7
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 7
+        },
+        "diagnostics": [
+          {
+            "code": "configuration_error",
+            "reason": "configuration_error",
+            "count": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_17",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 8,
+      "answers": [
+        {
+          "accepted": 5,
+          "dropped": 2,
+          "failed": 1,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 4,
+          "dropped": 2,
+          "failed": 2,
+          "reason": "status_400",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 5,
+          "dropped": 2,
+          "failed_events": 1,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 8,
+          "max_batch_size": 8,
+          "dropped_by_reason": {
+            "write_failed": 2
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 5,
+          "spooled": 0,
+          "dropped": 3
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "write_failed",
+            "count": 1
+          },
+          {
+            "code": "events_dropped",
+            "reason": "write_failed",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_18",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 2,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 7,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 6,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 7,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 7,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "seeded_19",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 2,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 4,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 2,
+          "dropped": 1,
+          "failed": 1,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 4,
+          "failed": 0,
+          "reason": "serialization_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 4,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 4,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "seeded_20",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 2,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 2,
+          "dropped": 2,
+          "failed": 0,
+          "reason": "status_400",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 4,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 4,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 2,
+          "dropped": 2,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {
+            "status_400": 2
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 2,
+          "spooled": 0,
+          "dropped": 2
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "status_400",
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_21",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 1,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "status_503",
+          "retry_after_ms": 1
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "network_error",
+          "retry_after_ms": 3
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 1,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 1,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 3,
+          "retries": 2,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 1,
+          "failed_events": 0,
+          "export_failures": 3,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 1,
+          "max_batch_size": 1,
+          "dropped_by_reason": {
+            "retry_limit_reached": 1
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 1
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 1
+          },
+          {
+            "code": "export_failed",
+            "reason": "network_error",
+            "count": 1
+          },
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 1
+          },
+          {
+            "code": "events_dropped",
+            "reason": "retry_limit_reached",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_22",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 4,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 1,
+          "dropped": 6,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 7,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 6,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 7,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "timeout",
+          "retry_after_ms": 1
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 1,
+          "dropped": 6,
+          "failed_events": 0,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {
+            "unspecified": 6
+          }
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 1,
+          "spooled": 0,
+          "dropped": 6
+        },
+        "diagnostics": [
+          {
+            "code": "events_dropped",
+            "reason": "unspecified",
+            "count": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_23",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 4,
+      "events": 8,
+      "answers": [
+        {
+          "accepted": 8,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 8,
+          "failed": 0,
+          "reason": "write_failed",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 8,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 8,
+          "reason": "timeout",
+          "retry_after_ms": 3
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 8,
+          "dropped": 0,
+          "failed_events": 0,
+          "export_failures": 0,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 8,
+          "max_batch_size": 8,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": true,
+        "last_flush": {
+          "sent": 8,
+          "spooled": 0,
+          "dropped": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "name": "seeded_24",
+      "description": "Random answers from the seeded generator.",
+      "mode": "retry",
+      "retry_max_attempts": 4,
+      "events": 4,
+      "answers": [
+        {
+          "accepted": 2,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "network_error",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 2,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 4,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 4,
+          "retries": 3,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 4,
+          "failed_events": 0,
+          "export_failures": 4,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 4,
+          "max_batch_size": 4,
+          "dropped_by_reason": {
+            "retry_limit_reached": 4
+          }
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 4
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "network_error",
+            "count": 2
+          },
+          {
+            "code": "export_failed",
+            "reason": "timeout",
+            "count": 2
+          },
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 4
+          },
+          {
+            "code": "export_failed",
+            "reason": "status_503",
+            "count": 4
+          },
+          {
+            "code": "events_dropped",
+            "reason": "retry_limit_reached",
+            "count": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "seeded_25",
+      "description": "Random answers from the seeded generator.",
+      "mode": "best_effort",
+      "retry_max_attempts": 4,
+      "events": 7,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "",
+          "retry_after_ms": 1
+        },
+        {
+          "accepted": 7,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 7,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 7,
+          "reason": "timeout",
+          "retry_after_ms": 3
+        },
+        {
+          "accepted": 1,
+          "dropped": 6,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "counters": {
+          "attempts": 1,
+          "retries": 0,
+          "batches": 1,
+          "delivered": 0,
+          "dropped": 0,
+          "failed_events": 7,
+          "export_failures": 1,
+          "serialization_failures": 0,
+          "configuration_errors": 0,
+          "last_batch_size": 7,
+          "max_batch_size": 7,
+          "dropped_by_reason": {}
+        },
+        "has_last_success": false,
+        "last_flush": {
+          "sent": 0,
+          "spooled": 0,
+          "dropped": 7
+        },
+        "diagnostics": [
+          {
+            "code": "export_failed",
+            "reason": "unspecified",
+            "count": 7
+          }
+        ]
+      }
+    }
+  ]
+}

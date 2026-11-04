@@ -5,12 +5,18 @@ import threading
 import time
 from typing import Callable, Mapping, Optional, Sequence
 
+from telemetry.internal.application.dtos.channel_diagnostics import ChannelDiagnostics
 from telemetry.internal.application.dtos.delivery_settings import DeliverySettings
+from telemetry.internal.application.dtos.destination_diagnostics import DestinationDiagnostics
+from telemetry.internal.application.dtos.diagnostic_event import DiagnosticEvent
+from telemetry.internal.application.dtos.diagnostics_snapshot import DiagnosticsSnapshot
 from telemetry.internal.application.dtos.emit_result import EmitResult
+from telemetry.internal.application.dtos.flush_outcome import FlushOutcome
 from telemetry.internal.application.dtos.shutdown_result import ShutdownResult
 from telemetry.internal.application.ports.outbound.ai_telemetry_sink_port import AITelemetrySinkPort
 from telemetry.internal.application.ports.outbound.clock_port import ClockPort
 from telemetry.internal.application.ports.outbound.device_telemetry_sink_port import DeviceTelemetrySinkPort
+from telemetry.internal.application.ports.outbound.diagnostics_channel_port import DiagnosticsChannelPort
 from telemetry.internal.application.ports.outbound.event_queue_port import EventQueuePort
 from telemetry.internal.application.ports.outbound.event_sink_port import EventSinkPort
 from telemetry.internal.application.ports.outbound.log_sink_port import LogSinkPort
@@ -19,6 +25,7 @@ from telemetry.internal.application.ports.outbound.random_port import RandomPort
 from telemetry.internal.application.ports.outbound.trace_sink_port import TraceSinkPort
 from telemetry.internal.domain.operations.batching.plan_batch import PLAN_IDLE, PLAN_SEND, plan_batch
 from telemetry.internal.domain.operations.classification.classify_event import classify_event
+from telemetry.internal.domain.operations.diagnostics_reason.sanitize_reason import sanitize_reason
 from telemetry.internal.domain.operations.full_queue.resolve_full_queue import (
     REASON_BLOCK_TIMEOUT,
     REASON_DISPLACED_BY_CRITICAL,
@@ -26,7 +33,7 @@ from telemetry.internal.domain.operations.full_queue.resolve_full_queue import (
     REASON_QUEUE_FULL_OLDEST,
 )
 from telemetry.internal.domain.operations.retry_delay.retry_delay import retry_delay
-from telemetry.internal.domain.value_objects.enums_generated import DeliveryMode, EventClass
+from telemetry.internal.domain.value_objects.enums_generated import DeliveryMode, DiagnosticCode, EventClass
 from telemetry.internal.domain.value_objects.envelope_generated import Envelope
 
 REASON_NO_DESTINATION = "no_destination"
@@ -34,15 +41,19 @@ REASON_RETRY_LIMIT_REACHED = "retry_limit_reached"
 REASON_SHUTDOWN = "shutdown"
 REASON_SINK_PANICKED = "sink_panicked"
 REASON_UNSPECIFIED = "unspecified"
+REASON_SERIALIZATION_FAILED = "serialization_failed"
+REASON_CONFIGURATION_ERROR = "configuration_error"
 
 # The reasons of the drops of a full queue live in the domain rule; they are re-exported here with the others.
 __all__ = [
     "REASON_BLOCK_TIMEOUT",
+    "REASON_CONFIGURATION_ERROR",
     "REASON_DISPLACED_BY_CRITICAL",
     "REASON_NO_DESTINATION",
     "REASON_QUEUE_FULL_NEWEST",
     "REASON_QUEUE_FULL_OLDEST",
     "REASON_RETRY_LIMIT_REACHED",
+    "REASON_SERIALIZATION_FAILED",
     "REASON_SHUTDOWN",
     "REASON_SINK_PANICKED",
     "REASON_UNSPECIFIED",
@@ -139,6 +150,16 @@ class _Destination:
         self.displaced = 0
         self.last_reason = ""
         self.dropped_by_reason: dict[str, int] = {}
+        self.export_failures = 0
+        self.serialization_failures = 0
+        self.configuration_errors = 0
+        self.last_batch_size = 0
+        self.max_batch_size = 0
+        self.last_latency_ms = 0
+        self.max_latency_ms = 0
+        self.total_latency_ms = 0
+        self.last_success_at_ms = 0
+        self.last_flush = FlushOutcome()
 
     def count_drop(self, reason: str, count: int = 1) -> None:
         """Count dropped events under their reason; call it with the lock held."""
@@ -180,14 +201,17 @@ class DeliveryService:
         clock: ClockPort,
         new_queue: Callable[[int], EventQueuePort],
         random_source: RandomPort,
+        diagnostics: Optional[DiagnosticsChannelPort] = None,
     ) -> None:
         """Create a queue for every sink of every kind; nothing runs until ``start()`` is called.
 
-        ``random_source`` gives the jitter of the wait between two attempts of the retry mode.
+        ``random_source`` gives the jitter of the wait between two attempts of the retry mode. ``diagnostics`` is the
+        channel that receives the diagnostics (T-05.5); without one the service works the same and publishes nothing.
         """
         self._settings = settings
         self._clock = clock
         self._random = random_source
+        self._diagnostics = diagnostics
         self._lifecycle = threading.Lock()
         self._started = False
         self._stopped = False
@@ -206,11 +230,16 @@ class DeliveryService:
             self._all.extend(entries)
 
     def start(self) -> None:
-        """Start one daemon worker thread per destination; calling it again, or after ``stop()``, does nothing."""
+        """Start one daemon worker thread per destination; calling it again, or after ``stop()``, does nothing.
+
+        It also starts the diagnostics channel, whose own daemon thread calls the callbacks of the consumer.
+        """
         with self._lifecycle:
             if self._started or self._stopped:
                 return
             self._started = True
+            if self._diagnostics is not None:
+                self._diagnostics.start()
             for destination in self._all:
                 thread = threading.Thread(
                     target=self._work,
@@ -229,6 +258,12 @@ class DeliveryService:
         """
         for thread in self._signal_stop():
             thread.join()
+        self._stop_diagnostics()
+
+    def _stop_diagnostics(self) -> None:
+        """Stop the diagnostics channel after the workers: what they published last is still handed over."""
+        if self._diagnostics is not None:
+            self._diagnostics.stop()
 
     def _signal_stop(self) -> list[threading.Thread]:
         """Mark the service stopped, wake every worker and return the threads to join (none when already stopped)."""
@@ -256,6 +291,7 @@ class DeliveryService:
         for destination in self._by_kind.get(kind, []):
             with destination.condition:
                 destination.count_drop(REASON_SHUTDOWN)
+            self._publish(destination, DiagnosticCode.EVENTS_DROPPED, REASON_SHUTDOWN, 1)
         return EmitResult(dropped=1, reason=REASON_SHUTDOWN)
 
     def flush(self, timeout_ms: int) -> ShutdownResult:
@@ -297,6 +333,7 @@ class DeliveryService:
                 result = ShutdownResult()
             for thread in self._signal_stop():
                 thread.join(max(0.0, deadline - time.monotonic()))
+            self._stop_diagnostics()
             self._shutdown_result = result
             return result
 
@@ -342,9 +379,13 @@ class DeliveryService:
                     with destination.condition:
                         destination.flush_pending -= 1
         sent = dropped = 0
+        finished_at_ms = self._wall_milliseconds()
         for destination, target, delivered_before, _, _ in targets:
             with destination.condition:
                 accepted = min(destination.delivered - delivered_before, target)
+                destination.last_flush = FlushOutcome(
+                    done=True, sent=accepted, spooled=0, dropped=target - accepted, at_ms=finished_at_ms
+                )
             sent += accepted
             dropped += target - accepted
         return ShutdownResult(sent=sent, spooled=0, dropped=dropped)
@@ -387,32 +428,47 @@ class DeliveryService:
         return EmitResult(accepted=accepted, dropped=dropped, reason=reason)
 
     def _offer(self, destination: _Destination, envelope: Envelope, event_class: EventClass, arrival_ms: int) -> str:
-        """Offer the event to one destination; return "" when it was queued, or the reason it was dropped."""
+        """Offer the event to one destination; return "" when it was queued, or the reason it was dropped.
+
+        Every drop (the new event or a displaced one) is published as a diagnostic AFTER the lock is released.
+        """
+        drop_reason, displaced_reason = self._offer_locked(destination, envelope, event_class, arrival_ms)
+        for reason in (displaced_reason, drop_reason):
+            if reason:
+                self._publish(destination, DiagnosticCode.EVENTS_DROPPED, reason, 1)
+        return drop_reason
+
+    def _offer_locked(
+        self, destination: _Destination, envelope: Envelope, event_class: EventClass, arrival_ms: int
+    ) -> tuple[str, str]:
+        """Offer under the lock; return ``(reason the new event was dropped, reason a queued one was displaced)``."""
         settings = self._settings
         deadline: Optional[float] = None
         with destination.condition:
             while True:
                 if destination.closed:  # a shutdown began while this call was on its way
                     destination.count_drop(REASON_SHUTDOWN)
-                    return REASON_SHUTDOWN
+                    return REASON_SHUTDOWN, ""
                 offer = destination.queue.offer(envelope, event_class, arrival_ms, settings.queue_policy)
                 if offer.admitted:
                     destination.accepted += 1
+                    displaced_reason = ""
                     if offer.displaced is not None:
                         destination.count_drop(offer.reason)
                         destination.displaced += 1
                         destination.settled.notify_all()  # a flush that counted the displaced event stops waiting
+                        displaced_reason = offer.reason
                     destination.condition.notify()
-                    return ""
+                    return "", displaced_reason
                 if not offer.must_wait:
                     destination.count_drop(offer.reason)
-                    return offer.reason
+                    return offer.reason, ""
                 if deadline is None:
                     deadline = time.monotonic() + settings.block_timeout_milliseconds / _MILLISECONDS_PER_SECOND
                 remaining = deadline - time.monotonic()
                 if remaining <= 0 or destination.stopping:
                     destination.count_drop(REASON_BLOCK_TIMEOUT)
-                    return REASON_BLOCK_TIMEOUT
+                    return REASON_BLOCK_TIMEOUT, ""
                 destination.room.wait(remaining)
 
     def stats(self) -> list[DestinationStats]:
@@ -437,6 +493,80 @@ class DeliveryService:
                     )
                 )
         return snapshot
+
+    def diagnostics(self) -> DiagnosticsSnapshot:
+        """Return a COPY of the diagnostics of every destination and of the channel (REQ-DGN-001, REQ-DGN-002).
+
+        It works before ``start`` and after ``shutdown``, never raises and shares nothing with the service.
+        """
+        destinations = []
+        for destination in self._all:
+            with destination.condition:
+                destinations.append(
+                    DestinationDiagnostics(
+                        kind=destination.kind,
+                        index=destination.index,
+                        queue_depth=destination.queue.length(),
+                        queue_capacity=self._settings.queue_size,
+                        accepted=destination.accepted,
+                        delivered=destination.delivered,
+                        dropped=destination.dropped,
+                        dropped_by_reason=self._safe_reasons(destination.dropped_by_reason),
+                        failed_events=destination.failed,
+                        export_failures=destination.export_failures,
+                        attempts=destination.attempts,
+                        retries=destination.retries,
+                        batches=destination.batches,
+                        last_batch_size=destination.last_batch_size,
+                        max_batch_size=destination.max_batch_size,
+                        last_export_latency_ms=destination.last_latency_ms,
+                        max_export_latency_ms=destination.max_latency_ms,
+                        total_export_latency_ms=destination.total_latency_ms,
+                        last_success_at_ms=destination.last_success_at_ms,
+                        configuration_errors=destination.configuration_errors,
+                        serialization_failures=destination.serialization_failures,
+                        last_flush=destination.last_flush,
+                        last_reason=sanitize_reason(destination.last_reason) if destination.last_reason else "",
+                    )
+                )
+        channel = self._diagnostics.counters() if self._diagnostics is not None else ChannelDiagnostics()
+        return DiagnosticsSnapshot(destinations=tuple(destinations), channel=channel)
+
+    @staticmethod
+    def _safe_reasons(by_reason: Mapping[str, int]) -> dict[str, int]:
+        """Copy the drops by reason with each reason sanitized (reasons that become equal add up)."""
+        safe: dict[str, int] = {}
+        for reason, count in by_reason.items():
+            key = sanitize_reason(reason)
+            safe[key] = safe.get(key, 0) + count
+        return safe
+
+    def _wall_milliseconds(self) -> int:
+        """The wall clock in unix milliseconds."""
+        return int(self._clock.now().value.timestamp() * _MILLISECONDS_PER_SECOND)
+
+    def _publish(self, destination: _Destination, code: DiagnosticCode, reason: str, count: int) -> None:
+        """Hand one diagnostic to the channel; call it with NO lock of the service held. It never raises.
+
+        The diagnostic goes to the channel and never to the pipeline, a queue or a destination, so a failure of the
+        delivery cannot create an event that fails again (REQ-DGN-003). It holds a code, the position of the
+        destination, a reason and a count, and nothing of an event.
+        """
+        if self._diagnostics is None:
+            return
+        try:
+            self._diagnostics.publish(
+                DiagnosticEvent(
+                    code=code,
+                    kind=destination.kind,
+                    index=destination.index,
+                    reason=reason,
+                    count=count,
+                    at_ms=self._wall_milliseconds(),
+                )
+            )
+        except Exception:  # a diagnostic is never worth a failure of the delivery (ADR-005)
+            return
 
     def _work(self, destination: _Destination) -> None:
         """The loop of a worker: wait for a batch, deliver it with no lock held while the sink works, repeat."""
@@ -463,6 +593,8 @@ class DeliveryService:
                 if plan.action == PLAN_SEND:
                     batch = destination.queue.take(plan.take)
                     destination.in_flight = len(batch)
+                    destination.last_batch_size = len(batch)
+                    destination.max_batch_size = max(destination.max_batch_size, len(batch))
                     destination.room.notify_all()  # there is room now: a caller that waits for it offers again
                     return batch
                 if plan.action == PLAN_IDLE:
@@ -485,7 +617,7 @@ class DeliveryService:
         retries_enabled = settings.mode is DeliveryMode.RETRY
         attempt = 0
         while True:
-            accepted, dropped, failed, reason, retry_after_ms = self._call_sink(destination, batch)
+            accepted, dropped, failed, reason, retry_after_ms, latency_ms = self._call_sink(destination, batch)
             transient = failed > 0 and dropped == 0
             retry = False
             wait_ms = 0
@@ -499,10 +631,9 @@ class DeliveryService:
                     settings.retry_max_delay_milliseconds,
                     self._random_value(),
                 )
-            with destination.condition:
-                destination.attempts += 1
-                if attempt > 0:
-                    destination.retries += 1
+            self._count_attempt(destination, attempt, accepted, dropped, failed, reason, latency_ms)
+            if failed > 0:
+                self._publish(destination, DiagnosticCode.EXPORT_FAILED, reason, failed)
             if not retry:
                 limit_reached = retries_enabled and transient
                 self._finish(destination, batch, accepted, dropped, failed, reason, limit_reached)
@@ -513,13 +644,43 @@ class DeliveryService:
             attempt += 1
 
     @staticmethod
-    def _call_sink(destination: _Destination, batch: list[Envelope]) -> tuple[int, int, int, str, int]:
-        """Call the sink once, contained: whatever it raises is a failure of the batch and is never kept or printed."""
+    def _call_sink(destination: _Destination, batch: list[Envelope]) -> tuple[int, int, int, str, int, int]:
+        """Call the sink once, contained: whatever it raises is a failure of the batch and is never kept or printed.
+
+        The last number of the answer is the time of the call in whole milliseconds (``time.monotonic``).
+        """
+        started = time.monotonic()
         try:
             result = destination.sink.send(batch)  # type: ignore[attr-defined]
-            return result.accepted, result.dropped, result.failed, result.reason, result.retry_after_ms
+            answer = result.accepted, result.dropped, result.failed, result.reason, result.retry_after_ms
         except Exception:  # a sink never stops its worker or the others (ADR-005); the text could hold event data
-            return 0, 0, len(batch), REASON_SINK_PANICKED, 0
+            answer = 0, 0, len(batch), REASON_SINK_PANICKED, 0
+        return (*answer, int((time.monotonic() - started) * _MILLISECONDS_PER_SECOND))
+
+    def _count_attempt(
+        self,
+        destination: _Destination,
+        attempt: int,
+        accepted: int,
+        dropped: int,
+        failed: int,
+        reason: str,
+        latency_ms: int,
+    ) -> None:
+        """Count one call to the sink: the attempt, its latency, the export failure and the kind of problem."""
+        with destination.condition:
+            destination.attempts += 1
+            if attempt > 0:
+                destination.retries += 1
+            destination.last_latency_ms = latency_ms
+            destination.max_latency_ms = max(destination.max_latency_ms, latency_ms)
+            destination.total_latency_ms += latency_ms
+            if failed > 0 or dropped > 0:
+                destination.export_failures += 1
+            if reason == REASON_SERIALIZATION_FAILED:
+                destination.serialization_failures += failed + dropped
+            elif reason == REASON_CONFIGURATION_ERROR:
+                destination.configuration_errors += failed + dropped
 
     def _random_value(self) -> float:
         """The next number of the random source; a source that raises gives the middle, so the worker never dies."""
@@ -544,8 +705,8 @@ class DeliveryService:
                 destination.condition.wait(remaining)
         return False
 
-    @staticmethod
     def _finish(
+        self,
         destination: _Destination,
         batch: list[Envelope],
         accepted: int,
@@ -554,24 +715,40 @@ class DeliveryService:
         reason: str,
         limit_reached: bool,
     ) -> None:
-        """Count the answer that ENDS a batch: what was accepted, dropped or failed, and let a flush look again."""
+        """Count the answer that ENDS a batch: what was accepted, dropped or failed, and let a flush look again.
+
+        The drops are published as diagnostics after the lock is released: the code of the reason when the sink
+        dropped events (``serialization_failed``, ``configuration_error`` or else ``events_dropped``) and
+        ``events_dropped`` with ``retry_limit_reached`` when the batch ran out of attempts.
+        """
+        succeeded_at_ms = self._wall_milliseconds() if accepted > 0 else 0
         with destination.condition:
             destination.batches += 1
             destination.delivered += accepted
+            if accepted > 0:
+                destination.last_success_at_ms = succeeded_at_ms  # the events the answer that ENDS a batch accepted
             destination.finished += len(batch)
             destination.in_flight = 0
             destination.settled.notify_all()
             if limit_reached:
                 destination.count_drop(REASON_RETRY_LIMIT_REACHED, failed)
-                return
-            destination.failed += failed
-            if dropped:
-                destination.count_drop(reason or REASON_UNSPECIFIED, dropped)
-            if reason and failed:
-                destination.last_reason = reason
+            else:
+                destination.failed += failed
+                if dropped:
+                    destination.count_drop(reason or REASON_UNSPECIFIED, dropped)
+                if reason and failed:
+                    destination.last_reason = reason
+        if limit_reached:
+            self._publish(destination, DiagnosticCode.EVENTS_DROPPED, REASON_RETRY_LIMIT_REACHED, failed)
+        elif dropped:
+            code = DiagnosticCode.EVENTS_DROPPED
+            if reason == REASON_SERIALIZATION_FAILED:
+                code = DiagnosticCode.SERIALIZATION_FAILED
+            elif reason == REASON_CONFIGURATION_ERROR:
+                code = DiagnosticCode.CONFIGURATION_ERROR
+            self._publish(destination, code, reason, dropped)
 
-    @staticmethod
-    def _abandon(destination: _Destination, batch: list[Envelope]) -> None:
+    def _abandon(self, destination: _Destination, batch: list[Envelope]) -> None:
         """Count a batch that a stop ended during the wait of its retry: all its events dropped as ``shutdown``."""
         with destination.condition:
             destination.batches += 1
@@ -579,3 +756,4 @@ class DeliveryService:
             destination.in_flight = 0
             destination.count_drop(REASON_SHUTDOWN, len(batch))
             destination.settled.notify_all()
+        self._publish(destination, DiagnosticCode.EVENTS_DROPPED, REASON_SHUTDOWN, len(batch))

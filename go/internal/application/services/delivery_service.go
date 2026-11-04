@@ -12,6 +12,7 @@ import (
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/batching"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/classification"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/diagnostics_reason"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/full_queue"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/retry_delay"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
@@ -80,6 +81,15 @@ type DeliverySettings struct {
 // because the service stopped (ReasonShutdown). Delivered counts only the accepted events of the answer that ended a batch.
 // Its sum is equal to Dropped. The map is a copy:
 // the caller may change it.
+//
+// The rest is what the diagnostics show (REQ-DGN-001). QueueCapacity is the size of the queue. ExportFailures is the calls to
+// the sink whose answer had failed or dropped events (a panic of the sink included). SerializationFailures and
+// ConfigurationErrors add, at each answer whose reason is serialization_failed or configuration_error, its failed and
+// dropped events. LastBatchSize and MaxBatchSize are the events of the last batch taken and of the largest one. The export
+// latency is the time of each call to the sink in whole milliseconds, read on the monotonic clock of the service: the last
+// one, the longest one and the total. LastSuccessAtMS is the wall clock in milliseconds since the Unix epoch of the last
+// batch that ended with the sink accepting some of its events (zero is never; an attempt that accepted events and was then
+// retried with the whole batch does not count). LastFlush is the result of the last flush or shutdown.
 type DestinationStats struct {
 	Kind            DestinationKind
 	Index           int
@@ -93,6 +103,18 @@ type DestinationStats struct {
 	Delivered       int
 	LastReason      string
 	DroppedByReason map[string]int
+
+	QueueCapacity         int
+	ExportFailures        int
+	SerializationFailures int
+	ConfigurationErrors   int
+	LastBatchSize         int
+	MaxBatchSize          int
+	LastExportLatencyMS   int64
+	MaxExportLatencyMS    int64
+	TotalExportLatencyMS  int64
+	LastSuccessAtMS       int64
+	LastFlush             dtos.FlushOutcome
 }
 
 // DeliveryService holds one bounded queue and one worker per destination. Enqueue only touches the queue, so a call
@@ -106,6 +128,7 @@ type DeliveryService struct {
 	settings     DeliverySettings
 	clock        outbound.ClockPort
 	random       outbound.RandomPort
+	diagnostics  outbound.DiagnosticsChannelPort
 	destinations []*delivery_destination
 	by_kind      map[DestinationKind][]*delivery_destination
 	stop_signal  chan struct{}
@@ -163,19 +186,22 @@ type delivery_destination struct {
 // ----- CONSTRUCTORS ---------------------------------------------------------
 
 // NewDeliveryService returns a DeliveryService with one queue, made by new_queue with the queue size, for every sink of
-// every kind in the destinations. random is the source of the jitter of the retry mode (a nil one gives 0.5). It starts
+// every kind in the destinations. random is the source of the jitter of the retry mode (a nil one gives 0.5). diagnostics is
+// the channel on which the service publishes what goes wrong (REQ-DGN-003); a nil one publishes nothing. It starts
 // nothing: no goroutine runs until Start is called.
 func NewDeliveryService(
 	destinations Destinations,
 	settings DeliverySettings,
 	clock outbound.ClockPort,
 	random outbound.RandomPort,
+	diagnostics outbound.DiagnosticsChannelPort,
 	new_queue func(capacity int) outbound.EventQueuePort,
 ) *DeliveryService {
 	service := &DeliveryService{
 		settings:     settings,
 		clock:        clock,
 		random:       random,
+		diagnostics:  diagnostics,
 		by_kind:      map[DestinationKind][]*delivery_destination{},
 		stop_signal:  make(chan struct{}),
 		close_signal: make(chan struct{}),
@@ -188,7 +214,7 @@ func NewDeliveryService(
 				send:  send,
 				queue: new_queue(settings.QueueSize),
 				wake:  make(chan struct{}, 1),
-				stats: DestinationStats{Kind: kind, Index: index, DroppedByReason: map[string]int{}},
+				stats: DestinationStats{Kind: kind, Index: index, QueueCapacity: settings.QueueSize, DroppedByReason: map[string]int{}},
 			}
 			service.destinations = append(service.destinations, destination)
 			service.by_kind[kind] = append(service.by_kind[kind], destination)
@@ -199,7 +225,7 @@ func NewDeliveryService(
 
 // ----- METHODS --------------------------------------------------------------
 
-// Start starts one worker goroutine per destination. It is idempotent: a second call does nothing, and a call after Stop
+// Start starts one worker goroutine per destination and the diagnostics channel. It is idempotent: a second call does nothing, and a call after Stop
 // does nothing either.
 func (service *DeliveryService) Start() {
 	service.lifecycle_mutex.Lock()
@@ -208,6 +234,9 @@ func (service *DeliveryService) Start() {
 		return
 	}
 	service.started = true
+	if service.diagnostics != nil {
+		service.diagnostics.Start()
+	}
 	workers_context, cancel_workers := context.WithCancel(context.Background())
 	service.cancel_workers = cancel_workers
 	for _, destination := range service.destinations {
@@ -223,6 +252,14 @@ func (service *DeliveryService) Start() {
 func (service *DeliveryService) Stop() {
 	service.signal_stop()
 	service.workers.Wait()
+	service.stop_diagnostics()
+}
+
+// stop_diagnostics stops the diagnostics channel, which does not wait for a callback that hangs.
+func (service *DeliveryService) stop_diagnostics() {
+	if service.diagnostics != nil {
+		service.diagnostics.Stop()
+	}
 }
 
 // signal_stop tells the workers to stop and the callers that wait for room to give up, without waiting for anything.
@@ -307,8 +344,11 @@ func (service *DeliveryService) Shutdown(ctx context.Context) (result dtos.Shutd
 	}
 
 	for _, destination := range service.destinations {
-		destination.drain_for_shutdown()
+		if left := destination.drain_for_shutdown(); left > 0 {
+			service.publish_drop(destination, ReasonShutdown, left)
+		}
 	}
+	service.stop_diagnostics()
 	return result
 }
 
@@ -347,11 +387,15 @@ func (service *DeliveryService) Enqueue(ctx context.Context, kind DestinationKin
 					stats.count_drop(offer_result.Reason)
 				}
 			})
+			if offer_result.Displaced != nil {
+				service.publish_drop(destination, offer_result.Reason, 1)
+			}
 			destination.notify()
 			continue
 		}
 		total.Dropped++
 		destination.count(func(stats *DestinationStats) { stats.count_drop(offer_result.Reason) })
+		service.publish_drop(destination, offer_result.Reason, 1)
 		if total.Reason == "" {
 			total.Reason = offer_result.Reason
 		}
@@ -368,6 +412,7 @@ func (service *DeliveryService) RejectIfClosed(kind DestinationKind) (dtos.EmitR
 	}
 	for _, destination := range service.by_kind[kind] {
 		destination.count(func(stats *DestinationStats) { stats.count_drop(ReasonShutdown) })
+		service.publish_drop(destination, ReasonShutdown, 1)
 	}
 	return dtos.EmitResult{Dropped: 1, Reason: ReasonShutdown}, true
 }
@@ -384,6 +429,64 @@ func (service *DeliveryService) Stats() []DestinationStats {
 		snapshot = append(snapshot, stats)
 	}
 	return snapshot
+}
+
+// Diagnostics returns a copy of how the delivery to every destination is doing (REQ-DGN-001, REQ-DGN-002), in the order of
+// Stats, and the counters of the diagnostics channel. LastReason and the keys of DroppedByReason are cleaned like the reason of
+// a diagnostic (diagnostics_reason.SanitizeReason), and keys that become equal are added; Stats keeps them raw. The spool figures are zero until the spool exists (T-06.5). It holds
+// no message, no field and no credential of any event, and it still answers after Shutdown.
+func (service *DeliveryService) Diagnostics() dtos.DiagnosticsSnapshot {
+	stats_of_destinations := service.Stats()
+	snapshot := dtos.DiagnosticsSnapshot{Destinations: make([]dtos.DestinationDiagnostics, 0, len(stats_of_destinations))}
+	for _, stats := range stats_of_destinations {
+		snapshot.Destinations = append(snapshot.Destinations, dtos.DestinationDiagnostics{
+			Kind:                  string(stats.Kind),
+			Index:                 stats.Index,
+			QueueDepth:            stats.Queued,
+			QueueCapacity:         stats.QueueCapacity,
+			Accepted:              stats.Accepted,
+			Delivered:             stats.Delivered,
+			Dropped:               stats.Dropped,
+			DroppedByReason:       sanitized_counts(stats.DroppedByReason),
+			FailedEvents:          stats.Failed,
+			ExportFailures:        stats.ExportFailures,
+			Attempts:              stats.Attempts,
+			Retries:               stats.Retries,
+			Batches:               stats.Batches,
+			LastBatchSize:         stats.LastBatchSize,
+			MaxBatchSize:          stats.MaxBatchSize,
+			LastExportLatencyMS:   stats.LastExportLatencyMS,
+			MaxExportLatencyMS:    stats.MaxExportLatencyMS,
+			TotalExportLatencyMS:  stats.TotalExportLatencyMS,
+			LastSuccessAtMS:       stats.LastSuccessAtMS,
+			ConfigurationErrors:   stats.ConfigurationErrors,
+			SerializationFailures: stats.SerializationFailures,
+			LastFlush:             stats.LastFlush,
+			LastReason:            sanitized_last_reason(stats.LastReason),
+		})
+	}
+	if service.diagnostics != nil {
+		snapshot.Channel = service.diagnostics.Counters()
+	}
+	return snapshot
+}
+
+// sanitized_counts returns a new map with the reasons cleaned by diagnostics_reason.SanitizeReason; the counts of two reasons
+// that become equal are added.
+func sanitized_counts(counts map[string]int) map[string]int {
+	cleaned := make(map[string]int, len(counts))
+	for reason, count := range counts {
+		cleaned[diagnostics_reason.SanitizeReason(reason)] += count
+	}
+	return cleaned
+}
+
+// sanitized_last_reason cleans the last reason; no reason yet stays empty.
+func sanitized_last_reason(reason string) string {
+	if reason == "" {
+		return ""
+	}
+	return diagnostics_reason.SanitizeReason(reason)
 }
 
 // ----- THE OFFER ------------------------------------------------------------
@@ -492,6 +595,7 @@ func (service *DeliveryService) flush(budget_context context.Context) dtos.Shutd
 		// Nobody can finish the events in time (or at all): all of them are dropped, none is sent.
 		for _, target := range targets {
 			result.Dropped += target.target
+			target.destination.record_flush(budget_context, service.clock, 0, target.target)
 		}
 		return result
 	}
@@ -511,7 +615,7 @@ func (service *DeliveryService) flush(budget_context context.Context) dtos.Shutd
 }
 
 // tally is the result of a flush: for each target the events the sink accepted since the flush began, at most the target,
-// are sent and the rest of the target is dropped.
+// are sent and the rest of the target is dropped. It records that outcome as the last flush of each destination.
 func (service *DeliveryService) tally(targets []flush_target) dtos.ShutdownResult {
 	var result dtos.ShutdownResult
 	for _, target := range targets {
@@ -519,6 +623,7 @@ func (service *DeliveryService) tally(targets []flush_target) dtos.ShutdownResul
 		sent = max(sent, 0)
 		result.Sent += sent
 		result.Dropped += target.target - sent
+		target.destination.record_flush(context.Background(), service.clock, sent, target.target-sent)
 	}
 	return result
 }
@@ -606,17 +711,27 @@ func (destination *delivery_destination) delivered() int {
 	return destination.stats.Delivered
 }
 
-// drain_for_shutdown removes what is still queued and counts it as dropped with ReasonShutdown. The events were already
-// counted as dropped in the result of the shutdown.
-func (destination *delivery_destination) drain_for_shutdown() {
+// drain_for_shutdown removes what is still queued and counts it as dropped with ReasonShutdown, and returns how many
+// events that were. The events were already counted as dropped in the result of the shutdown.
+func (destination *delivery_destination) drain_for_shutdown() int {
 	destination.flow_mutex.Lock()
 	defer destination.flow_mutex.Unlock()
 	left := len(destination.queue.Take(destination.queue.Len()))
 	if left == 0 {
-		return
+		return 0
 	}
 	destination.resolved += left
 	destination.count(func(stats *DestinationStats) { stats.count_drops(left, ReasonShutdown) })
+	return left
+}
+
+// record_flush stores the outcome of a flush or a shutdown for the destination: sent events, dropped events and the
+// wall clock now.
+func (destination *delivery_destination) record_flush(ctx context.Context, clock outbound.ClockPort, sent int, dropped int) {
+	at_ms := wall_milliseconds(ctx, clock)
+	destination.count(func(stats *DestinationStats) {
+		stats.LastFlush = dtos.FlushOutcome{Done: true, Sent: sent, Spooled: 0, Dropped: dropped, AtMS: at_ms}
+	})
 }
 
 // ----- THE WORKER -----------------------------------------------------------
@@ -677,6 +792,10 @@ func (service *DeliveryService) send_batch(ctx context.Context, destination *del
 	if len(batch) == 0 {
 		return
 	}
+	destination.count(func(stats *DestinationStats) {
+		stats.LastBatchSize = len(batch)
+		stats.MaxBatchSize = max(stats.MaxBatchSize, len(batch))
+	})
 	destination.signal_room()
 
 	is_retry := service.settings.Mode == value_objects.DeliveryModeRetry
@@ -707,7 +826,8 @@ func (service *DeliveryService) send_batch(ctx context.Context, destination *del
 }
 
 // attempt_send makes one call to the sink with the timeout of the settings and counts it (attempt is 0 for the first call
-// of a batch).
+// of a batch): the call itself, its latency and whether it failed or dropped events. When the
+// answer has failed events it publishes the diagnostic export_failed, with no lock held.
 func (service *DeliveryService) attempt_send(ctx context.Context, destination *delivery_destination, batch []value_objects.Envelope, attempt int) dtos.SendResult {
 	send_context, cancel_send := context.WithTimeout(ctx, time.Duration(service.settings.TimeoutMS)*time.Millisecond)
 	defer cancel_send()
@@ -717,17 +837,41 @@ func (service *DeliveryService) attempt_send(ctx context.Context, destination *d
 			stats.Retries++
 		}
 	})
-	return send_protected(len(batch), func() dtos.SendResult { return destination.send(send_context, batch) })
+	started_ns := service.clock.MonotonicNanoseconds(ctx)
+	result := send_protected(len(batch), func() dtos.SendResult { return destination.send(send_context, batch) })
+	elapsed_ms := max((service.clock.MonotonicNanoseconds(ctx)-started_ns)/1_000_000, 0)
+	destination.count(func(stats *DestinationStats) {
+		stats.LastExportLatencyMS = elapsed_ms
+		stats.MaxExportLatencyMS = max(stats.MaxExportLatencyMS, elapsed_ms)
+		stats.TotalExportLatencyMS += elapsed_ms
+		if result.Failed > 0 || result.Dropped > 0 {
+			stats.ExportFailures++
+		}
+		switch result.Reason {
+		case string(value_objects.DiagnosticCodeSerializationFailed):
+			stats.SerializationFailures += result.Failed + result.Dropped
+		case string(value_objects.DiagnosticCodeConfigurationError):
+			stats.ConfigurationErrors += result.Failed + result.Dropped
+		}
+	})
+	if result.Failed > 0 {
+		service.publish(destination, value_objects.DiagnosticCodeExportFailed, result.Reason, result.Failed)
+	}
+	return result
 }
 
 // finish_batch adds the answer that ends a batch to the counters and releases its events. The counters and the end of the
 // send are one step for a flush: it reads both to know what the sink accepted. When with_retry is true the failed events
 // of the answer are the ones that ran out of attempts: they are dropped with ReasonRetryLimitReached instead of failed.
 func (service *DeliveryService) finish_batch(destination *delivery_destination, batch_size int, result dtos.SendResult, with_retry bool) {
+	finished_at_ms := wall_milliseconds(context.Background(), service.clock)
 	destination.flow_mutex.Lock()
 	destination.count(func(stats *DestinationStats) {
 		stats.Batches++
 		stats.Delivered += result.Accepted
+		if result.Accepted > 0 {
+			stats.LastSuccessAtMS = finished_at_ms
+		}
 		if with_retry && result.Failed > 0 && result.Dropped == 0 {
 			stats.count_drops(result.Failed, ReasonRetryLimitReached)
 		} else {
@@ -747,6 +891,20 @@ func (service *DeliveryService) finish_batch(destination *delivery_destination, 
 	destination.resolved += batch_size
 	destination.flow_mutex.Unlock()
 	service.signal_progress()
+
+	switch {
+	case result.Dropped > 0:
+		drop_code := value_objects.DiagnosticCodeEventsDropped
+		switch result.Reason {
+		case string(value_objects.DiagnosticCodeSerializationFailed):
+			drop_code = value_objects.DiagnosticCodeSerializationFailed
+		case string(value_objects.DiagnosticCodeConfigurationError):
+			drop_code = value_objects.DiagnosticCodeConfigurationError
+		}
+		service.publish(destination, drop_code, result.Reason, result.Dropped)
+	case with_retry && result.Failed > 0:
+		service.publish(destination, value_objects.DiagnosticCodeEventsDropped, ReasonRetryLimitReached, result.Failed)
+	}
 }
 
 // retry_max_attempts is the attempts at most for one batch with the retry mode (the first included); a setting that is
@@ -816,6 +974,43 @@ func wait_for_signal(ctx context.Context, wake <-chan struct{}, duration time.Du
 	case <-timer.C:
 	case <-ctx.Done():
 	}
+}
+
+// ----- DIAGNOSTICS ----------------------------------------------------------
+
+// publish offers one diagnostic about the destination to the diagnostics channel. An empty reason is reported as
+// ReasonUnspecified. It is called with no lock of the service held, and the channel never waits, so it cannot slow the
+// send path. A service with no channel publishes nothing.
+func (service *DeliveryService) publish(destination *delivery_destination, code value_objects.DiagnosticCode, reason string, count int) {
+	if service.diagnostics == nil {
+		return
+	}
+	if reason == "" {
+		reason = ReasonUnspecified
+	}
+	service.diagnostics.Publish(dtos.DiagnosticEvent{
+		Code:   code,
+		Kind:   string(destination.kind),
+		Index:  destination.index,
+		Reason: reason,
+		Count:  count,
+		AtMS:   wall_milliseconds(context.Background(), service.clock),
+	})
+}
+
+// publish_drop publishes events_dropped for events that were dropped, displaced or left at the shutdown.
+func (service *DeliveryService) publish_drop(destination *delivery_destination, reason string, count int) {
+	service.publish(destination, value_objects.DiagnosticCodeEventsDropped, reason, count)
+}
+
+// wall_milliseconds is the wall clock of the clock in milliseconds since the Unix epoch, or zero when the clock gives no
+// valid instant.
+func wall_milliseconds(ctx context.Context, clock outbound.ClockPort) int64 {
+	instant := clock.Now(ctx).Time()
+	if instant.IsZero() {
+		return 0
+	}
+	return instant.UnixMilli()
 }
 
 // ----- HELPERS --------------------------------------------------------------

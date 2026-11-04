@@ -37,6 +37,12 @@ func Test_new_builds_a_core_with_the_default_clock_and_ids_and_delivers_an_event
 		t.Fatalf("result = %+v", result)
 	}
 	waiting.Eventually(t, waiting.DefaultTimeout, "the sink receives the event", func() bool { return sink.Calls() == 1 })
+	// The sink was called, but the worker counts the batch a moment later; a Shutdown in between would report the event
+	// still in flight as sent. The public diagnostics say when the delivery is counted.
+	waiting.Eventually(t, waiting.DefaultTimeout, "the delivery is counted", func() bool {
+		destinations := core.Diagnostics().Destinations
+		return len(destinations) == 1 && destinations[0].Delivered == 1
+	})
 	if shutdown_result := core.Shutdown(context.Background()); shutdown_result != (telemetry.ShutdownResult{}) {
 		t.Fatalf("shutdown = %+v", shutdown_result)
 	}

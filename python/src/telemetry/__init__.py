@@ -11,7 +11,9 @@ uses are passed in code with the ``with_*`` options; no environment is read and 
     core.shutdown()
 
 ``core.logger`` is a ``Logger``: one method per severity, each call one ``log.entry.recorded`` event, and it never
-raises. ``LoggingHandler`` sends the records of the standard ``logging`` to it.
+raises. ``LoggingHandler`` sends the records of the standard ``logging`` to it. ``core.diagnostics()`` returns a copy
+of the counters of every destination, and ``with_diagnostics_callback`` / ``with_diagnostics_writer`` receive the
+diagnostics (a failure of the delivery) on a channel of their own, never as an event.
 """
 
 from telemetry.internal.application.call_context.call_context import (
@@ -21,7 +23,12 @@ from telemetry.internal.application.call_context.call_context import (
     use_call_context,
 )
 from telemetry.internal.application.call_context.new_call_context import new_call_context
+from telemetry.internal.application.dtos.channel_diagnostics import ChannelDiagnostics
+from telemetry.internal.application.dtos.destination_diagnostics import DestinationDiagnostics
+from telemetry.internal.application.dtos.diagnostic_event import DiagnosticEvent
+from telemetry.internal.application.dtos.diagnostics_snapshot import DiagnosticsSnapshot
 from telemetry.internal.application.dtos.emit_result import EmitResult
+from telemetry.internal.application.dtos.flush_outcome import FlushOutcome
 from telemetry.internal.application.dtos.log_entry import LogEntry
 from telemetry.internal.application.dtos.new_event_input import NewEventInput
 from telemetry.internal.application.dtos.send_result import SendResult
@@ -41,6 +48,8 @@ from telemetry.internal.composition_root.config.options import (
     with_ai_telemetry_sink,
     with_clock,
     with_device_telemetry_sink,
+    with_diagnostics_callback,
+    with_diagnostics_writer,
     with_event_sink,
     with_id_generator,
     with_local_spool,
@@ -51,7 +60,7 @@ from telemetry.internal.composition_root.config.options import (
 from telemetry.internal.composition_root.containers.core_container import Core as Telemetry
 from telemetry.internal.composition_root.containers.core_container import new_core as new
 from telemetry.internal.domain.value_objects.actor_identity import ActorIdentity
-from telemetry.internal.domain.value_objects.enums_generated import Severity
+from telemetry.internal.domain.value_objects.enums_generated import DiagnosticCode, Severity
 from telemetry.internal.domain.value_objects.envelope_generated import Envelope
 from telemetry.internal.domain.value_objects.event_attributes import EventAttributes
 from telemetry.internal.domain.value_objects.limits import Limits
@@ -71,15 +80,21 @@ __all__ = [
     "AITelemetrySinkPort",
     "ActorIdentity",
     "CallContext",
+    "ChannelDiagnostics",
     "ClockPort",
     "Config",
     "ConfigurationError",
     "DeliveryConfig",
+    "DestinationDiagnostics",
     "DeviceTelemetrySinkPort",
+    "DiagnosticCode",
+    "DiagnosticEvent",
+    "DiagnosticsSnapshot",
     "EmitResult",
     "Envelope",
     "EventAttributes",
     "EventSinkPort",
+    "FlushOutcome",
     "IDGeneratorPort",
     "Limits",
     "LimitsConfig",
@@ -111,6 +126,8 @@ __all__ = [
     "with_ai_telemetry_sink",
     "with_clock",
     "with_device_telemetry_sink",
+    "with_diagnostics_callback",
+    "with_diagnostics_writer",
     "with_event_sink",
     "with_id_generator",
     "with_local_spool",

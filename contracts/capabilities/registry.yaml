@@ -469,7 +469,7 @@ capabilities:
     status: planned
     description: "The bounded queue and its worker, the delivery modes best_effort, retry and durable, backpressure and priorities, flush and shutdown, and the diagnostics of every destination."
     public_api:
-      - "built: flush and shutdown (T-05.4); planned: the diagnostics snapshot (T-05.5)"
+      - "built: flush and shutdown (T-05.4); the diagnostics: snapshot, callbacks and writer (T-05.5)"
     schemas: []
     configuration:
       - "planned: queue size, batch size, flush interval, timeout, drop policy (T-03.6)"
@@ -562,13 +562,52 @@ capabilities:
           - { language: python, path: python/internal/tests/composition_root/test_core_flush_and_shutdown.py }
       # REQ-DGN-001: The library MUST expose, per destination: queue depth, dropped events
       - id: REQ-DGN-001
-        pending: T-05.5
+        # per destination: queue depth, drops by reason, failures, retries, latency, batch size, spool figures, last success, configuration and serialization errors, last flush: 40 shared scenarios (T-05.5)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/diagnostics_rate/plan_diagnostic_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/diagnostics_reason/sanitize_reason_test.go }
+          - { language: go, path: go/internal/tests/application/services/diagnostics_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/diagnostics_channel/diagnostics_channel_test.go }
+          - { language: go, path: go/internal/tests/composition_root/diagnostics_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/diagnostics_rate/test_plan_diagnostic.py }
+          - { language: python, path: python/internal/tests/domain/operations/diagnostics_reason/test_sanitize_reason.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_snapshot.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_events.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_isolation.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/diagnostics_channel/test_diagnostics_channel.py }
+          - { language: python, path: python/internal/tests/composition_root/test_core_diagnostics.py }
       # REQ-DGN-002: Diagnostics MUST be available as a snapshot and through optional callb...
       - id: REQ-DGN-002
-        pending: T-05.5
+        # a snapshot that is a copy and optional callbacks (and a writer) that run outside the send path: the same 40 scenarios and the isolation tests (T-05.5)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/diagnostics_rate/plan_diagnostic_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/diagnostics_reason/sanitize_reason_test.go }
+          - { language: go, path: go/internal/tests/application/services/diagnostics_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/diagnostics_channel/diagnostics_channel_test.go }
+          - { language: go, path: go/internal/tests/composition_root/diagnostics_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/diagnostics_rate/test_plan_diagnostic.py }
+          - { language: python, path: python/internal/tests/domain/operations/diagnostics_reason/test_sanitize_reason.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_snapshot.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_events.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_isolation.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/diagnostics_channel/test_diagnostics_channel.py }
+          - { language: python, path: python/internal/tests/composition_root/test_core_diagnostics.py }
       # REQ-DGN-003: The library MUST avoid loops: telemetry failures MUST NOT generate eve...
       - id: REQ-DGN-003
-        pending: T-05.5
+        # an own channel with a rate limit of 10 per 1,000 ms: 30 shared cases of the rule, a storm of 1,000 failures, no new event from a failing callback (T-05.5)
+        tests:
+          - { language: go, path: go/internal/tests/domain/operations/diagnostics_rate/plan_diagnostic_test.go }
+          - { language: go, path: go/internal/tests/domain/operations/diagnostics_reason/sanitize_reason_test.go }
+          - { language: go, path: go/internal/tests/application/services/diagnostics_service_test.go }
+          - { language: go, path: go/internal/tests/infrastructure/outbound/shared/diagnostics_channel/diagnostics_channel_test.go }
+          - { language: go, path: go/internal/tests/composition_root/diagnostics_test.go }
+          - { language: python, path: python/internal/tests/domain/operations/diagnostics_rate/test_plan_diagnostic.py }
+          - { language: python, path: python/internal/tests/domain/operations/diagnostics_reason/test_sanitize_reason.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_snapshot.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_events.py }
+          - { language: python, path: python/internal/tests/application/services/test_diagnostics_isolation.py }
+          - { language: python, path: python/internal/tests/infrastructure/outbound/shared/diagnostics_channel/test_diagnostics_channel.py }
+          - { language: python, path: python/internal/tests/composition_root/test_core_diagnostics.py }
 
   # --------------------------------------------------------------------------------------------------------------
   - id: spool

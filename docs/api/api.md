@@ -45,7 +45,7 @@ The settings are plain values: the project loads them with its own tool (the env
 | `Fields` | extra data; they become the attributes of the event |
 
 - A log call builds a `log.entry.recorded` event: `category`, `message` and, when given, `function` go to `data`; the extra fields go to `attributes`; the severity is the one of the method; the application is the `service_name` of the resource configuration; the ids of the call context are attached by the core. The data of the event type is in [contracts/schemas/log/entry_recorded.schema.json](../../contracts/schemas/log/entry_recorded.schema.json); the event types are registered in [contracts/events/registry.yaml](../../contracts/events/registry.yaml).
-- **A log call returns nothing and never fails**: no error, no exception, no panic ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). `Critical` logs; it does not stop the process. A rejected event is counted; the counters become diagnostics in T-05.5.
+- **A log call returns nothing and never fails**: no error, no exception, no panic ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)). `Critical` logs; it does not stop the process. A rejected event is counted in the result of the call; the diagnostics (below) do not list the rejections yet.
 - **Fields:** scalars and lists of scalars are kept; anything else is written as its canonical JSON text; null values and empty keys are dropped. The limits (32 attributes, a key of 64 characters, a value of 256 characters, an event of 64 KiB) are applied after the masking.
 - **Native logging.** Go: `telemetry.NewSlogHandler(logger, default_category)` returns a `slog.Handler`. Python: `telemetry.LoggingHandler(core.logger, default_category)` is a `logging.Handler`. The attributes named `category` and `function` set the category and the function. The handler does not filter by level.
 - No request body, payload or traceback is recorded unless the caller passes it in the fields.
@@ -88,6 +88,17 @@ The adapter for the `add_log` endpoint of aws_microservice, which stores the lin
 
 `message` is the entry as the flat JSON payload that aws_microservice has always received (`ProducerID`, `ApplicationID`, `ProcessID`, `Application`, `Category`, `Function`, `Indentation`, `Depth`, `Level`, `Message`, `Fields`, `Timestamp`), so the level and the fields are kept in CloudWatch; `timestamp` is `occurred_at` in milliseconds. The mapping from the event to each key is in architecture section 2.24. A status of 2xx accepts; the answer body is not interpreted.
 
+## Diagnostics (built, T-05.5)
+
+| | Go | Python |
+|---|---|---|
+| Snapshot (a copy) | `(*Telemetry).Diagnostics() DiagnosticsSnapshot` | `core.diagnostics()` |
+| Callback (repeatable, runs on a thread of the library, never in the send path) | `WithDiagnosticsCallback(func(DiagnosticEvent))` | `with_diagnostics_callback(callable)` |
+| Writer (one line per diagnostic; for example `os.Stderr`) | `WithDiagnosticsWriter(io.Writer)` | `with_diagnostics_writer(obj_with_write)` |
+| Types | `DiagnosticsSnapshot`, `DestinationDiagnostics`, `ChannelDiagnostics`, `FlushOutcome`, `DiagnosticEvent`, `DiagnosticCode` and the four constants `DiagnosticCodeExportFailed`, `DiagnosticCodeEventsDropped`, `DiagnosticCodeSerializationFailed`, `DiagnosticCodeConfigurationError` | the same names; fields in snake_case; frozen dataclasses |
+
+The snapshot has one entry per destination and the figures of the channel; the meaning of each field is in section 2.29 of the [architecture](../architecture/architecture.md) and the way to read them in [monitoring](../operations/monitoring.md). A diagnostic is **not** an event: it never reaches a destination, it is limited to 10 per 1,000 ms, and it holds counters and identifiers only (a fixed, cleaned reason; never a message, a field or a token). A callback that panics or hangs does not affect delivery. A nil core answers a zero snapshot. Spool figures are 0 until the spool (T-06).
+
 ## What a consumer can rely on
 
 - A log call never returns an error, never raises and never panics; `Emit` never fails and reports how many sinks accepted, dropped or failed the event ([ADR-005](../decisions/ADR-005-a-failing-sink-never-fails-the-caller.md)).
@@ -96,7 +107,7 @@ The adapter for the `add_log` endpoint of aws_microservice, which stores the lin
 - A caller sets the event type, the severity, the data and, optionally, `occurred_at`, the actor, the context and the attributes; it cannot set `recorded_at` (the library's clock does), `event_id`, `schema_version` or `resource` (the configuration gives it).
 - An event is serialized in the canonical form of RFC 8785 (JCS): sorted keys, no whitespace, the same bytes in Go and Python; the times are written `YYYY-MM-DDTHH:MM:SS.ffffffZ` (UTC, six decimals). Every event shares one envelope, defined by [contracts/schemas/envelope.schema.json](../../contracts/schemas/envelope.schema.json): `schema_version`, `event_id` (UUIDv7), `event_type`, `occurred_at` and `recorded_at`, `severity`, `resource`, `actor`, `context`, `data` and `attributes`.
 - An event that does not match the schema of its type is **rejected, not thrown**: the validator returns a classified error (`event_type_unknown` or `event_schema_invalid`) whose message names the event type and the field path and never the value ([architecture section 2.6](../architecture/architecture.md)).
-- The errors a consumer can see are those of the building of the core (an invalid configuration: every problem with its field and code) and the diagnostics (counts by code, T-05.5). The codes are those of [the catalog](../../contracts/errors/catalog.yaml), the same in both languages; a message never holds a value the caller gave.
+- The errors a consumer can see are those of the building of the core (an invalid configuration: every problem with its field and code) and the diagnostics (counters and codes, see Diagnostics below). The codes are those of [the catalog](../../contracts/errors/catalog.yaml), the same in both languages; a message never holds a value the caller gave.
 
 ## Example
 
@@ -127,3 +138,5 @@ A runnable sample that logs through the AWS HTTP adapter is in `examples/aws_htt
 > **Update 2026-11-03 (T-05.4):** `Flush` and `Shutdown` (Python `flush(timeout_ms=5000)` and `shutdown(timeout_ms=5000)`) are built. **A program must call `Shutdown` / `shutdown` before it exits**: there is no synchronous send and no hook at exit. The result is `ShutdownResult{Sent, Spooled, Dropped}`: *sent* is what the destinations accepted, *dropped* is the rest of what was queued or in flight when the call began (a failed event counts as dropped until the retry of T-05.3), *spooled* is 0 until T-06. Neither call panics or raises. After `Shutdown` every log call is dropped with the reason `shutdown`. In Python the call blocks the calling thread, also the thread of an event loop, for as long as it takes (at most the timeout).
 
 > **Update 2026-11-03 (T-05.3):** `Config.Delivery` (Python `DeliveryConfig`) has three more settings, `RetryMaxAttempts` (5), `RetryBaseDelayMS` (200) and `RetryMaxDelayMS` (30,000). **`best_effort` sends a batch once; `retry` sends it again after a transient failure with an exponential backoff with jitter** (honoring `Retry-After`, never a permanent rejection) and drops it at the limit with the reason `retry_limit_reached`. An event may arrive twice after a retry: the library does not claim exactly-once, use the `event_id` to deduplicate. `SendResult` has a new field, `RetryAfterMS` (Python `retry_after_ms`), a hint of a destination. **`durable` is refused when the core starts**, with or without a spool, until the spool exists (T-06.5): the profiles `Robotics()` and `OfflineDevice()` give it, so they cannot start a core yet. The mode is one for the whole core.
+
+> **Update 2026-11-04 (T-05.5):** the diagnostics are public: `Diagnostics()` / `diagnostics()`, `WithDiagnosticsCallback` / `with_diagnostics_callback`, `WithDiagnosticsWriter` / `with_diagnostics_writer` and the types listed under Diagnostics. The outcome of a send, which `Emit` no longer returns, is in the snapshot. No setting was added: the rate limit (10 per 1,000 ms) is a constant.

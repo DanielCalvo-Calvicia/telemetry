@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telemetry.example/contracts/enums/drop_reason.json",
+  "title": "Drop reason",
+  "description": "The reasons that the LIBRARY itself gives for an event it did not deliver (REQ-DLV-008, REQ-DGN-001): the keys of the counters of drops of a destination and the reason of a diagnostic. queue_full_newest, queue_full_oldest, displaced_by_critical and block_timeout come from a full queue; unspecified is a drop that a destination reported without a reason; shutdown is an event dropped because the core was closed; retry_limit_reached is a batch that kept failing until the attempts of the retry mode were used up; no_destination is an event of a kind that has no destination; sink_panicked is a destination that raised or panicked. A destination may also report reasons of its own (status_503, timeout, write_failed ...): they are free fixed texts that never hold a value of the caller, so they are NOT in this list. Adding a value is a MINOR change of the contract (REQ-VER-003).",
+  "type": "string",
+  "enum": [
+    "queue_full_newest",
+    "queue_full_oldest",
+    "displaced_by_critical",
+    "block_timeout",
+    "unspecified",
+    "shutdown",
+    "retry_limit_reached",
+    "no_destination",
+    "sink_panicked"
+  ]
+}

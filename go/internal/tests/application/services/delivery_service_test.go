@@ -24,7 +24,7 @@ func numbered(id int) value_objects.Envelope {
 // when the test ends.
 func new_delivery(test *testing.T, destinations services.Destinations, settings services.DeliverySettings) *services.DeliveryService {
 	test.Helper()
-	delivery := services.NewDeliveryService(destinations, settings, dependencies.NewSystemClock(), fakes.NewFakeRandom(), dependencies.NewMemoryQueue)
+	delivery := services.NewDeliveryService(destinations, settings, dependencies.NewSystemClock(), fakes.NewFakeRandom(), nil, dependencies.NewMemoryQueue)
 	test.Cleanup(delivery.Stop)
 	return delivery
 }
@@ -299,7 +299,7 @@ func Test_the_result_sums_the_destinations_of_the_kind_and_the_reason_is_the_fir
 		}
 		return dependencies.NewMemoryQueue(capacity)
 	}
-	delivery := services.NewDeliveryService(log_destinations(full_sink, other_sink), settings_of(10, 2, 5), dependencies.NewSystemClock(), fakes.NewFakeRandom(), new_queue)
+	delivery := services.NewDeliveryService(log_destinations(full_sink, other_sink), settings_of(10, 2, 5), dependencies.NewSystemClock(), fakes.NewFakeRandom(), nil, new_queue)
 
 	first := delivery.Enqueue(context.Background(), services.DestinationKindLog, numbered(1))
 	second := delivery.Enqueue(context.Background(), services.DestinationKindLog, numbered(2))
@@ -351,7 +351,7 @@ func Test_the_decision_to_send_uses_the_clock_that_was_given(t *testing.T) {
 	sink := &fakes.FakeLogSink{}
 	fake_clock := fakes.NewFakeClock(value_objects.UTCInstant{})
 	fake_clock.SetStep(0) // the time of the delivery does not move
-	delivery := services.NewDeliveryService(log_destinations(sink), settings_of(10, 5, 20), fake_clock, fakes.NewFakeRandom(), dependencies.NewMemoryQueue)
+	delivery := services.NewDeliveryService(log_destinations(sink), settings_of(10, 5, 20), fake_clock, fakes.NewFakeRandom(), nil, dependencies.NewMemoryQueue)
 	t.Cleanup(delivery.Stop)
 	delivery.Start()
 

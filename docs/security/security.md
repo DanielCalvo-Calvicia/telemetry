@@ -96,3 +96,9 @@ Privately, through GitHub's private vulnerability reporting of the repository (s
 - The bearer token and the API key are those of the shared client: they never appear in a result, an outcome, an error or a diagnostic. Authentication over plain http is refused except to localhost. TLS verification is on by default and a redirect is never followed.
 - The Go module has no third-party dependency and a test fails on any import that is not the standard library or the core. Its `go.mod` carries a local `replace` for development that is removed at release; a released module must build without `go.work`.
 - An event that cannot be written is dropped (`serialization_failed`) and no request is made; no caller value is put in the reason.
+
+## Diagnostics hold no secret (built, T-05.5)
+
+- A diagnostic and the snapshot carry **counters, identifiers and a fixed reason only**: never the message or a field of an event, never a credential (REQ-SEC-007), never the value of a panic (it is not kept). The reason is cleaned (`A-Z a-z 0-9 _ . : -`, at most 64 characters), so a destination that put a URL or a sentence in its reason still cannot leak it through the diagnostics; the same cleaning applies to `last_reason` and the keys of `dropped_by_reason` of the snapshot.
+- A test of each language searches the snapshot, the callbacks and the writer text for a known secret and a known message and finds neither.
+- The channel is its own path: a diagnostic never goes through a destination, so it cannot be sent to a receiver by mistake, and it is limited to 10 per 1,000 ms, so a storm cannot flood a callback or the log of the consumer. The consumer decides where the writer goes.

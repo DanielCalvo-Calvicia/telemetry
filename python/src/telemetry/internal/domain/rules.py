@@ -126,6 +126,11 @@ DEFAULT_QUEUE_POLICY = "drop_newest"  # what a full queue does (contracts/enums/
 DEFAULT_BLOCK_TIMEOUT_MILLISECONDS = 0  # milliseconds a call waits for room; above zero with block_with_timeout
 DEFAULT_SHUTDOWN_TIMEOUT_MILLISECONDS = 5000  # milliseconds flush and shutdown wait for the queues when none is given
 
+# The diagnostics channel (T-05.5, REQ-DGN-003). A CONTRACT shared with Go.
+DEFAULT_DIAGNOSTICS_RATE_LIMIT = 10  # diagnostics published at most in one window
+DEFAULT_DIAGNOSTICS_RATE_WINDOW_MILLISECONDS = 1000  # milliseconds of the fixed window of the rate limit
+DEFAULT_DIAGNOSTICS_QUEUE_SIZE = 64  # diagnostics that wait for the callbacks before the channel drops
+
 # The retry policy of the shared HTTP client (T-04.4) and of the retry mode (T-05.3). A CONTRACT shared with Go.
 DEFAULT_HTTP_MAX_ATTEMPTS = 5  # attempts at most for one batch of the HTTP client, the first included
 DEFAULT_RETRY_MAX_ATTEMPTS = 5  # attempts at most for one batch with the retry delivery mode, the first included

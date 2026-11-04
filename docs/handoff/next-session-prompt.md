@@ -1,0 +1,65 @@
+# Prompt to start the next session
+
+Paste the text below, as it is, as the first message of a new Claude Code session opened on the folder `D:\Snowfactory\Programas\GO\telemetry`.
+
+---
+
+You are continuing a long project, task by task, in the repository `D:\Snowfactory\Programas\GO\telemetry` (Go module `github.com/DanielCalvo-Calvicia/telemetry`, **public** repository, branch `feature_standaritzation`). We are building a new telemetry standard in **Go and Python with one contract**. I drive it with very short messages ("continue", "do next task", "Commit and push"). Read this whole message before you do anything, then read `CLAUDE.md`, `README.md`, `docs/tasks/README.md` and `docs/tasks/ORDER.md`.
+
+## Where we are (2026-11-04)
+
+- Last commit pushed: `c755d59` (T-05.3). The working tree should be clean. Check with `git status` and `git log -5 --oneline`.
+- **Done:** T-01 to T-04 (foundation, contract, core, logging and the console, file, HTTP and AWS adapters, the old library removed) and **T-05.1 to T-05.4** (bounded queue and worker, queue policies and priority classes, flush and shutdown, the delivery modes `best_effort` and `retry`).
+- **Next task: T-05.5 Diagnostics** (`docs/tasks/T-05_delivery/T-05.5_diagnostics.md`), then **T-05.6 Failure-matrix tests**. After T-05 comes **T-06** (the spool, the `durable` mode and the SQLite destination); `docs/tasks/T-06_*` has a task that awaits the maintainer (T-06.2, the choice of the Go SQLite driver): ask me before it.
+- Sections 2.25 to 2.28 of `docs/architecture/architecture.md` describe the delivery code you will build on (queue and worker, policies and classes, flush and shutdown, modes and retry). **Read them first.** The per-destination counters you must expose in T-05.5 already exist internally as `DestinationStats` (Go `delivery_service.go`, Python `delivery_service.py`: queued, batches, accepted, delivered, dropped, failed, attempts, retries, last reason, dropped by reason). T-05.5 makes them public as a snapshot and as callbacks, adds the other counters of REQ-DGN-001, and a rate-limited internal channel (REQ-DGN-003).
+
+## The layout you work in
+
+- `go/` is the Go core module (public package `go/pkg/telemetry`; the console, file and HTTP destinations are `go/pkg/logging/{console,file,http}`); `go/pkg/logging/aws_http` is **a nested Go module** of its own; `examples/aws_http_smoke` is a module of its own; `tools/contract_generator` and `tools/registry_check` are modules. `go.work` joins them. The root has **no** `go.mod` any more.
+- `python/` is the package `telemetry` (standard library only, no runtime dependency, Python >= 3.10). Public entry: `python/src/telemetry/__init__.py`.
+- `contracts/` is the single source of truth (JSON Schemas, enums, event registry, error catalog, config schemas with `x-env` names). The generated code of both languages is committed: after you change `contracts/` run the generator (the command is in `.github/workflows/ci.yml`, job `generated-code`) and commit what it writes.
+- `integration-tests/fixtures/<area>/` holds the **shared fixtures** both languages must pass with no edit. Expected values come from an **independent model written in Node.js**, never from either implementation.
+- Clean/hexagonal layers with architecture tests. `external/` holds all I/O, `error/` the error translation, `helpers/` pure functions. One dependencies file per adapter in `composition_root/dependencies/`. No global mutable state and no `init()` (source tests check it; in Python use tuples, not module-level dicts). Names: descriptive snake_case for locals, parameters and fields; exported Go identifiers keep the Go convention.
+
+## Rules that must not be broken (the process depends on them)
+
+1. **Never commit, push, tag or open a PR unless I say so.** When a task is done, stop and ask "Commit and push?" and wait. On my yes, run `git add -A` and commit with the message style of the log, ending with the line `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`, then push. Never move or reuse a tag.
+2. **Public repository: placeholders only.** No secret, no real host or IP, no account id, no binary (`*.exe` and `*.local` are git-ignored). Tests must not contain provider-style secrets (`sk_live`, `ghp_`, `xoxb`, real-looking `AKIA...`): use `placeholder-...` text (GitHub push protection blocks them; never use its bypass link). The e2e test `go/pkg/logging/aws_http/internal/tests/e2e/deployed_aws_microservice_test.go` must keep `run_against_deployed_service = false`; my real values live in an ignored `.local` copy next to it that you must never commit or print.
+3. **Every change updates the documents that describe it**, in the same piece of work (`CLAUDE.md` has the table). History documents (ADRs) get dated notes `> **Update 2026-11-DD (T-xx):** ...`; present-tense documents are corrected. Mark planned as planned, built as built. After editing, check that every relative link resolves.
+4. The library **never reads the environment** (ADR-004). A sink **never fails the caller** (ADR-005). Masking happens **before any sink** (ADR-006). Do not add a path that sends an event unmasked.
+5. Defaults for open questions: when the task lists a question for the maintainer, **take the stated default, record it in the architecture section and in the task Notes as "decided with the default, the maintainer was not asked"**, and tell me in the final summary. Do not stop to ask unless the choice is destructive or cannot be undone. Never describe as working something that is not.
+6. Code, comments and documents are in English. Match the style of the surrounding code (comment density, banners, naming).
+7. No insults in anything you write. If you refer to a person whose pronouns are unknown, use they/them.
+
+## The workflow for one task (it has worked for 25 tasks; keep it)
+
+1. Read the task file in `docs/tasks/T-0x_*/` and the code it touches. Decide the design; write the contract pieces yourself first: schema or enum changes (then run the generator), `x-env` names, the rows of `docs/configuration/environment-variables.md`, `.env.example`, and the **shared fixtures** with expected values computed by a small Node script (never by the code under test).
+2. Delegate the **Go half and the Python half to two background agents in parallel** (Agent tool, `general-purpose`, `run_in_background: true`), each with a long and precise brief: what is already done and must not be edited, the exact names, the rules, the tests to write, the checks to run, "do not touch docs, fixtures, contracts, CI, CLAUDE.md, do not commit". Tell them to STOP and report any disagreement with a fixture instead of editing it. Wait for their reports; they can hit the usage limit: resume them with `SendMessage` and "continue from the state of the repository".
+3. **Verify yourself, independently**, never trusting a report:
+   - Go, in each module you touched (`go/`, `go/pkg/logging/aws_http`, `examples/aws_http_smoke`, `tools/...`): `gofmt -l .` and `go run golang.org/x/tools/cmd/goimports@v0.35.0 -l .` print nothing, `go vet ./...`, `go build ./...`, `go test ./... -count=1`. Coverage of the core: `cd go && go test ./... -count=1 -coverpkg=./internal/... -coverprofile=coverage.out; grep -v '/external/' coverage.out > filtered.out; go tool cover -func=filtered.out | tail -1` must be **>= 95%** (it is about 98%); delete the two files afterwards. `go/go.mod` must stay **without any `require` line**. `-race` needs cgo and is not available.
+   - Python, from `python/`: `ruff check .`, `ruff format --check .`, `coverage run -m unittest discover -s internal/tests -t .` then `coverage report` must be **100%** (about 3 minutes: run it in the background). After changing the package reinstall it into the venv: `python -m pip install --force-reinstall --no-deps -q .` (and delete a stale `python/build/lib` if coverage shows odd files). `pyproject.toml` stays without runtime dependencies.
+   - Registry check: `go run ./tools/registry_check --spec docs/proposals/PR-001-telemetry-standard-go-python.md --registry contracts/capabilities/registry.yaml --root . --tasks docs/tasks` must say `result: PASSED`.
+   - A **differential test** between the two languages for every pure function (a temporary `go/internal/zz_*` program that reads random inputs, plus a Python script, 20,000 rows, then **delete** the temporary program), and a **mutation proof** (change one line of the Go rule, check that the shared test FAILS with `cmp` proving the file changed, restore it from a backup and check that it passes). Every time: confirm the mutation really changed the file and the tests really ran.
+   - A link check over `docs/**/*.md`, the root `*.md`, `contracts/**/*.md` and `integration-tests/**/*.md`.
+4. Write the documents (architecture: a new numbered section 2.NN; requirements rows; registry entries `pending: T-xx` become `tests:` with real paths; API and monitoring notes; ADR notes; fixtures README row; the task file Notes and its status `done (date)`; the epic table; then rebuild the board with `build_board.py`).
+5. Call `mcp__ccd_turn__wrap_up` with a recap and the question "Commit and push T-xx?". Keep the task list (`mcp__ccd_turn__update_plan`) current. Say in the final answer what changed, the numbers, the decisions taken with defaults, and what is open.
+
+## Gotchas learned the hard way
+
+- Windows with Git Bash. A bash heredoc containing a `'` can fail with "unexpected EOF": write files with the Write tool or a script file. In a Python string, a backslash followed by `n` sent through the shell can turn into a real newline: build such text with `chr(10)` and `chr(92)`.
+- `go build ./...` of a main package leaves an `.exe`; delete it (the `.gitignore` has `*.exe` now).
+- Never kill all `python` or `go` processes (a blanket kill was blocked). Stop only the one you started; a stuck background shell is stopped with the task-stop tool.
+- A background agent that keeps re-sending its final report in a loop is finished: stop it.
+- Two differences between the languages have been found by differential tests every time; expect them and align them (one language is aligned to the other, never the fixture): reasons and counters of drops, the order of checks, value ranges, error text that leaks a caller value.
+- Time-based tests must have generous margins (hundreds of milliseconds), and a test must wait with a polling helper (`waiting.Eventually` in Go, `eventually` in Python) for an asynchronous fact, never a fixed sleep alone. A test that fails once in a few runs is a real race: find it.
+- The helper scripts of the previous sessions are in the OLD scratchpad `C:\Users\dcalvo\AppData\Local\Temp\claude\D--Snowfactory-Programas-GO-telemetry\a376d304-3c5d-4204-9c62-dca39625809d\scratchpad\`: `build_board.py` (regenerates `docs/tasks/README.md` and `ORDER.md` from the task headers: run it from anywhere, it changes into the repo), `venv_ci\` (a Python venv with ruff and coverage and the package installed: `venv_ci\Scripts\python.exe`), `close_t0NN.py` (examples of the document scripts) and `make_*.js` (examples of the Node fixture generators). If that folder is gone, recreate a venv (`python -m venv`, then `pip install coverage[toml]==7.17.0 ruff==0.17.3` and the package) and rewrite `build_board.py` by reading how the board in `docs/tasks/README.md` is built.
+- The CI (`.github/workflows/ci.yml`) has **never run on GitHub** (it needs a pull request, and the `gh` CLI is not installed). Do not claim that CI is green. Python 3.10 has only been exercised in theory.
+
+## Decisions already taken that you must keep (they are written in the architecture document and the task Notes)
+
+One bounded queue and one worker per destination; "accepted" in an `EmitResult` means *queued*; one queue policy and one delivery mode **for the whole core** (a policy and a mode **per destination** are planned and not built); `durable` is **refused at start** until the spool exists (T-06.5), so the profiles `robotics` and `offline_device` cannot start a core yet; a failed event counts as dropped in the result of flush and shutdown; a second `Shutdown` returns the first result; the default timeout of flush and shutdown is 5,000 ms; a `critical` event displaces the oldest `bulk` then `normal` event; the class of a `log.*` event is `bulk` at DEBUG and TRACE and `normal` above; the UUIDv7 is hand-written in both languages; the library has no third-party dependency.
+
+## Your first steps now
+
+1. Run `git status` and `git log -5 --oneline`, read the files named at the top, and run the full verification once (Go and Python) to confirm the starting point is green. Tell me the numbers.
+2. Then wait for me to say "continue" (or "do next task") and start **T-05.5 Diagnostics** with the workflow above. The task has two questions for the maintainer with defaults to take: the rate limit of the diagnostics channel (propose and document a value), and whether the diagnostics channel replaces the ADR-005 fallback entry to the console (default: the channel replaces it, and the console can be a destination of the diagnostics).

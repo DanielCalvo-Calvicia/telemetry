@@ -27,6 +27,8 @@ type Core struct {
 	logger   inbound.LoggerPort
 }
 
+var _ inbound.DiagnosticsPort = (*Core)(nil)
+
 // ----- CONSTRUCTORS ---------------------------------------------------------
 
 // NewCore validates the configuration and wires the core with the adapters of the options; the ones that are not given
@@ -91,6 +93,7 @@ func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Opt
 		},
 		applied_options.Clock,
 		dependencies.NewSystemRandom(),
+		dependencies.NewDiagnosticsChannel(applied_options.Clock, applied_options.DiagnosticsCallbacks, applied_options.DiagnosticsWriter),
 		dependencies.NewMemoryQueue,
 	)
 	pipeline := services.NewEventPipelineService(
@@ -121,6 +124,17 @@ func (core *Core) Logger() inbound.LoggerPort {
 		return (*services.LoggerService)(nil)
 	}
 	return core.logger
+}
+
+// Diagnostics returns a copy of how the delivery is doing (REQ-DGN-001, REQ-DGN-002): per destination the queue, the drops by
+// reason, the failures, the retries, the latency, the batches, the last success and the last flush, and the counters of
+// the diagnostics channel. It never panics, it still answers after Shutdown, and a nil *Core, or one that was not built
+// by NewCore, returns the zero snapshot.
+func (core *Core) Diagnostics() dtos.DiagnosticsSnapshot {
+	if core == nil || core.delivery == nil {
+		return dtos.DiagnosticsSnapshot{}
+	}
+	return core.delivery.Diagnostics()
 }
 
 // Flush sends the events that are queued and keeps the core running. Because there is no synchronous send, a program MUST
