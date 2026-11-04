@@ -63,6 +63,9 @@ class ConfigurationProvider:
                 event_classes={
                     event_type: EventClass(event_class) for event_type, event_class in delivery.event_classes.items()
                 },
+                retry_max_attempts=delivery.retry_max_attempts,
+                retry_base_delay_milliseconds=delivery.retry_base_delay_ms,
+                retry_max_delay_milliseconds=delivery.retry_max_delay_ms,
             ),
             limits=Limits(
                 max_attribute_keys=limits.max_attribute_keys,

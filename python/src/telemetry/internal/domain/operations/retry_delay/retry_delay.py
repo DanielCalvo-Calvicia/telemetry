@@ -1,9 +1,11 @@
-"""The exponential backoff with jitter and the decision to retry."""
+"""The exponential backoff with equal jitter and the decision to retry (pure: no clock, no random source)."""
 
 import math
 from typing import Optional
 
-from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.classify_response import CLASS_TRANSIENT
+# The longest Retry-After that is honored: one day. A longer hint is cut, so a destination cannot make a worker wait
+# for ever.
+MAX_RETRY_AFTER_MILLISECONDS = 86_400_000
 
 
 def backoff_with_jitter(attempt: int, base_ms: int, max_ms: int, random_value: float) -> int:
@@ -27,10 +29,22 @@ def backoff_with_jitter(attempt: int, base_ms: int, max_ms: int, random_value: f
     return math.floor(half + random_value * half)
 
 
+def next_delay(attempt: int, base_ms: int, max_ms: int, retry_after_ms: Optional[int], random_value: float) -> int:
+    """Return the wait in milliseconds before the next attempt: the larger of the backoff and the Retry-After.
+
+    ``retry_after_ms`` is the hint of the destination, cut to ``MAX_RETRY_AFTER_MILLISECONDS``; ``None``, zero or a
+    negative number is no hint.
+    """
+    delay = backoff_with_jitter(attempt, base_ms, max_ms, random_value)
+    if retry_after_ms is not None:
+        delay = max(delay, min(retry_after_ms, MAX_RETRY_AFTER_MILLISECONDS))
+    return delay
+
+
 def retry_delay(
     attempt: int,
     max_attempts: int,
-    klass: str,
+    transient: bool,
     retry_after_ms: Optional[int],
     base_ms: int,
     max_ms: int,
@@ -38,12 +52,9 @@ def retry_delay(
 ) -> tuple[int, bool]:
     """Return ``(delay in milliseconds, retry)`` for the attempt that just ended (0 for the first).
 
-    It retries only a transient outcome and only while ``attempt + 1 < max_attempts``. The delay is the larger of the
-    backoff and the Retry-After of the server. When it does not retry the delay is 0.
+    It retries only a transient failure and only while ``attempt + 1 < max_attempts``. The delay is ``next_delay``.
+    When it does not retry the delay is 0.
     """
-    if klass != CLASS_TRANSIENT or attempt + 1 >= max_attempts:
+    if not transient or attempt + 1 >= max_attempts:
         return 0, False
-    delay = backoff_with_jitter(attempt, base_ms, max_ms, random_value)
-    if retry_after_ms is not None:
-        delay = max(delay, retry_after_ms)
-    return delay, True
+    return next_delay(attempt, base_ms, max_ms, retry_after_ms, random_value), True

@@ -94,21 +94,32 @@ class NewCoreTest(unittest.TestCase):
         self.assertEqual(fields, ["resource.service_name", "delivery.queue_size"])
         self.assertIn("delivery.queue_size", str(raised.exception))
 
-    def test_a_durable_mode_without_a_spool_is_refused_and_with_one_starts(self):
-        with self.assertRaises(telemetry.ConfigurationError) as raised:
-            build(self, config_for(telemetry.robotics))
-        self.assertEqual([problem.field for problem in raised.exception.problems], ["delivery.mode"])
-        self.assertEqual(raised.exception.problems[0].code, "config_field_invalid")
-        core = build(self, config_for(telemetry.robotics), telemetry.with_local_spool(FakeLocalSpool()))
-        self.assertIsInstance(core, Core)
+    def test_a_durable_mode_is_refused_with_or_without_a_spool_until_the_spool_exists(self):
+        for options in ((), (telemetry.with_local_spool(FakeLocalSpool()),)):
+            for profile in (telemetry.robotics, telemetry.offline_device):
+                with self.subTest(profile=profile.__name__, spool=bool(options)):
+                    with self.assertRaises(telemetry.ConfigurationError) as raised:
+                        build(self, config_for(profile), *options)
+                    problems = raised.exception.problems
+                    self.assertEqual([problem.field for problem in problems], ["delivery.mode"])
+                    self.assertEqual(problems[0].code, "config_field_invalid")
+                    self.assertIn("not available yet", problems[0].reason)
+                    self.assertIn("T-06.5", problems[0].reason)
 
-    def test_a_durable_mode_without_a_spool_and_with_a_bad_configuration_reports_both_together(self):
+    def test_a_durable_mode_and_a_bad_configuration_report_every_problem_together_with_one_mode_problem(self):
         base = telemetry.offline_device()
         config = dataclasses.replace(base, resource=telemetry.ResourceConfig())  # no service name, no spool directory
-        with self.assertRaises(telemetry.ConfigurationError) as raised:
-            build(self, config)
-        fields = [problem.field for problem in raised.exception.problems]
-        self.assertEqual(fields, ["resource.service_name", "spool.directory", "delivery.mode"])
+        for options in ((), (telemetry.with_local_spool(FakeLocalSpool()),)):
+            with self.subTest(spool=bool(options)):
+                with self.assertRaises(telemetry.ConfigurationError) as raised:
+                    build(self, config, *options)
+                fields = [problem.field for problem in raised.exception.problems]
+                self.assertEqual(fields, ["resource.service_name", "spool.directory", "delivery.mode"])
+
+    def test_the_other_modes_start(self):
+        for profile in (telemetry.microservice, telemetry.cronjob, telemetry.worker):
+            with self.subTest(profile=profile.__name__):
+                self.assertIsInstance(build(self, config_for(profile)), Core)
 
     def test_an_unknown_mode_does_not_add_the_spool_problem(self):
         base = config_for()

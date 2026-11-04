@@ -75,6 +75,39 @@ class ResultFromOutcomeTest(unittest.TestCase):
                 self.assertEqual(counts(result_from_outcome(outcome, sent, filtered)), expected)
 
 
+class RetryAfterOfTheResultTest(unittest.TestCase):
+    def test_a_transient_outcome_carries_its_retry_after_and_every_other_result_carries_none(self):
+        table = [
+            (Outcome(CLASS_TRANSIENT, 429, 5000, "status_429"), 5000),
+            (Outcome(CLASS_TRANSIENT, 503, 0, "status_503"), 0),
+            (Outcome(CLASS_TRANSIENT, 503, None, "status_503"), 0),
+            (Outcome(CLASS_TRANSIENT, 0, None, "timeout"), 0),
+            (Outcome(CLASS_PERMANENT, 404, 7000, "status_404"), 0),
+            (Outcome(CLASS_SUCCESS, 200, 7000), 0),
+        ]
+        for outcome, expected in table:
+            with self.subTest(outcome=outcome):
+                self.assertEqual(result_from_outcome(outcome, 2, 1).retry_after_ms, expected)
+
+    def test_the_result_of_a_call_without_a_retry_after_has_none(self):
+        self.assertEqual(SendResult(accepted=1, dropped=0, failed=0).retry_after_ms, 0)
+
+    def test_the_destination_sets_it_from_the_header_of_a_transient_answer(self):
+        table = [
+            (503, {"Retry-After": "7"}, 7000),
+            (429, {"Retry-After": "2"}, 2000),
+            (503, {}, 0),
+            (503, {"Retry-After": "soon"}, 0),
+            (404, {"Retry-After": "7"}, 0),
+            (200, {"Retry-After": "7"}, 0),
+        ]
+        for status, headers, expected in table:
+            with self.subTest(status=status, headers=headers):
+                with StubServer(lambda received, status=status, headers=headers: Reply(status, headers)) as server:
+                    result = HttpDestination(Settings(url=server.url())).send([event(), event()])
+                self.assertEqual(result.retry_after_ms, expected)
+
+
 class SettingsTest(unittest.TestCase):
     def test_the_client_settings_carry_the_eleven_fields(self):
         settings = Settings(url="https://logs.example.invalid/x", compress=True, minimum_severity="ERROR")

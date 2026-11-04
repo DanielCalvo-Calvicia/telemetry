@@ -174,8 +174,8 @@ type LocalSpoolPort = outbound.LocalSpoolPort
 // ----- THE CORE -------------------------------------------------------------
 
 // New validates the configuration and builds the core with the adapters of the options. An invalid configuration
-// returns a *ValidationError with every problem; a durable delivery mode with no WithLocalSpool is one of them. The
-// start uses context.Background(). Nothing is read from the environment.
+// returns a *ValidationError with every problem; the durable delivery mode is one of them while the spool does not
+// exist (T-06.5), with or without WithLocalSpool. The start uses context.Background(). Nothing is read from the environment.
 func New(config Config, options ...Option) (*Telemetry, error) {
 	return containers.NewCore(context.Background(), config, options...)
 }
@@ -199,11 +199,11 @@ func Cronjob() Config { return infra_config.Cronjob() }
 // Worker returns the defaults for a background worker: the delivery mode is retry.
 func Worker() Config { return infra_config.Worker() }
 
-// Robotics returns the defaults for a robot: the delivery mode is durable, so it needs a spool directory and a spool.
+// Robotics returns the defaults for a robot: the delivery mode is durable, which New refuses until the spool exists (T-06.5).
 func Robotics() Config { return infra_config.Robotics() }
 
-// OfflineDevice returns the defaults for a device that is often offline: the delivery mode is durable, so it needs a
-// spool directory and a spool.
+// OfflineDevice returns the defaults for a device that is often offline: the delivery mode is durable, which
+// New refuses until the spool exists (T-06.5).
 func OfflineDevice() Config { return infra_config.OfflineDevice() }
 
 // ----- OPTIONS --------------------------------------------------------------

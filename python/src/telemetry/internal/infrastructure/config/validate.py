@@ -136,6 +136,15 @@ def validate_config(config: Config) -> tuple[ConfigProblem, ...]:
         invalid("delivery.block_timeout_ms", "it must be greater than zero when the queue policy is block_with_timeout")
     if not _event_classes_valid(delivery.event_classes):
         invalid("delivery.event_classes", "every event type must be text and every class critical, normal or bulk")
+    if not _positive(delivery.retry_max_attempts):
+        invalid("delivery.retry_max_attempts", "it must be an integer greater than zero")
+    base_valid = _positive(delivery.retry_base_delay_ms)
+    if not base_valid:
+        invalid("delivery.retry_base_delay_ms", "it must be an integer greater than zero")
+    if not _positive(delivery.retry_max_delay_ms):
+        invalid("delivery.retry_max_delay_ms", "it must be an integer greater than zero")
+    elif base_valid and delivery.retry_max_delay_ms < delivery.retry_base_delay_ms:
+        invalid("delivery.retry_max_delay_ms", "it must not be less than the base delay")
 
     limits = config.limits
     limits_valid = {}

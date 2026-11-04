@@ -11,6 +11,9 @@ from telemetry.internal.domain.rules import (
     DEFAULT_MAX_EVENT_BYTES,
     DEFAULT_QUEUE_POLICY,
     DEFAULT_QUEUE_SIZE,
+    DEFAULT_RETRY_BASE_DELAY_MILLISECONDS,
+    DEFAULT_RETRY_MAX_ATTEMPTS,
+    DEFAULT_RETRY_MAX_DELAY_MILLISECONDS,
     DEFAULT_SPOOL_QUOTA_BYTES,
     DEFAULT_TIMEOUT_MILLISECONDS,
 )
@@ -41,6 +44,9 @@ def defaults() -> Config:
             queue_policy=DEFAULT_QUEUE_POLICY,
             block_timeout_ms=DEFAULT_BLOCK_TIMEOUT_MILLISECONDS,
             event_classes={},
+            retry_max_attempts=DEFAULT_RETRY_MAX_ATTEMPTS,
+            retry_base_delay_ms=DEFAULT_RETRY_BASE_DELAY_MILLISECONDS,
+            retry_max_delay_ms=DEFAULT_RETRY_MAX_DELAY_MILLISECONDS,
         ),
         limits=LimitsConfig(
             max_attribute_keys=DEFAULT_MAX_ATTRIBUTE_KEYS,

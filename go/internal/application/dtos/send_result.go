@@ -12,4 +12,8 @@ type SendResult struct {
 	Dropped  int
 	Failed   int
 	Reason   string
+	// RetryAfterMS is the wait in milliseconds that the destination asked for before the events that failed are sent again
+	// (the Retry-After of an HTTP answer): it is set only when events failed with a transient failure and the destination
+	// gave the hint, and 0 means no hint.
+	RetryAfterMS int64
 }

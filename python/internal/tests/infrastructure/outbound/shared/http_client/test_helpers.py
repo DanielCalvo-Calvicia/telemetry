@@ -10,9 +10,6 @@ from telemetry.internal.infrastructure.outbound.shared.http_client.error.map_tra
     map_transport_error,
 )
 from telemetry.internal.infrastructure.outbound.shared.http_client.external.parse_url import parse_url
-from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.backoff_with_jitter import (
-    backoff_with_jitter,
-)
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.build_batch_body import build_batch_body
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.compress_gzip import compress_gzip
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.parse_retry_after import parse_retry_after
@@ -76,17 +73,6 @@ class RetryAfterTest(unittest.TestCase):
 
     def test_a_trailing_line_break_is_white_space(self):
         self.assertEqual(parse_retry_after("5\n", NOW), 5000)
-
-
-class BackoffTest(unittest.TestCase):
-    def test_a_large_attempt_stops_at_the_maximum_and_the_random_is_cut(self):
-        self.assertEqual(backoff_with_jitter(10**9, 200, 30000, 1.0), 30000)
-        self.assertEqual(backoff_with_jitter(2, 200, 30000, 5.0), 800)
-        self.assertEqual(backoff_with_jitter(2, 200, 30000, -3.0), 400)
-        self.assertEqual(backoff_with_jitter(2, 200, 30000, float("nan")), 400)
-
-    def test_a_base_above_the_maximum_is_cut(self):
-        self.assertEqual(backoff_with_jitter(0, 1000, 500, 1.0), 500)
 
 
 class MapTransportErrorTest(unittest.TestCase):

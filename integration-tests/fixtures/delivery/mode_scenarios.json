@@ -1,0 +1,294 @@
+{
+  "description": "What a worker does with the answers of a destination, by delivery mode (REQ-DLV-003, REQ-CFG-004, section 10.6). One destination, one batch of 3 events (batch_size 3), backoff base 1 ms and ceiling 5 ms, a random source that always answers 0.5. Each answer is the SendResult of one call to the destination (accepted, dropped, failed, reason, retry_after_ms); when the answers are used up the last one repeats. Rules: best_effort makes ONE attempt whatever the answer: accepted events are delivered, dropped events are dropped under the reason of the answer (unspecified when empty), failed events are counted as failed. retry: an answer with failed > 0 and dropped == 0 is a transient failure and the batch is sent AGAIN whole after the backoff (never earlier than retry_after_ms) while attempts < retry_max_attempts; when the limit is reached the failed events are dropped under the reason retry_limit_reached; any other answer ends the batch: its accepted events are delivered and its dropped events are dropped under its reason. attempts is the number of calls to the destination, retries is attempts - 1 for the batch, delivered, dropped and failed are the counters of the destination at the end, dropped_by_reason the reasons of the dropped events, min_elapsed_ms (when present) the least time from the first call to the last.",
+  "cases": [
+    {
+      "name": "best_effort_delivers",
+      "description": "One answer that accepts the batch.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 1,
+        "retries": 0,
+        "delivered": 3,
+        "dropped": 0,
+        "failed": 0,
+        "dropped_by_reason": {}
+      }
+    },
+    {
+      "name": "best_effort_does_not_resend",
+      "description": "best_effort sends once: a transient failure is lost and counted as failed, whatever the retry settings.",
+      "mode": "best_effort",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 1,
+        "retries": 0,
+        "delivered": 0,
+        "dropped": 0,
+        "failed": 3,
+        "dropped_by_reason": {}
+      }
+    },
+    {
+      "name": "retry_delivers_at_once",
+      "description": "With retry an answer that accepts needs no retry.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 1,
+        "retries": 0,
+        "delivered": 3,
+        "dropped": 0,
+        "failed": 0,
+        "dropped_by_reason": {}
+      }
+    },
+    {
+      "name": "retry_fails_twice_then_succeeds",
+      "description": "Two transient failures and then success: one delivery, counted as delivered only at the third answer, with two retries.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 3,
+        "retries": 2,
+        "delivered": 3,
+        "dropped": 0,
+        "failed": 0,
+        "dropped_by_reason": {}
+      }
+    },
+    {
+      "name": "retry_gives_up_at_the_limit",
+      "description": "The limit of 3 attempts is reached: the batch is dropped with the reason retry_limit_reached.",
+      "mode": "retry",
+      "retry_max_attempts": 3,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 3,
+        "retries": 2,
+        "delivered": 0,
+        "dropped": 3,
+        "failed": 0,
+        "dropped_by_reason": {
+          "retry_limit_reached": 3
+        }
+      }
+    },
+    {
+      "name": "retry_limit_of_one_is_one_attempt",
+      "description": "With one attempt the first failure is final.",
+      "mode": "retry",
+      "retry_max_attempts": 1,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "timeout",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 1,
+        "retries": 0,
+        "delivered": 0,
+        "dropped": 3,
+        "failed": 0,
+        "dropped_by_reason": {
+          "retry_limit_reached": 3
+        }
+      }
+    },
+    {
+      "name": "retry_does_not_retry_a_permanent_rejection",
+      "description": "An answer with dropped events (a permanent rejection, 4xx) is final: no retry, the reason of the answer is kept.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 3,
+          "failed": 0,
+          "reason": "status_400",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 1,
+        "retries": 0,
+        "delivered": 0,
+        "dropped": 3,
+        "failed": 0,
+        "dropped_by_reason": {
+          "status_400": 3
+        }
+      }
+    },
+    {
+      "name": "retry_honors_the_retry_after_hint",
+      "description": "A failure with a retry_after_ms of 60 waits at least that long before the second attempt.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "status_429",
+          "retry_after_ms": 60
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 2,
+        "retries": 1,
+        "delivered": 3,
+        "dropped": 0,
+        "failed": 0,
+        "dropped_by_reason": {},
+        "min_elapsed_ms": 60
+      }
+    },
+    {
+      "name": "retry_resends_the_whole_batch_after_a_partial_failure",
+      "description": "An answer with accepted and failed events makes the whole batch be sent again; delivered counts the accepted events of the answer that ends the batch only (the first accepted event may arrive twice, REQ-DLV-001).",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 1,
+          "dropped": 0,
+          "failed": 2,
+          "reason": "status_503",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 2,
+        "retries": 1,
+        "delivered": 3,
+        "dropped": 0,
+        "failed": 0,
+        "dropped_by_reason": {}
+      }
+    },
+    {
+      "name": "retry_after_a_success_nothing_more",
+      "description": "Answers after the one that ends the batch are never used.",
+      "mode": "retry",
+      "retry_max_attempts": 5,
+      "events": 3,
+      "answers": [
+        {
+          "accepted": 3,
+          "dropped": 0,
+          "failed": 0,
+          "reason": "",
+          "retry_after_ms": 0
+        },
+        {
+          "accepted": 0,
+          "dropped": 0,
+          "failed": 3,
+          "reason": "",
+          "retry_after_ms": 0
+        }
+      ],
+      "expected": {
+        "attempts": 1,
+        "retries": 0,
+        "delivered": 3,
+        "dropped": 0,
+        "failed": 0,
+        "dropped_by_reason": {}
+      }
+    }
+  ]
+}

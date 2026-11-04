@@ -11,20 +11,23 @@ import (
 
 // Defaults returns the configuration with the documented defaults: delivery mode best_effort, a queue of 10000 events,
 // a batch of 100, a flush every 2000 ms, a timeout of 3000 ms, the queue policy drop_newest with no block timeout, no
-// class assigned to an event type, the default size limits and a spool quota of 256 MiB. Every text is empty (not set),
+// class assigned to an event type, 5 attempts per batch with a backoff from 200 to 30000 ms (used by the retry mode), the default size limits and a spool quota of 256 MiB. Every text is empty (not set),
 // the lists and maps (the masking ones and the event classes) are empty and not nil, and FieldNames is nil so the
 // default list of sensitive field names applies. It is a new value on every call, so the caller may change it.
 func Defaults() Config {
 	return Config{
 		Delivery: DeliveryConfig{
-			Mode:            string(value_objects.DeliveryModeBestEffort),
-			QueueSize:       domain.DefaultQueueSize,
-			BatchSize:       domain.DefaultBatchSize,
-			FlushIntervalMS: domain.DefaultFlushIntervalMilliseconds,
-			TimeoutMS:       domain.DefaultTimeoutMilliseconds,
-			QueuePolicy:     string(value_objects.QueuePolicyDropNewest),
-			BlockTimeoutMS:  0,
-			EventClasses:    map[string]string{},
+			Mode:             string(value_objects.DeliveryModeBestEffort),
+			QueueSize:        domain.DefaultQueueSize,
+			BatchSize:        domain.DefaultBatchSize,
+			FlushIntervalMS:  domain.DefaultFlushIntervalMilliseconds,
+			TimeoutMS:        domain.DefaultTimeoutMilliseconds,
+			QueuePolicy:      string(value_objects.QueuePolicyDropNewest),
+			BlockTimeoutMS:   0,
+			EventClasses:     map[string]string{},
+			RetryMaxAttempts: domain.DefaultRetryMaxAttempts,
+			RetryBaseDelayMS: domain.DefaultRetryBaseDelayMilliseconds,
+			RetryMaxDelayMS:  domain.DefaultRetryMaxDelayMilliseconds,
 		},
 		Limits: LimitsConfig{
 			MaxAttributeKeys:       domain.DefaultMaxAttributeKeys,

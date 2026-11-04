@@ -13,7 +13,7 @@ import unittest
 from typing import Any, Optional, Sequence
 
 from internal.tests.eventually import eventually
-from internal.tests.fakes import BlockingLogSink, FakeEventSink, FakeLogSink
+from internal.tests.fakes import BlockingLogSink, FakeEventSink, FakeLogSink, FakeRandom
 from telemetry.internal.application.dtos.delivery_settings import DeliverySettings
 from telemetry.internal.application.dtos.offer_result import OfferResult
 from telemetry.internal.application.dtos.send_result import SendResult
@@ -100,7 +100,7 @@ class DeliveryServiceTestCase(unittest.TestCase):
         settings = DeliverySettings(
             queue_size=queue_size, batch_size=batch_size, flush_interval_milliseconds=flush_interval_milliseconds
         )
-        service = ItemDeliveryService(destinations, settings, SystemClock(), new_memory_queue)
+        service = ItemDeliveryService(destinations, settings, SystemClock(), new_memory_queue, FakeRandom())
         self.addCleanup(self.release_then_stop, service)
         if start:
             service.start()
@@ -292,7 +292,7 @@ class EnqueueResultTest(DeliveryServiceTestCase):
 
         sink = FakeLogSink()
         service = ItemDeliveryService(
-            Destinations(log=(sink,)), DeliverySettings(batch_size=1), Clock(), self.recording_queue()
+            Destinations(log=(sink,)), DeliverySettings(batch_size=1), Clock(), self.recording_queue(), FakeRandom()
         )
         service.enqueue("log", "x")
         self.assertEqual(self.pushed, [("x", EventClass.NORMAL, 7, QueuePolicy.DROP_NEWEST)])

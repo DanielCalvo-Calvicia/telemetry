@@ -26,7 +26,8 @@ func valid_config() config.Config {
 
 func Test_the_defaults_are_the_documented_ones(t *testing.T) {
 	expected := config.Config{
-		Delivery: config.DeliveryConfig{Mode: "best_effort", QueueSize: 10000, BatchSize: 100, FlushIntervalMS: 2000, TimeoutMS: 3000, QueuePolicy: "drop_newest", EventClasses: map[string]string{}},
+		Delivery: config.DeliveryConfig{Mode: "best_effort", QueueSize: 10000, BatchSize: 100, FlushIntervalMS: 2000, TimeoutMS: 3000, QueuePolicy: "drop_newest", EventClasses: map[string]string{},
+			RetryMaxAttempts: 5, RetryBaseDelayMS: 200, RetryMaxDelayMS: 30000},
 		Limits: config.LimitsConfig{
 			MaxAttributeKeys: 32, MaxAttributeKeyChars: 64, MaxAttributeValueChars: 256, MaxEventBytes: 65536, MaxBatchBytes: 1048576,
 		},
@@ -119,6 +120,9 @@ func Test_the_zero_config_reports_several_problems_together_in_the_order_of_the_
 		"delivery.flush_interval_ms config_field_invalid",
 		"delivery.timeout_ms config_field_invalid",
 		"delivery.queue_policy config_field_invalid",
+		"delivery.retry_max_attempts config_field_invalid",
+		"delivery.retry_base_delay_ms config_field_invalid",
+		"delivery.retry_max_delay_ms config_field_invalid",
 		"limits.max_attribute_keys config_field_invalid",
 		"limits.max_attribute_key_chars config_field_invalid",
 		"limits.max_attribute_value_chars config_field_invalid",
@@ -160,6 +164,10 @@ func Test_each_rule_of_the_validation_reports_its_field(t *testing.T) {
 		{"block policy without timeout", func(c *config.Config) { c.Delivery.QueuePolicy = "block_with_timeout" }, "delivery.block_timeout_ms", "config_field_invalid"},
 		{"empty event type", func(c *config.Config) { c.Delivery.EventClasses = map[string]string{"": "normal"} }, "delivery.event_classes", "config_field_invalid"},
 		{"unknown event class", func(c *config.Config) { c.Delivery.EventClasses = map[string]string{"a.b": "urgent"} }, "delivery.event_classes", "config_field_invalid"},
+		{"zero retry attempts", func(c *config.Config) { c.Delivery.RetryMaxAttempts = 0 }, "delivery.retry_max_attempts", "config_field_invalid"},
+		{"zero retry base delay", func(c *config.Config) { c.Delivery.RetryBaseDelayMS = 0 }, "delivery.retry_base_delay_ms", "config_field_invalid"},
+		{"zero retry max delay", func(c *config.Config) { c.Delivery.RetryMaxDelayMS = 0 }, "delivery.retry_max_delay_ms", "config_field_invalid"},
+		{"retry max delay below the base", func(c *config.Config) { c.Delivery.RetryBaseDelayMS = 500; c.Delivery.RetryMaxDelayMS = 499 }, "delivery.retry_max_delay_ms", "config_field_invalid"},
 		{"zero keys", func(c *config.Config) { c.Limits.MaxAttributeKeys = 0 }, "limits.max_attribute_keys", "config_field_invalid"},
 		{"zero key chars", func(c *config.Config) { c.Limits.MaxAttributeKeyChars = 0 }, "limits.max_attribute_key_chars", "config_field_invalid"},
 		{"zero value chars", func(c *config.Config) { c.Limits.MaxAttributeValueChars = 0 }, "limits.max_attribute_value_chars", "config_field_invalid"},
@@ -236,7 +244,7 @@ func Test_a_validation_error_is_found_by_errors_is_and_errors_as(t *testing.T) {
 	if !strings.Contains(validation_error.Error(), "delivery.mode: ") || !strings.Contains(validation_error.Error(), "(delivery_mode_unknown)") {
 		t.Errorf("the message lacks the field, the reason or the code: %s", validation_error.Error())
 	}
-	if strings.Count(validation_error.Error(), "\n") != 12 {
+	if strings.Count(validation_error.Error(), "\n") != 15 {
 		t.Errorf("expected one line per problem: %s", validation_error.Error())
 	}
 
@@ -333,7 +341,8 @@ func Test_the_provider_maps_every_section_of_the_configuration(t *testing.T) {
 			ServiceName: "sensor-hub", InstanceID: "hub-01", Environment: "staging", ServiceVersion: "1.2.3", Host: "host-a", TimeZone: "Europe/Madrid",
 		},
 		Delivery: config.DeliveryConfig{Mode: "durable", QueueSize: 2000, BatchSize: 50, FlushIntervalMS: 500, TimeoutMS: 1500,
-			QueuePolicy: "block_with_timeout", BlockTimeoutMS: 250, EventClasses: map[string]string{"log.entry.recorded": "critical"}},
+			QueuePolicy: "block_with_timeout", BlockTimeoutMS: 250, EventClasses: map[string]string{"log.entry.recorded": "critical"},
+			RetryMaxAttempts: 7, RetryBaseDelayMS: 50, RetryMaxDelayMS: 4000},
 		Limits: config.LimitsConfig{
 			MaxAttributeKeys: 16, MaxAttributeKeyChars: 32, MaxAttributeValueChars: 128, MaxEventBytes: 32768, MaxBatchBytes: 524288,
 		},
@@ -367,7 +376,8 @@ func Test_the_provider_maps_every_section_of_the_configuration(t *testing.T) {
 	expected_delivery := dtos.DeliverySettings{
 		Mode: value_objects.DeliveryModeDurable, QueueSize: 2000, BatchSize: 50, FlushIntervalMilliseconds: 500, TimeoutMilliseconds: 1500,
 		QueuePolicy: value_objects.QueuePolicyBlockWithTimeout, BlockTimeoutMilliseconds: 250,
-		EventClasses: map[string]value_objects.EventClass{"log.entry.recorded": value_objects.EventClassCritical},
+		EventClasses:     map[string]value_objects.EventClass{"log.entry.recorded": value_objects.EventClassCritical},
+		RetryMaxAttempts: 7, RetryBaseDelayMS: 50, RetryMaxDelayMS: 4000,
 	}
 	if !reflect.DeepEqual(got.Delivery, expected_delivery) {
 		t.Errorf("delivery: %+v", got.Delivery)

@@ -130,28 +130,6 @@ func Test_retry_after_shared_cases(t *testing.T) {
 	}
 }
 
-func Test_backoff_shared_cases(t *testing.T) {
-	var file struct {
-		Cases []struct {
-			Description string  `json:"description"`
-			Attempt     int     `json:"attempt"`
-			BaseMS      int     `json:"base_ms"`
-			MaxMS       int     `json:"max_ms"`
-			Random      float64 `json:"random"`
-			ExpectedMS  int64   `json:"expected_ms"`
-		} `json:"cases"`
-	}
-	load_cases(t, "backoff.json", &file)
-	if len(file.Cases) == 0 {
-		t.Fatal("no cases")
-	}
-	for _, shared_case := range file.Cases {
-		if got := helpers.BackoffWithJitter(shared_case.Attempt, shared_case.BaseMS, shared_case.MaxMS, shared_case.Random); got != shared_case.ExpectedMS {
-			t.Errorf("%s: got %d, expected %d", shared_case.Description, got, shared_case.ExpectedMS)
-		}
-	}
-}
-
 func Test_auth_header_shared_cases(t *testing.T) {
 	var file struct {
 		Cases []struct {

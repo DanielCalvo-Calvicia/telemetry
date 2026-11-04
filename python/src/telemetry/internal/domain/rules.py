@@ -126,8 +126,9 @@ DEFAULT_QUEUE_POLICY = "drop_newest"  # what a full queue does (contracts/enums/
 DEFAULT_BLOCK_TIMEOUT_MILLISECONDS = 0  # milliseconds a call waits for room; above zero with block_with_timeout
 DEFAULT_SHUTDOWN_TIMEOUT_MILLISECONDS = 5000  # milliseconds flush and shutdown wait for the queues when none is given
 
-# The retry policy of the shared HTTP client (T-04.4). A CONTRACT shared with Go.
-DEFAULT_HTTP_MAX_ATTEMPTS = 5  # attempts at most for one batch, the first included
+# The retry policy of the shared HTTP client (T-04.4) and of the retry mode (T-05.3). A CONTRACT shared with Go.
+DEFAULT_HTTP_MAX_ATTEMPTS = 5  # attempts at most for one batch of the HTTP client, the first included
+DEFAULT_RETRY_MAX_ATTEMPTS = 5  # attempts at most for one batch with the retry delivery mode, the first included
 DEFAULT_RETRY_BASE_DELAY_MILLISECONDS = 200  # base of the exponential backoff
 DEFAULT_RETRY_MAX_DELAY_MILLISECONDS = 30000  # ceiling of the backoff
 

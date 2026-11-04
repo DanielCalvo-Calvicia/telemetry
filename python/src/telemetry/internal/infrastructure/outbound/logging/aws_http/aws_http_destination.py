@@ -71,13 +71,16 @@ class AwsHttpDestination:
 
         The other events are skipped and count as accepted. A 2xx accepts the event, a transient outcome FAILS it (the
         worker may retry it) and a permanent one DROPS it; an event that cannot be built is dropped as
-        ``serialization_failed``. The reason of the result is the one of the first event that was not accepted. If
+        ``serialization_failed``. The reason of the result is the one of the first event that was not accepted, and its
+        ``retry_after_ms`` is the Retry-After of the last event that did not get accepted when that failure is
+        transient (0 when there is none). If
         something unexpected happens every event fails with ``destination_failed``. KeyboardInterrupt and the other
         exceptions that are not an ``Exception`` propagate.
         """
         try:
             accepted = dropped = failed = sent = skipped = 0
             reason = ""
+            retry_after_ms = 0
             last_outcome: Optional[Outcome] = None
             for event in list(events):
                 if not event.event_type.startswith(LOG_EVENT_PREFIX):
@@ -97,10 +100,12 @@ class AwsHttpDestination:
                     continue
                 if last_outcome.klass == CLASS_PERMANENT:
                     dropped += 1
+                    retry_after_ms = 0
                 else:
                     failed += 1
+                    retry_after_ms = last_outcome.retry_after_milliseconds or 0
                 reason = reason or last_outcome.reason
-            return Delivery(SendResult(accepted, dropped, failed, reason), last_outcome, sent, skipped)
+            return Delivery(SendResult(accepted, dropped, failed, reason, retry_after_ms), last_outcome, sent, skipped)
         except Exception:
             return Delivery(self._failed(events), None, 0, 0)
 

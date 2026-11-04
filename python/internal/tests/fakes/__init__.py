@@ -4,6 +4,7 @@ from internal.tests.fakes.fake_clock import FakeClock
 from internal.tests.fakes.fake_configuration import FakeConfiguration
 from internal.tests.fakes.fake_id_generator import FakeIdGenerator
 from internal.tests.fakes.fake_local_spool import FakeLocalSpool
+from internal.tests.fakes.fake_random import FakeRandom
 from internal.tests.fakes.fake_sinks import (
     BlockingLogSink,
     FakeAiTelemetrySink,
@@ -25,5 +26,6 @@ __all__ = [
     "FakeLocalSpool",
     "FakeLogSink",
     "FakeMetricsSink",
+    "FakeRandom",
     "FakeTraceSink",
 ]

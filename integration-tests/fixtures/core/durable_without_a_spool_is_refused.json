@@ -1,5 +1,5 @@
 {
-  "description": "A durable destination without a spool port is refused at start with the field delivery.mode.",
+  "description": "The durable mode is refused at start, with or without a spool adapter: the spool does not exist yet (T-06.5).",
   "kind": "core",
   "config": {
     "profile": "robotics",

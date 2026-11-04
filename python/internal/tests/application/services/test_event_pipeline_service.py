@@ -15,6 +15,7 @@ from internal.tests.fakes import (
     FakeIdGenerator,
     FakeLogSink,
     FakeMetricsSink,
+    FakeRandom,
     FakeTraceSink,
 )
 from telemetry.internal.application.call_context.call_context import CallContext, use_call_context
@@ -104,6 +105,7 @@ def make_delivery(test: unittest.TestCase, destinations: Destinations) -> Delive
         DeliverySettings(flush_interval_milliseconds=SHORT_FLUSH_INTERVAL_MS),
         SystemClock(),
         new_memory_queue,
+        FakeRandom(),
     )
     delivery.start()
     test.addCleanup(delivery.stop)
@@ -258,6 +260,7 @@ class DeliveryTest(unittest.TestCase):
             DeliverySettings(queue_size=1, batch_size=1, flush_interval_milliseconds=60_000),
             SystemClock(),
             new_memory_queue,
+            FakeRandom(),
         )  # never started: the queue only fills
         configuration = FakeConfiguration(Configuration(resource=ResourceIdentity(service_name="s", instance_id="i")))
         builder = EventBuilderService(FakeClock(wall_time=WALL_TIME), FakeIdGenerator(), configuration, validate_event)

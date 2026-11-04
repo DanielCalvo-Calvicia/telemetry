@@ -11,9 +11,6 @@ from typing import Any
 from internal.tests.application.services.masking_helpers import envelope_from_json
 from telemetry.internal.domain.operations.canonical_json.canonical_json import canonical_json
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.auth_header import auth_header
-from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.backoff_with_jitter import (
-    backoff_with_jitter,
-)
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.build_batch_body import build_batch_body
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.classify_response import classify_status
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.compress_gzip import compress_gzip
@@ -62,12 +59,6 @@ class SharedHttpCasesTest(unittest.TestCase):
                 expected = case["expected_seconds"]
                 result = parse_retry_after(case["header"], parse_instant(case["now"]))
                 self.assertEqual(result, None if expected is None else expected * 1000)
-
-    def test_the_backoff_gives_the_expected_milliseconds(self):
-        for case in load_cases("backoff.json"):
-            with self.subTest(case=case["description"]):
-                result = backoff_with_jitter(case["attempt"], case["base_ms"], case["max_ms"], case["random"])
-                self.assertEqual(result, case["expected_ms"])
 
     def test_the_authentication_header_is_the_expected_one(self):
         for case in load_cases("auth_header.json"):

@@ -15,7 +15,8 @@ import (
 // ResultFromOutcome maps what the shared client gave for one batch to the result of the port. The filtered events were
 // not sent and count as accepted. For the sent events: a success accepts them; a transient outcome fails them (the
 // worker may retry them) with the reason of the outcome; a permanent outcome drops them (they are not retried) with the
-// reason of the outcome. The reason is empty when every event was accepted.
+// reason of the outcome. The reason is empty when every event was accepted. RetryAfterMS is the Retry-After of a transient
+// outcome that carried one (0 when there is none).
 func ResultFromOutcome(outcome http_client.Outcome, sent int, filtered int) dtos.SendResult {
 	result := dtos.SendResult{Accepted: filtered}
 	switch outcome.Class {
@@ -27,9 +28,13 @@ func ResultFromOutcome(outcome http_client.Outcome, sent int, filtered int) dtos
 	default:
 		result.Failed = sent
 		result.Reason = outcome.Reason
+		if outcome.RetryAfterOK {
+			result.RetryAfterMS = outcome.RetryAfterMilliseconds
+		}
 	}
 	if sent == 0 {
 		result.Reason = ""
+		result.RetryAfterMS = 0
 	}
 	return result
 }

@@ -79,6 +79,17 @@ func Validate(config Config) error {
 			break
 		}
 	}
+	if config.Delivery.RetryMaxAttempts < 1 {
+		invalid("delivery.retry_max_attempts", "it must be at least 1")
+	}
+	if config.Delivery.RetryBaseDelayMS < 1 {
+		invalid("delivery.retry_base_delay_ms", "it must be at least 1")
+	}
+	if config.Delivery.RetryMaxDelayMS < 1 {
+		invalid("delivery.retry_max_delay_ms", "it must be at least 1")
+	} else if config.Delivery.RetryBaseDelayMS >= 1 && config.Delivery.RetryMaxDelayMS < config.Delivery.RetryBaseDelayMS {
+		invalid("delivery.retry_max_delay_ms", "it must not be below the base delay")
+	}
 
 	// ----- limits -----
 	limit_numbers := []struct {

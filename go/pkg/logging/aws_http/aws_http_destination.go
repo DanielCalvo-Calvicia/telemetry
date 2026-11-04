@@ -86,7 +86,9 @@ func (destination *Destination) Send(ctx context.Context, events []value_objects
 // it) and in Delivery.Skipped. For a translated event a 2xx accepts it; a transient outcome (408, 429, 5xx, a timeout, a
 // network error) fails it; a permanent one (any other status, a request over the limit) drops it; an event that cannot be
 // translated is dropped with the reason serialization_failed and no request. The Result.Reason is the reason of the first
-// event that was not accepted, and Delivery.Outcome is the outcome of the last request made. It makes no retry. A panic
+// event that was not accepted, and Delivery.Outcome is the outcome of the last request made.
+// Result.RetryAfterMS is the Retry-After of the last event that was not accepted, when its failure was transient and
+// carried one (0 otherwise). It makes no retry. A panic
 // inside the destination is recovered: the events not counted yet are failed with the reason destination_failed. A nil
 // destination counts every event as failed with that reason.
 func (destination *Destination) Deliver(ctx context.Context, events []value_objects.Envelope) (delivery Delivery) {
@@ -126,9 +128,14 @@ func (destination *Destination) Deliver(ctx context.Context, events []value_obje
 		case client_helpers.ClassPermanent:
 			delivery.Result.Dropped++
 			count_reason(delivery.Outcome.Reason)
+			delivery.Result.RetryAfterMS = 0
 		default:
 			delivery.Result.Failed++
 			count_reason(delivery.Outcome.Reason)
+			delivery.Result.RetryAfterMS = 0
+			if delivery.Outcome.RetryAfterOK {
+				delivery.Result.RetryAfterMS = delivery.Outcome.RetryAfterMilliseconds
+			}
 		}
 	}
 	return delivery

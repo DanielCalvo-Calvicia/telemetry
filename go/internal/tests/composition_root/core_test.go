@@ -149,36 +149,38 @@ func Test_an_invalid_configuration_returns_a_validation_error_that_names_the_fie
 	}
 }
 
-func Test_a_durable_mode_with_no_spool_adds_one_problem_after_the_ones_of_the_configuration(t *testing.T) {
-	cfg := infra_config.Robotics()
-	cfg.Resource.ServiceName = "robot"
-	cfg.Spool.Directory = "spool-dir"
+func Test_the_durable_mode_is_refused_at_start_with_one_problem_with_or_without_a_spool(t *testing.T) {
+	for _, profile := range []func() infra_config.Config{infra_config.Robotics, infra_config.OfflineDevice} {
+		cfg := profile()
+		cfg.Resource.ServiceName = "robot"
+		cfg.Spool.Directory = "spool-dir"
 
-	_, only_spool_error := containers.NewCore(context.Background(), cfg)
-	cfg.Spool.Directory = ""
-	_, both_error := containers.NewCore(context.Background(), cfg)
-	_, with_spool_error := containers.NewCore(context.Background(), cfg, config.WithLocalSpool(&fakes.FakeLocalSpool{}))
+		_, without_spool_error := containers.NewCore(context.Background(), cfg)
+		_, with_spool_error := containers.NewCore(context.Background(), cfg, config.WithLocalSpool(&fakes.FakeLocalSpool{}))
 
-	var only_spool, both *infra_config.ValidationError
-	if !errors.As(only_spool_error, &only_spool) || len(only_spool.Problems) != 1 ||
-		only_spool.Problems[0].Field != "delivery.mode" || only_spool.Problems[0].Code != value_objects.ErrorCodeConfigFieldInvalid {
-		t.Fatalf("only the spool: %v", only_spool_error)
-	}
-	if !errors.As(both_error, &both) || len(both.Problems) != 2 || both.Problems[0].Field != "spool.directory" || both.Problems[1].Field != "delivery.mode" {
-		t.Fatalf("both: %v", both_error)
-	}
-	var with_spool *infra_config.ValidationError
-	if !errors.As(with_spool_error, &with_spool) || len(with_spool.Problems) != 1 || with_spool.Problems[0].Field != "spool.directory" {
-		t.Fatalf("a spool does not replace the directory: %v", with_spool_error)
+		for label, core_error := range map[string]error{"without a spool adapter": without_spool_error, "with a spool adapter": with_spool_error} {
+			var validation_error *infra_config.ValidationError
+			if !errors.As(core_error, &validation_error) || len(validation_error.Problems) != 1 ||
+				validation_error.Problems[0].Field != "delivery.mode" || validation_error.Problems[0].Code != value_objects.ErrorCodeConfigFieldInvalid {
+				t.Fatalf("%s: %v", label, core_error)
+			}
+			if !strings.Contains(validation_error.Problems[0].Reason, "not available yet") {
+				t.Fatalf("%s: the reason does not say it is not available: %q", label, validation_error.Problems[0].Reason)
+			}
+		}
 	}
 }
 
-func Test_a_durable_core_with_a_spool_starts(t *testing.T) {
-	cfg := infra_config.OfflineDevice()
-	cfg.Resource.ServiceName = "device"
-	cfg.Spool.Directory = "spool-dir"
-	if _, core_error := containers.NewCore(context.Background(), cfg, config.WithLocalSpool(&fakes.FakeLocalSpool{})); core_error != nil {
-		t.Fatal(core_error)
+func Test_a_durable_mode_without_a_spool_directory_adds_the_mode_problem_after_the_one_of_the_configuration(t *testing.T) {
+	cfg := infra_config.Robotics()
+	cfg.Resource.ServiceName = "robot"
+
+	_, core_error := containers.NewCore(context.Background(), cfg)
+
+	var validation_error *infra_config.ValidationError
+	if !errors.As(core_error, &validation_error) || len(validation_error.Problems) != 2 ||
+		validation_error.Problems[0].Field != "spool.directory" || validation_error.Problems[1].Field != "delivery.mode" {
+		t.Fatalf("both: %v", core_error)
 	}
 }
 

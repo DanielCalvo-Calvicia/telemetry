@@ -15,7 +15,7 @@ from unittest import mock
 
 from internal.tests.application.services.test_delivery_service import Item, ItemDeliveryService, received
 from internal.tests.eventually import eventually
-from internal.tests.fakes import BlockingLogSink, FakeLogSink
+from internal.tests.fakes import BlockingLogSink, FakeLogSink, FakeRandom
 from telemetry.internal.application.dtos.delivery_settings import DeliverySettings
 from telemetry.internal.application.dtos.send_result import SendResult
 from telemetry.internal.application.dtos.shutdown_result import ShutdownResult
@@ -75,7 +75,9 @@ class FlushTestCase(unittest.TestCase):
         settings = DeliverySettings(
             queue_size=queue_size, batch_size=batch_size, flush_interval_milliseconds=flush_interval_ms
         )
-        service = ItemDeliveryService(Destinations(log=tuple(sinks)), settings, SystemClock(), new_memory_queue)
+        service = ItemDeliveryService(
+            Destinations(log=tuple(sinks)), settings, SystemClock(), new_memory_queue, FakeRandom()
+        )
         self.addCleanup(self.release_then_stop, service)
         if start:
             service.start()

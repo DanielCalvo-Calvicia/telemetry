@@ -95,6 +95,24 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "retry_max_attempts": {
+          "type": "integer",
+          "description": "Attempts at most for one batch with the retry mode, the first included (default 5). The best_effort mode sends once whatever this is.",
+          "x-env": "TELEMETRY_RETRY_MAX_ATTEMPTS",
+          "minimum": 1
+        },
+        "retry_base_delay_ms": {
+          "type": "integer",
+          "description": "The base of the exponential backoff with jitter between attempts, in milliseconds (default 200).",
+          "x-env": "TELEMETRY_RETRY_BASE_DELAY_MS",
+          "minimum": 1
+        },
+        "retry_max_delay_ms": {
+          "type": "integer",
+          "description": "The ceiling of the backoff in milliseconds (default 30000). Not below the base.",
+          "x-env": "TELEMETRY_RETRY_MAX_DELAY_MS",
+          "minimum": 1
         }
       }
     },

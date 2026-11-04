@@ -1,0 +1,19 @@
+{
+  "description": "At least one attempt is needed.",
+  "kind": "config",
+  "profile": "microservice",
+  "overrides": {
+    "resource": {
+      "service_name": "sensor-hub"
+    },
+    "delivery": {
+      "retry_max_attempts": 0
+    }
+  },
+  "problems": [
+    {
+      "field": "delivery.retry_max_attempts",
+      "code": "config_field_invalid"
+    }
+  ]
+}

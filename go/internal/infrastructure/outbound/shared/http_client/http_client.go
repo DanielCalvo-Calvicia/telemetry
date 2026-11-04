@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/retry_delay"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 	adapter_error "github.com/DanielCalvo-Calvicia/telemetry/go/internal/infrastructure/outbound/shared/http_client/error"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/infrastructure/outbound/shared/http_client/external"
@@ -118,7 +119,7 @@ func (client *Client) SendBatch(ctx context.Context, events []value_objects.Enve
 // only for a transient outcome while attempt+1 is below MaxAttempts, and delay_ms is the larger of the backoff with
 // jitter and the Retry-After of the outcome. random is in [0, 1]; the caller gives it so the policy can be tested.
 func (client *Client) NextDelay(attempt int, outcome Outcome, random float64) (delay_ms int64, retry bool) {
-	return helpers.RetryDelay(attempt, client.settings.MaxAttempts, outcome.Class, outcome.RetryAfterMilliseconds, outcome.RetryAfterOK,
+	return retry_delay.RetryDelay(attempt, client.settings.MaxAttempts, outcome.Class == helpers.ClassTransient, outcome.RetryAfterMilliseconds, outcome.RetryAfterOK,
 		client.settings.RetryBaseDelayMS, client.settings.RetryMaxDelayMS, random)
 }
 

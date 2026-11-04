@@ -15,6 +15,7 @@ from telemetry.internal.application.ports.outbound.event_queue_port import Event
 from telemetry.internal.application.ports.outbound.event_sink_port import EventSinkPort
 from telemetry.internal.application.ports.outbound.log_sink_port import LogSinkPort
 from telemetry.internal.application.ports.outbound.metrics_sink_port import MetricsSinkPort
+from telemetry.internal.application.ports.outbound.random_port import RandomPort
 from telemetry.internal.application.ports.outbound.trace_sink_port import TraceSinkPort
 from telemetry.internal.domain.operations.batching.plan_batch import PLAN_IDLE, PLAN_SEND, plan_batch
 from telemetry.internal.domain.operations.classification.classify_event import classify_event
@@ -24,10 +25,12 @@ from telemetry.internal.domain.operations.full_queue.resolve_full_queue import (
     REASON_QUEUE_FULL_NEWEST,
     REASON_QUEUE_FULL_OLDEST,
 )
-from telemetry.internal.domain.value_objects.enums_generated import EventClass
+from telemetry.internal.domain.operations.retry_delay.retry_delay import retry_delay
+from telemetry.internal.domain.value_objects.enums_generated import DeliveryMode, EventClass
 from telemetry.internal.domain.value_objects.envelope_generated import Envelope
 
 REASON_NO_DESTINATION = "no_destination"
+REASON_RETRY_LIMIT_REACHED = "retry_limit_reached"
 REASON_SHUTDOWN = "shutdown"
 REASON_SINK_PANICKED = "sink_panicked"
 REASON_UNSPECIFIED = "unspecified"
@@ -39,6 +42,7 @@ __all__ = [
     "REASON_NO_DESTINATION",
     "REASON_QUEUE_FULL_NEWEST",
     "REASON_QUEUE_FULL_OLDEST",
+    "REASON_RETRY_LIMIT_REACHED",
     "REASON_SHUTDOWN",
     "REASON_SINK_PANICKED",
     "REASON_UNSPECIFIED",
@@ -68,14 +72,18 @@ class DestinationStats:
     """DestinationStats is a snapshot of the counters of one destination, taken at one moment.
 
     ``kind`` is the name of the field of Destinations and ``index`` the position of the sink inside that kind.
-    ``queued`` is how many events wait now. ``batches`` is how many times the sink was called. ``accepted`` counts the
-    events that entered the queue (accepted means QUEUED, not delivered). ``dropped`` counts the events a full queue
-    refused or displaced plus the ones the sink reported as dropped, and ``failed`` the ones the sink reported as
-    failed or raised on. ``dropped_by_reason`` splits ``dropped`` by reason (``queue_full_newest``,
-    ``queue_full_oldest``, ``displaced_by_critical``, ``block_timeout`` and the reasons of the sink; a sink that drops
-    without a reason counts under ``unspecified``): it is a COPY, so it does not change afterwards. ``last_reason`` is
-    the reason of the last drop or failure, and empty when there was none. These are the internal counters; the
-    public diagnostics are T-05.5.
+    ``queued`` is how many events wait now. ``batches`` is how many batches ENDED (a batch that is retried counts once,
+    when its last attempt ends). ``attempts`` is how many times the sink was called and ``retries`` the attempts beyond
+    the first of a batch, so ``attempts - retries`` is the number of batches that were tried. ``delivered`` is the
+    events the sink ACCEPTED in the answer that ended their batch. ``accepted`` counts the events that entered the
+    queue (accepted means QUEUED, not delivered). ``dropped`` counts the events a full queue
+    refused or displaced plus the ones the sink reported as dropped, the ones that were still failing when the retry
+    limit was reached and the ones abandoned at a shutdown, and ``failed`` the ones the sink reported as failed or
+    raised on in a batch that was not retried (the ``best_effort`` mode). ``dropped_by_reason`` splits ``dropped`` by
+    reason (``queue_full_newest``, ``queue_full_oldest``, ``displaced_by_critical``, ``block_timeout``,
+    ``retry_limit_reached``, ``shutdown`` and the reasons of the sink; a sink that drops without a reason counts under
+    ``unspecified``): it is a COPY, so it does not change afterwards. ``last_reason`` is the reason of the last drop or
+    failure, and empty when there was none. These are the internal counters; the public diagnostics are T-05.5.
     """
 
     kind: str
@@ -87,6 +95,9 @@ class DestinationStats:
     failed: int
     last_reason: str
     dropped_by_reason: Mapping[str, int] = dataclasses.field(default_factory=dict)
+    attempts: int = 0
+    retries: int = 0
+    delivered: int = 0
 
 
 class _Destination:
@@ -118,6 +129,8 @@ class _Destination:
         self.in_flight = 0
         self.thread: Optional[threading.Thread] = None
         self.batches = 0
+        self.attempts = 0
+        self.retries = 0
         self.accepted = 0
         self.dropped = 0
         self.failed = 0
@@ -148,9 +161,16 @@ class DeliveryService:
     NO synchronous send and no hook at interpreter exit: a program MUST call ``shutdown`` before it ends or the events
     still queued are lost. A batch leaves
     when it holds ``batch_size`` events or when the oldest one has waited ``flush_interval_milliseconds`` (the rule is
-    ``plan_batch``). Each batch is sent ONCE: the retry is T-05.3. When a queue is full the policy and the class of
-    the event decide (``resolve_full_queue``) and every drop is counted per destination and reason; the class is a
-    priority, never a guarantee. A started service does not start again after it was stopped.
+    ``plan_batch``). With the mode ``best_effort`` each batch is sent ONCE whatever the answer. With ``retry`` a batch
+    that failed in a transient way (the answer has failed events and none dropped) is sent AGAIN, whole, after a
+    backoff with jitter (and never before the ``retry_after_ms`` of the answer), at most ``retry_max_attempts`` times
+    in all; at the limit the failed events are dropped with the reason ``retry_limit_reached``. The wait between two
+    attempts is a wait on the condition of the destination that ``stop`` and ``shutdown`` wake (the batch is then
+    dropped with the reason ``shutdown``), it counts as in flight for ``flush``, and it delays only its own
+    destination: every destination has its own worker. Neither mode survives a restart of the process. When a queue is
+    full the policy and the class of the event decide (``resolve_full_queue``) and every drop is counted per
+    destination and reason; the class is a priority, never a guarantee. A started service does not start again after
+    it was stopped.
     """
 
     def __init__(
@@ -159,10 +179,15 @@ class DeliveryService:
         settings: DeliverySettings,
         clock: ClockPort,
         new_queue: Callable[[int], EventQueuePort],
+        random_source: RandomPort,
     ) -> None:
-        """Create a queue for every sink of every kind; nothing runs until ``start()`` is called."""
+        """Create a queue for every sink of every kind; nothing runs until ``start()`` is called.
+
+        ``random_source`` gives the jitter of the wait between two attempts of the retry mode.
+        """
         self._settings = settings
         self._clock = clock
+        self._random = random_source
         self._lifecycle = threading.Lock()
         self._started = False
         self._stopped = False
@@ -239,8 +264,9 @@ class DeliveryService:
         Per destination the TARGET is the number of events queued plus the ones being sent when the call begins. The
         workers send partial batches at once while the flush waits (the flush interval does not apply), and the call
         waits on a condition the workers notify, never by polling. ``sent`` is what the sinks ACCEPTED of the targets;
-        ``dropped`` is every other target: dropped or failed by the sink (there is no retry yet, T-05.3), displaced
-        from a full queue, or still queued or in flight when the time ends. ``spooled`` is 0 until the spool (T-06).
+        ``dropped`` is every other target: dropped or failed by the sink (after the retries of the retry mode),
+        displaced from a full queue, or still queued or in flight when the time ends (a batch that is waiting to be
+        retried is in flight). ``spooled`` is 0 until the spool (T-06).
         A timeout of 0 or less returns at once with everything pending counted as dropped. It never raises, and
         after ``shutdown`` it returns the zero result.
         """
@@ -405,17 +431,20 @@ class DeliveryService:
                         failed=destination.failed,
                         last_reason=destination.last_reason,
                         dropped_by_reason=dict(destination.dropped_by_reason),
+                        attempts=destination.attempts,
+                        retries=destination.retries,
+                        delivered=destination.delivered,
                     )
                 )
         return snapshot
 
     def _work(self, destination: _Destination) -> None:
-        """The loop of a worker: wait for a batch, send it once with no lock held, count the result, repeat."""
+        """The loop of a worker: wait for a batch, deliver it with no lock held while the sink works, repeat."""
         while True:
             batch = self._next_batch(destination)
             if batch is None:
                 return
-            self._send(destination, batch)
+            self._deliver(destination, batch)
 
     def _next_batch(self, destination: _Destination) -> Optional[list[Envelope]]:
         """Wait on the condition (never in a loop of sleeps) until a batch is due; return None when stopping."""
@@ -442,21 +471,111 @@ class DeliveryService:
                     destination.condition.wait(plan.wait_ms / _MILLISECONDS_PER_SECOND)
         return None
 
-    def _send(self, destination: _Destination, batch: list[Envelope]) -> None:
+    def _deliver(self, destination: _Destination, batch: list[Envelope]) -> None:
+        """Deliver one batch by the delivery mode; it ends when the batch has an outcome that is counted.
+
+        ``best_effort`` calls the sink ONCE whatever the answer. ``retry`` calls it again, with the WHOLE batch, while
+        the answer is a transient failure (``failed > 0`` and ``dropped == 0``) and the attempts are fewer than
+        ``retry_max_attempts``; between two attempts it waits the backoff with jitter or the ``retry_after_ms`` of the
+        answer, whichever is longer. Only the answer that ENDS the batch counts its accepted events as delivered. When
+        the limit is reached the failed events are dropped with ``retry_limit_reached``. A stop during the wait
+        abandons the batch: its events are dropped with the reason ``shutdown``.
+        """
+        settings = self._settings
+        retries_enabled = settings.mode is DeliveryMode.RETRY
+        attempt = 0
+        while True:
+            accepted, dropped, failed, reason, retry_after_ms = self._call_sink(destination, batch)
+            transient = failed > 0 and dropped == 0
+            retry = False
+            wait_ms = 0
+            if retries_enabled and transient:
+                wait_ms, retry = retry_delay(
+                    attempt,
+                    settings.retry_max_attempts,
+                    True,
+                    retry_after_ms,
+                    settings.retry_base_delay_milliseconds,
+                    settings.retry_max_delay_milliseconds,
+                    self._random_value(),
+                )
+            with destination.condition:
+                destination.attempts += 1
+                if attempt > 0:
+                    destination.retries += 1
+            if not retry:
+                limit_reached = retries_enabled and transient
+                self._finish(destination, batch, accepted, dropped, failed, reason, limit_reached)
+                return
+            if not self._wait_before_retry(destination, wait_ms):
+                self._abandon(destination, batch)
+                return
+            attempt += 1
+
+    @staticmethod
+    def _call_sink(destination: _Destination, batch: list[Envelope]) -> tuple[int, int, int, str, int]:
         """Call the sink once, contained: whatever it raises is a failure of the batch and is never kept or printed."""
         try:
             result = destination.sink.send(batch)  # type: ignore[attr-defined]
-            accepted, dropped, failed, reason = result.accepted, result.dropped, result.failed, result.reason
+            return result.accepted, result.dropped, result.failed, result.reason, result.retry_after_ms
         except Exception:  # a sink never stops its worker or the others (ADR-005); the text could hold event data
-            accepted, dropped, failed, reason = 0, 0, len(batch), REASON_SINK_PANICKED
+            return 0, 0, len(batch), REASON_SINK_PANICKED, 0
+
+    def _random_value(self) -> float:
+        """The next number of the random source; a source that raises gives the middle, so the worker never dies."""
+        try:
+            return float(self._random.random())
+        except Exception:  # a jitter is never worth a failure (ADR-005)
+            return 0.5
+
+    @staticmethod
+    def _wait_before_retry(destination: _Destination, wait_ms: int) -> bool:
+        """Wait ``wait_ms`` on the condition of the destination; False when a stop ended the wait first.
+
+        A real wait that ``stop`` wakes (never a loop of sleeps): the batch stays in flight for the whole time, and
+        the notifications of an offer or of a flush only make it look at the clock again.
+        """
+        deadline = time.monotonic() + wait_ms / _MILLISECONDS_PER_SECOND
+        with destination.condition:
+            while not destination.stopping:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return True
+                destination.condition.wait(remaining)
+        return False
+
+    @staticmethod
+    def _finish(
+        destination: _Destination,
+        batch: list[Envelope],
+        accepted: int,
+        dropped: int,
+        failed: int,
+        reason: str,
+        limit_reached: bool,
+    ) -> None:
+        """Count the answer that ENDS a batch: what was accepted, dropped or failed, and let a flush look again."""
         with destination.condition:
             destination.batches += 1
             destination.delivered += accepted
             destination.finished += len(batch)
             destination.in_flight = 0
             destination.settled.notify_all()
+            if limit_reached:
+                destination.count_drop(REASON_RETRY_LIMIT_REACHED, failed)
+                return
             destination.failed += failed
             if dropped:
                 destination.count_drop(reason or REASON_UNSPECIFIED, dropped)
             if reason and failed:
                 destination.last_reason = reason
+
+    @staticmethod
+    def _abandon(destination: _Destination, batch: list[Envelope]) -> None:
+        """Count a batch that a stop ended during the wait of its retry: all its events dropped as ``shutdown``."""
+        with destination.condition:
+            destination.batches += 1
+            destination.finished += len(batch)
+            destination.in_flight = 0
+            destination.count_drop(REASON_SHUTDOWN, len(batch))
+            destination.settled.notify_all()

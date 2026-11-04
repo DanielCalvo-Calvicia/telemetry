@@ -54,7 +54,7 @@ class SharedAwsHttpCasesTest(unittest.TestCase):
                 if case.get("expected_skipped"):
                     self.assertEqual(received, [])
                     self.assertEqual((delivery.sent, delivery.skipped, delivery.outcome), (0, 1, None))
-                    self.assertEqual(dataclasses.astuple(delivery.result), (1, 0, 0, ""))
+                    self.assertEqual(dataclasses.astuple(delivery.result), (1, 0, 0, "", 0))
                     continue
                 self.assertEqual(len(received), 1)
                 request = received[0]
@@ -62,7 +62,7 @@ class SharedAwsHttpCasesTest(unittest.TestCase):
                 self.assertEqual(request.headers.get("content-type"), "application/json")
                 self.assertNotIn("content-encoding", request.headers)
                 self.assertEqual(request.body.decode("utf-8"), case["expected_request"])
-                self.assertEqual(dataclasses.astuple(delivery.result), (1, 0, 0, ""))
+                self.assertEqual(dataclasses.astuple(delivery.result), (1, 0, 0, "", 0))
                 self.assertEqual((delivery.sent, delivery.skipped), (1, 0))
                 message = json.loads(request.body)["message"]
                 self.assertEqual(message, case["expected_message"])

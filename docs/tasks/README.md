@@ -129,7 +129,7 @@ Verified on 2026-10-28 against the repository and the answers of the questionnai
 | [T-05](T-05_delivery/T-05_delivery.md) | **Delivery, buffering and failures** | epic | todo |
 | [T-05.1](T-05_delivery/T-05.1_bounded-queue-and-worker.md) | Bounded queue and worker | code | done (2026-11-03) |
 | [T-05.2](T-05_delivery/T-05.2_backpressure-and-priorities.md) | Backpressure and priorities | code | done (2026-11-03) |
-| [T-05.3](T-05_delivery/T-05.3_delivery-modes-best-effort-and-retry.md) | Delivery modes `best_effort` and `retry` | code | todo |
+| [T-05.3](T-05_delivery/T-05.3_delivery-modes-best-effort-and-retry.md) | Delivery modes `best_effort` and `retry` | code | done (2026-11-03) |
 | [T-05.4](T-05_delivery/T-05.4_flush-and-shutdown.md) | `flush` and `shutdown` | code | done (2026-11-03) |
 | [T-05.5](T-05_delivery/T-05.5_diagnostics.md) | Diagnostics | code | todo |
 | [T-05.6](T-05_delivery/T-05.6_failure-matrix-tests.md) | Failure-matrix tests | test | todo |

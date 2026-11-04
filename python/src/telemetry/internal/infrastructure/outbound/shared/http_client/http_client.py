@@ -8,12 +8,12 @@ import datetime
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
+from telemetry.internal.domain.operations.retry_delay.retry_delay import retry_delay
 from telemetry.internal.domain.value_objects.envelope_generated import Envelope
 from telemetry.internal.domain.value_objects.limits import Limits
 from telemetry.internal.infrastructure.config.errors import ConfigurationError
 from telemetry.internal.infrastructure.outbound.shared.http_client.external.post_request import post_request
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.auth_header import auth_header
-from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.backoff_with_jitter import retry_delay
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.build_batch_body import build_batch_body
 from telemetry.internal.infrastructure.outbound.shared.http_client.helpers.classify_response import (
     CLASS_PERMANENT,
@@ -87,7 +87,7 @@ class HttpClient:
         return retry_delay(
             attempt,
             settings.max_attempts,
-            outcome.klass,
+            outcome.klass == CLASS_TRANSIENT,
             outcome.retry_after_milliseconds,
             settings.retry_base_delay_ms,
             settings.retry_max_delay_ms,

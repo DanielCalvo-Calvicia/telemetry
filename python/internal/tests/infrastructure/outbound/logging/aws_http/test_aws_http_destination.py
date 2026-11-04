@@ -335,6 +335,30 @@ class DeliveryTest(unittest.TestCase):
                 self.assertEqual(counts(delivery.result), (accepted, dropped, failed, reason))
                 self.assertEqual(delivery.outcome.klass, klass)
 
+    def test_the_retry_after_is_the_one_of_the_last_event_that_did_not_get_accepted(self):
+        def script(*replies: tuple[int, dict[str, str]]):
+            return lambda received: Reply(*replies[len(server.requests) - 1])
+
+        table = [
+            ("one transient", [(503, {"Retry-After": "3"})], 3000),
+            ("none given", [(503, {})], 0),
+            ("the last of two transient", [(503, {"Retry-After": "5"}), (429, {"Retry-After": "9"})], 9000),
+            ("an accepted one after the transient", [(503, {"Retry-After": "5"}), (200, {})], 5000),
+            ("a permanent one after the transient", [(503, {"Retry-After": "5"}), (400, {"Retry-After": "8"})], 0),
+            ("a permanent one only", [(404, {"Retry-After": "8"})], 0),
+            ("a success", [(200, {"Retry-After": "8"})], 0),
+        ]
+        for name, replies, expected in table:
+            with self.subTest(case=name):
+                with StubServer(script(*replies)) as server:
+                    result = AwsHttpDestination(settings_for(server.port)).send([event() for _ in replies])
+                self.assertEqual(result.retry_after_ms, expected)
+
+    def test_an_event_that_is_skipped_or_cannot_be_built_leaves_the_retry_after_alone(self):
+        with StubServer(lambda received: Reply(503, {"Retry-After": "4"})) as server:
+            result = AwsHttpDestination(settings_for(server.port)).send([event(), event("metric.x")])
+        self.assertEqual((result.accepted, result.failed, result.retry_after_ms), (1, 1, 4000))
+
     def test_a_closed_port_fails_the_events_with_network_error(self):
         destination = AwsHttpDestination(settings_for(free_port()))
         delivery = destination.deliver([event(), event()])

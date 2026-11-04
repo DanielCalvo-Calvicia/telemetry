@@ -91,6 +91,7 @@ func started_delivery(test *testing.T, destinations services.Destinations) *serv
 		destinations,
 		services.DeliverySettings{QueueSize: 100, BatchSize: 10, FlushIntervalMS: 5, TimeoutMS: 1000},
 		dependencies.NewSystemClock(),
+		fakes.NewFakeRandom(),
 		dependencies.NewMemoryQueue,
 	)
 	delivery.Start()

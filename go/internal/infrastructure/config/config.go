@@ -57,6 +57,13 @@ type DeliveryConfig struct {
 	// EventClasses maps an event type to its class: critical, normal or bulk. The class is the priority of the event
 	// when a queue is full (never a guarantee of delivery). An event type that is not here has a default class.
 	EventClasses map[string]string `json:"event_classes" env:"TELEMETRY_EVENT_CLASSES"`
+	// RetryMaxAttempts is the number of attempts at most for one batch with the retry mode, the first included. At least 1.
+	// The best_effort mode sends once whatever this is.
+	RetryMaxAttempts int `json:"retry_max_attempts" env:"TELEMETRY_RETRY_MAX_ATTEMPTS"`
+	// RetryBaseDelayMS is the base of the exponential backoff with jitter between two attempts, in milliseconds. At least 1.
+	RetryBaseDelayMS int `json:"retry_base_delay_ms" env:"TELEMETRY_RETRY_BASE_DELAY_MS"`
+	// RetryMaxDelayMS is the ceiling of that backoff in milliseconds. At least 1 and not below RetryBaseDelayMS.
+	RetryMaxDelayMS int `json:"retry_max_delay_ms" env:"TELEMETRY_RETRY_MAX_DELAY_MS"`
 }
 
 // LimitsConfig is the size limits of an event and of a batch.

@@ -29,6 +29,9 @@ The new core (`go/`, `python/`) has **one logical model of the configuration** (
 | `TELEMETRY_QUEUE_POLICY` | `drop_newest` | `delivery.queue_policy` | what a full queue does: `drop_newest`, `drop_oldest` or `block_with_timeout` (REQ-DLV-007); one policy for every destination of the core |
 | `TELEMETRY_BLOCK_TIMEOUT_MS` | `0` | `delivery.block_timeout_ms` | milliseconds a log call may wait for room in a full queue; required and greater than zero with `block_with_timeout`, the one case where a call can wait |
 | `TELEMETRY_EVENT_CLASSES` | empty | `delivery.event_classes` | `event_type:class` pairs separated by `,`, the class being `critical`, `normal` or `bulk` (REQ-DLV-009); a class is a priority for a full queue, never a delivery guarantee |
+| `TELEMETRY_RETRY_MAX_ATTEMPTS` | `5` | `delivery.retry_max_attempts` | attempts at most for one batch with the `retry` mode, the first included; `best_effort` sends once |
+| `TELEMETRY_RETRY_BASE_DELAY_MS` | `200` | `delivery.retry_base_delay_ms` | base of the exponential backoff with jitter between attempts |
+| `TELEMETRY_RETRY_MAX_DELAY_MS` | `30000` | `delivery.retry_max_delay_ms` | ceiling of the backoff; not below the base |
 | `TELEMETRY_MAX_ATTRIBUTE_KEYS` | `32` | `limits.max_attribute_keys` |  |
 | `TELEMETRY_MAX_ATTRIBUTE_KEY_CHARS` | `64` | `limits.max_attribute_key_chars` | characters |
 | `TELEMETRY_MAX_ATTRIBUTE_VALUE_CHARS` | `256` | `limits.max_attribute_value_chars` | characters |

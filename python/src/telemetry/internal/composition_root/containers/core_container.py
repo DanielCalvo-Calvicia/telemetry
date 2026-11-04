@@ -13,6 +13,7 @@ from telemetry.internal.application.services.masking_service import MaskingServi
 from telemetry.internal.composition_root.config.options import Option, Options
 from telemetry.internal.composition_root.dependencies.memory_queue_dependencies import new_memory_queue
 from telemetry.internal.composition_root.dependencies.system_clock_dependencies import new_system_clock
+from telemetry.internal.composition_root.dependencies.system_random_dependencies import new_system_random
 from telemetry.internal.composition_root.dependencies.uuid_generator_dependencies import new_uuid_generator
 from telemetry.internal.domain.errors import DeliveryModeUnknownError
 from telemetry.internal.domain.operations.event_validation.event_validation import validate_event
@@ -26,8 +27,10 @@ from telemetry.internal.infrastructure.config.errors import ConfigProblem, Confi
 from telemetry.internal.infrastructure.config.provider import ConfigurationProvider
 from telemetry.internal.infrastructure.config.validate import validate_config
 
-SPOOL_REQUIRED_PROBLEM = ConfigProblem(
-    "delivery.mode", ERROR_CODE_CONFIG_FIELD_INVALID, "the durable mode needs a spool adapter"
+DURABLE_NOT_AVAILABLE_PROBLEM = ConfigProblem(
+    "delivery.mode",
+    ERROR_CODE_CONFIG_FIELD_INVALID,
+    "the durable mode is not available yet: it needs the spool of T-06.5",
 )
 
 
@@ -74,9 +77,10 @@ class Core:
         Per destination it counts the events queued plus the ones being sent when it is called, makes the workers send
         them at once (the flush interval does not apply) and waits at most ``timeout_ms`` milliseconds. ``sent`` are the
         events the destinations accepted, ``dropped`` all the others (dropped or failed by the destination, displaced
-        from a full queue, or still waiting when the time ends: there is no retry yet) and ``spooled`` is 0 until the
-        spool (T-06). A timeout of 0 or less returns at once with everything pending counted as dropped; after
-        ``shutdown`` it returns the zero result. It blocks the calling thread for its duration, also in asyncio.
+        from a full queue, or still waiting when the time ends; a failure counts after the retries of the retry mode)
+        and ``spooled`` is 0 until the spool (T-06). A timeout of 0 or less returns at once with everything pending
+        counted as dropped; after ``shutdown`` it returns the zero result. It blocks the calling thread for its
+        duration, also in asyncio.
         """
         try:
             return self._delivery.flush(timeout_ms)
@@ -108,11 +112,14 @@ def new_core(config: Config, *options: Option) -> Core:
 
     The options are applied in order; the clock and the id generator default to the system clock and the UUIDv7
     generator. The configuration is validated here, at start, and ``ConfigurationError`` is raised with EVERY problem
-    (REQ-CFG-002); a durable delivery mode without a spool adds the problem ``delivery.mode`` to the same error.
+    (REQ-CFG-002); the durable delivery mode adds ONE problem, ``delivery.mode``, to the same error, with or without a
+    spool adapter: the durable mode needs the spool of T-06.5 and is refused until it exists (the validation of the
+    configuration itself still accepts it, so the profiles ``robotics`` and ``offline_device`` stay valid values).
     Nothing is read from the environment and nothing is kept in a global.
 
     This is the one place that starts the delivery: it builds the DeliveryService (a bounded queue and a daemon worker
-    thread per destination, sized by the delivery section of the configuration) and calls ``start()``; nothing runs on
+    thread per destination, sized by the delivery section of the configuration, with the mode ``best_effort`` or
+    ``retry`` and the system random source for the jitter) and calls ``start()``; nothing runs on
     import or in a constructor. The delivery measures time with the system clock, not with the clock of the options:
     that clock stamps the events, and a fake one would never let a batch age.
     """
@@ -123,8 +130,8 @@ def new_core(config: Config, *options: Option) -> Core:
     id_generator = applied.id_generator if applied.id_generator is not None else new_uuid_generator()
 
     problems = list(validate_config(config))
-    if applied.spool is None and _is_durable(config):
-        problems.append(SPOOL_REQUIRED_PROBLEM)
+    if _is_durable(config):
+        problems.append(DURABLE_NOT_AVAILABLE_PROBLEM)
     if problems:
         raise ConfigurationError(tuple(problems))
 
@@ -141,7 +148,9 @@ def new_core(config: Config, *options: Option) -> Core:
         device_telemetry=tuple(applied.device_telemetry_sinks),
         ai_telemetry=tuple(applied.ai_telemetry_sinks),
     )
-    delivery = DeliveryService(destinations, configuration.delivery, new_system_clock(), new_memory_queue)
+    delivery = DeliveryService(
+        destinations, configuration.delivery, new_system_clock(), new_memory_queue, new_system_random()
+    )
     pipeline = EventPipelineService(builder, masking, limits, delivery)
     delivery.start()
     return Core(pipeline, LoggerService(pipeline), delivery)

@@ -70,60 +70,6 @@ func Test_retry_after_edges(t *testing.T) {
 	}
 }
 
-func Test_backoff_edges(t *testing.T) {
-	cases := []struct {
-		name                     string
-		attempt, base_ms, max_ms int
-		random                   float64
-		expected                 int64
-	}{
-		{"random below zero is cut", 0, 200, 30000, -3, 100},
-		{"random above one is cut", 0, 200, 30000, 7, 200},
-		{"not a number is zero", 0, 200, 30000, nan(), 100},
-		{"the ceiling is the maximum", 20, 200, 30000, 1, 30000},
-		{"no overflow with a huge attempt", 100000, 200, 30000, 0, 15000},
-		{"a base above the maximum is cut", 0, 5000, 1000, 1, 1000},
-		{"a negative attempt is the first", -4, 200, 30000, 0, 100},
-	}
-	for _, backoff_case := range cases {
-		if got := helpers.BackoffWithJitter(backoff_case.attempt, backoff_case.base_ms, backoff_case.max_ms, backoff_case.random); got != backoff_case.expected {
-			t.Errorf("%s: got %d, expected %d", backoff_case.name, got, backoff_case.expected)
-		}
-	}
-}
-
-func nan() float64 {
-	zero := 0.0
-	return zero / zero
-}
-
-func Test_retry_delay_table(t *testing.T) {
-	cases := []struct {
-		name              string
-		attempt           int
-		class             helpers.Class
-		retry_after_ms    int64
-		retry_after_ok    bool
-		expected_retry    bool
-		expected_delay_ms int64
-	}{
-		{"transient first attempt", 0, helpers.ClassTransient, 0, false, true, 100},
-		{"the last attempt does not retry", 4, helpers.ClassTransient, 0, false, false, 0},
-		{"past the last attempt", 9, helpers.ClassTransient, 0, false, false, 0},
-		{"permanent never retries", 0, helpers.ClassPermanent, 0, false, false, 0},
-		{"success never retries", 0, helpers.ClassSuccess, 0, false, false, 0},
-		{"a larger Retry-After wins", 0, helpers.ClassTransient, 5000, true, true, 5000},
-		{"a smaller Retry-After loses", 0, helpers.ClassTransient, 10, true, true, 100},
-		{"a Retry-After that is not ok is ignored", 0, helpers.ClassTransient, 5000, false, true, 100},
-	}
-	for _, delay_case := range cases {
-		delay_ms, retry := helpers.RetryDelay(delay_case.attempt, 5, delay_case.class, delay_case.retry_after_ms, delay_case.retry_after_ok, 200, 30000, 0)
-		if retry != delay_case.expected_retry || delay_ms != delay_case.expected_delay_ms {
-			t.Errorf("%s: got %d %v", delay_case.name, delay_ms, retry)
-		}
-	}
-}
-
 func Test_header_text_rules(t *testing.T) {
 	if !helpers.IsVisibleASCII("") || !helpers.IsVisibleASCII("a!~") || helpers.IsVisibleASCII("a b") || helpers.IsVisibleASCII("a\x7f") || helpers.IsVisibleASCII("ñ") {
 		t.Fatal("IsVisibleASCII is wrong")

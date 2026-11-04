@@ -15,6 +15,7 @@ from internal.tests.fakes import (
     FakeLocalSpool,
     FakeLogSink,
     FakeMetricsSink,
+    FakeRandom,
     FakeTraceSink,
 )
 from telemetry.internal.application.dtos.clock_info import ClockInfo
@@ -157,6 +158,27 @@ class FakeIdGeneratorTest(unittest.TestCase):
         generator = FakeIdGenerator(instance_id="instance-7")
         self.assertEqual(Identifier("instance-7"), generator.new_instance_id())
         self.assertEqual(1, generator.instance_id_calls)
+
+
+class FakeRandomTest(unittest.TestCase):
+    """FakeRandom: the numbers in order, the last one repeats, and it can be told to fail."""
+
+    def test_it_gives_the_numbers_in_order_and_then_repeats_the_last(self) -> None:
+        fake = FakeRandom((0.1, 0.9))
+        self.assertEqual([fake.random() for _ in range(4)], [0.1, 0.9, 0.9, 0.9])
+        self.assertEqual(fake.calls, 4)
+
+    def test_the_default_is_always_one_half(self) -> None:
+        fake = FakeRandom()
+        self.assertEqual({fake.random() for _ in range(3)}, {0.5})
+
+    def test_it_raises_what_it_was_told_to_and_stops_when_cleared(self) -> None:
+        fake = FakeRandom()
+        fake.fail_with(RuntimeError("broken"))
+        with self.assertRaises(RuntimeError):
+            fake.random()
+        fake.fail_with(None)
+        self.assertEqual(fake.random(), 0.5)
 
 
 class FakeConfigurationTest(unittest.TestCase):

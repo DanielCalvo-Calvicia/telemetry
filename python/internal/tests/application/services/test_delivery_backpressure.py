@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 from internal.tests.application.services.test_delivery_service import Item, ItemDeliveryService, received
 from internal.tests.eventually import eventually
-from internal.tests.fakes import BlockingLogSink, FakeLogSink
+from internal.tests.fakes import BlockingLogSink, FakeLogSink, FakeRandom
 from telemetry.internal.application.dtos.delivery_settings import DeliverySettings
 from telemetry.internal.application.dtos.emit_result import EmitResult
 from telemetry.internal.application.dtos.send_result import SendResult
@@ -73,7 +73,9 @@ class BackpressureTestCase(unittest.TestCase):
             block_timeout_milliseconds=block_timeout_ms,
             event_classes=classes,
         )
-        service = ItemDeliveryService(Destinations(log=(sink,)), settings, SystemClock(), new_memory_queue)
+        service = ItemDeliveryService(
+            Destinations(log=(sink,)), settings, SystemClock(), new_memory_queue, FakeRandom()
+        )
         self.addCleanup(self.release_then_stop, service)
         if start:
             service.start()
@@ -185,7 +187,9 @@ class PolicyTest(BackpressureTestCase):
     def test_each_destination_counts_its_own_drops(self):
         first, second = FakeLogSink(), FakeLogSink()
         settings = DeliverySettings(queue_size=1, batch_size=1, queue_policy=QueuePolicy.DROP_NEWEST)
-        service = ItemDeliveryService(Destinations(log=(first, second)), settings, SystemClock(), new_memory_queue)
+        service = ItemDeliveryService(
+            Destinations(log=(first, second)), settings, SystemClock(), new_memory_queue, FakeRandom()
+        )
         self.addCleanup(service.stop)
         service.enqueue("log", normal(0))
         result = service.enqueue("log", normal(1))

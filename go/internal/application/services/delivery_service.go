@@ -13,6 +13,7 @@ import (
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/batching"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/classification"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/full_queue"
+	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/operations/retry_delay"
 	"github.com/DanielCalvo-Calvicia/telemetry/go/internal/domain/value_objects"
 )
 
@@ -36,13 +37,20 @@ const (
 	// ReasonShutdown is the reason of an event that was dropped because the service was already closed by Shutdown, and of
 	// the events that were still queued when the shutdown ended.
 	ReasonShutdown = "shutdown"
+	// ReasonRetryLimitReached is the reason of the events of a batch that a destination kept failing with a transient failure
+	// until the attempts of the retry mode (RetryMaxAttempts) were used up.
+	ReasonRetryLimitReached = "retry_limit_reached"
 )
 
 // DeliverySettings are the numbers the delivery service works with: the events one queue holds, the events of one batch,
 // the milliseconds before a batch that is not full leaves, the milliseconds before a call to a sink gives up, what a full
 // queue does (QueuePolicy; empty is drop_newest), the milliseconds a call may wait for room with block_with_timeout
-// (BlockTimeoutMS) and the class assigned to an event type (EventClasses; nil is none, and then the default class of the
-// event applies). They are already validated (greater than zero, and the batch not greater than the queue).
+// (BlockTimeoutMS), the class assigned to an event type (EventClasses; nil is none, and then the default class of the
+// event applies), the delivery mode (Mode; empty is best_effort: one attempt per batch; retry sends a batch that failed
+// with a transient failure again) and the retry settings of that mode: the attempts at most for one batch, the first
+// included (RetryMaxAttempts), and the base and the ceiling in milliseconds of the backoff with jitter between two attempts
+// (RetryBaseDelayMS, RetryMaxDelayMS). They are already validated (greater than zero, and the batch not greater than the
+// queue).
 type DeliverySettings struct {
 	QueueSize       int
 	BatchSize       int
@@ -51,22 +59,34 @@ type DeliverySettings struct {
 	QueuePolicy     value_objects.QueuePolicy
 	BlockTimeoutMS  int
 	EventClasses    map[string]value_objects.EventClass
+
+	Mode             value_objects.DeliveryMode
+	RetryMaxAttempts int
+	RetryBaseDelayMS int
+	RetryMaxDelayMS  int
 }
 
 // DestinationStats is a snapshot of one destination, the minimum needed to observe its worker. Kind and Index say which
 // sink it is (Index counts the sinks of the kind, from zero, in the order given). Queued is the events waiting now.
-// Batches is the calls to the sink. Accepted is the events that were queued; Dropped is the events that were not queued,
+// Batches is the batches taken from the queue and finished (delivered, dropped or failed). Attempts is the calls to the
+// sink and Retries the calls beyond the first one of a batch (with best_effort Attempts is Batches and Retries is zero).
+// Accepted is the events that were queued; Dropped is the events that were not queued,
 // the ones that were removed from the queue to make room and the ones the sink dropped; Failed is the events the sink
 // failed to take; Delivered is the events the sink accepted. LastReason is the last reason that was not empty.
 // DroppedByReason counts every dropped event per reason (REQ-DLV-008): the ones the queue dropped or displaced
 // (queue_full_newest, queue_full_oldest, displaced_by_critical, block_timeout) and the ones a sink reported as dropped,
-// under the reason of its result or ReasonUnspecified when it gave none. Its sum is equal to Dropped. The map is a copy:
+// under the reason of its result or ReasonUnspecified when it gave none, the ones of a batch that ran out of attempts
+// with the retry mode (ReasonRetryLimitReached) and the ones of a batch that was abandoned while it waited to be sent again
+// because the service stopped (ReasonShutdown). Delivered counts only the accepted events of the answer that ended a batch.
+// Its sum is equal to Dropped. The map is a copy:
 // the caller may change it.
 type DestinationStats struct {
 	Kind            DestinationKind
 	Index           int
 	Queued          int
 	Batches         int
+	Attempts        int
+	Retries         int
 	Accepted        int
 	Dropped         int
 	Failed          int
@@ -85,6 +105,7 @@ type DestinationStats struct {
 type DeliveryService struct {
 	settings     DeliverySettings
 	clock        outbound.ClockPort
+	random       outbound.RandomPort
 	destinations []*delivery_destination
 	by_kind      map[DestinationKind][]*delivery_destination
 	stop_signal  chan struct{}
@@ -142,16 +163,19 @@ type delivery_destination struct {
 // ----- CONSTRUCTORS ---------------------------------------------------------
 
 // NewDeliveryService returns a DeliveryService with one queue, made by new_queue with the queue size, for every sink of
-// every kind in the destinations. It starts nothing: no goroutine runs until Start is called.
+// every kind in the destinations. random is the source of the jitter of the retry mode (a nil one gives 0.5). It starts
+// nothing: no goroutine runs until Start is called.
 func NewDeliveryService(
 	destinations Destinations,
 	settings DeliverySettings,
 	clock outbound.ClockPort,
+	random outbound.RandomPort,
 	new_queue func(capacity int) outbound.EventQueuePort,
 ) *DeliveryService {
 	service := &DeliveryService{
 		settings:     settings,
 		clock:        clock,
+		random:       random,
 		by_kind:      map[DestinationKind][]*delivery_destination{},
 		stop_signal:  make(chan struct{}),
 		close_signal: make(chan struct{}),
@@ -221,7 +245,7 @@ func (service *DeliveryService) signal_stop() {
 // loop that spins) until every destination has finished its target or the time is over. The time is the deadline of ctx;
 // without a deadline it is domain.DefaultShutdownTimeoutMilliseconds. Per destination, Sent is the events that the sink
 // accepted since the call began (at most the target) and Dropped is the rest of the target: events the sink dropped or
-// failed (there is no retry yet), events displaced from the queue and events still queued or in flight at the end of the
+// failed (with the retry mode, after the attempts of the batch), events displaced from the queue and events still queued or in flight at the end of the
 // time. Spooled is zero until the spool exists (T-06). A ctx that is already done returns at once with the whole target
 // dropped. A flush after Shutdown returns the zero result. It never panics and never returns an error.
 func (service *DeliveryService) Flush(ctx context.Context) (result dtos.ShutdownResult) {
@@ -634,9 +658,14 @@ func (service *DeliveryService) plan_for(ctx context.Context, destination *deliv
 	return batching.PlanBatch(now_ms, queued, oldest_arrival_ms, service.settings.BatchSize, flush_interval_ms)
 }
 
-// send_batch takes the events from the queue, wakes the callers that wait for room, calls the sink once with the timeout
-// of the settings and adds the result to the counters. There is no retry here (T-05.3). A panic of the sink is Failed
-// with ReasonSinkPanicked.
+// send_batch takes the events from the queue, wakes the callers that wait for room and sends them to the sink with the
+// timeout of the settings, as the delivery mode says (REQ-DLV-003). With best_effort (and any mode that is not retry) the
+// batch is sent ONCE, whatever the answer. With retry, an answer with failed events and no dropped ones is a transient
+// failure: the whole batch is sent again after the delay of retry_delay_for while the attempts are below
+// RetryMaxAttempts, and at the limit the failed events are dropped with ReasonRetryLimitReached. Any other answer ends
+// the batch. Only the accepted events of the answer that ends the batch count as delivered. The wait between two
+// attempts is a real wait that Stop wakes: the batch then counts as dropped with ReasonShutdown. While it waits the
+// events stay in flight, so a flush waits for them. A panic of the sink is Failed with ReasonSinkPanicked.
 func (service *DeliveryService) send_batch(ctx context.Context, destination *delivery_destination, take int) {
 	if ctx.Err() != nil {
 		return
@@ -649,29 +678,125 @@ func (service *DeliveryService) send_batch(ctx context.Context, destination *del
 		return
 	}
 	destination.signal_room()
+
+	is_retry := service.settings.Mode == value_objects.DeliveryModeRetry
+	max_attempts := 1
+	if is_retry {
+		max_attempts = service.retry_max_attempts()
+	}
+	for attempt := 0; ; attempt++ {
+		result := service.attempt_send(ctx, destination, batch, attempt)
+		if is_retry && result.Failed > 0 && result.Dropped == 0 {
+			jitter := 0.0
+			if attempt+1 < max_attempts {
+				jitter = service.random_number() // the source is asked only when there is a wait to compute
+			}
+			delay_ms, retry := retry_delay.RetryDelay(attempt, max_attempts, true, result.RetryAfterMS, result.RetryAfterMS > 0,
+				service.retry_base_delay_ms(), service.retry_max_delay_ms(), jitter)
+			if retry {
+				if wait_or_stop(ctx, time.Duration(delay_ms)*time.Millisecond) {
+					continue
+				}
+				service.finish_batch(destination, len(batch), dtos.SendResult{Dropped: len(batch), Reason: ReasonShutdown}, false)
+				return
+			}
+		}
+		service.finish_batch(destination, len(batch), result, is_retry)
+		return
+	}
+}
+
+// attempt_send makes one call to the sink with the timeout of the settings and counts it (attempt is 0 for the first call
+// of a batch).
+func (service *DeliveryService) attempt_send(ctx context.Context, destination *delivery_destination, batch []value_objects.Envelope, attempt int) dtos.SendResult {
 	send_context, cancel_send := context.WithTimeout(ctx, time.Duration(service.settings.TimeoutMS)*time.Millisecond)
 	defer cancel_send()
-	result := send_protected(len(batch), func() dtos.SendResult { return destination.send(send_context, batch) })
-	// The counters and the end of the send are one step for a flush: it reads both to know what the sink accepted.
+	destination.count(func(stats *DestinationStats) {
+		stats.Attempts++
+		if attempt > 0 {
+			stats.Retries++
+		}
+	})
+	return send_protected(len(batch), func() dtos.SendResult { return destination.send(send_context, batch) })
+}
+
+// finish_batch adds the answer that ends a batch to the counters and releases its events. The counters and the end of the
+// send are one step for a flush: it reads both to know what the sink accepted. When with_retry is true the failed events
+// of the answer are the ones that ran out of attempts: they are dropped with ReasonRetryLimitReached instead of failed.
+func (service *DeliveryService) finish_batch(destination *delivery_destination, batch_size int, result dtos.SendResult, with_retry bool) {
 	destination.flow_mutex.Lock()
 	destination.count(func(stats *DestinationStats) {
 		stats.Batches++
 		stats.Delivered += result.Accepted
-		stats.Failed += result.Failed
+		if with_retry && result.Failed > 0 && result.Dropped == 0 {
+			stats.count_drops(result.Failed, ReasonRetryLimitReached)
+		} else {
+			stats.Failed += result.Failed
+		}
 		if result.Dropped > 0 {
 			drop_reason := result.Reason
 			if drop_reason == "" {
 				drop_reason = ReasonUnspecified
 			}
 			stats.count_drops(result.Dropped, drop_reason)
-		} else if result.Reason != "" {
+		} else if result.Reason != "" && !(with_retry && result.Failed > 0) {
 			stats.LastReason = result.Reason
 		}
 	})
-	destination.in_flight -= len(batch)
-	destination.resolved += len(batch)
+	destination.in_flight -= batch_size
+	destination.resolved += batch_size
 	destination.flow_mutex.Unlock()
 	service.signal_progress()
+}
+
+// retry_max_attempts is the attempts at most for one batch with the retry mode (the first included); a setting that is
+// not positive (the settings are validated, so it is a service that was built by hand) is the default.
+func (service *DeliveryService) retry_max_attempts() int {
+	if service.settings.RetryMaxAttempts < 1 {
+		return domain.DefaultRetryMaxAttempts
+	}
+	return service.settings.RetryMaxAttempts
+}
+
+// retry_base_delay_ms is the base of the backoff in milliseconds, or the default when the setting is not positive.
+func (service *DeliveryService) retry_base_delay_ms() int {
+	if service.settings.RetryBaseDelayMS < 1 {
+		return domain.DefaultRetryBaseDelayMilliseconds
+	}
+	return service.settings.RetryBaseDelayMS
+}
+
+// retry_max_delay_ms is the ceiling of the backoff in milliseconds, or the default when the setting is not positive.
+func (service *DeliveryService) retry_max_delay_ms() int {
+	if service.settings.RetryMaxDelayMS < 1 {
+		return domain.DefaultRetryMaxDelayMilliseconds
+	}
+	return service.settings.RetryMaxDelayMS
+}
+
+// random_number is the next number of the random source, in [0, 1]; 0.5 when the service has no source.
+func (service *DeliveryService) random_number() float64 {
+	if service.random == nil {
+		return 0.5
+	}
+	return service.random.Float64()
+}
+
+// wait_or_stop waits for the duration and returns true, or returns false at once when the context is done first (the
+// service is stopped). It waits on a timer and the context, never in a loop; the timer is always stopped. A duration that
+// is not positive does not wait, and returns whether the context is still alive.
+func wait_or_stop(ctx context.Context, duration time.Duration) bool {
+	if duration <= 0 {
+		return ctx.Err() == nil
+	}
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return ctx.Err() == nil
+	case <-ctx.Done():
+		return false
+	}
 }
 
 // wait_for_signal blocks until the wake channel has a signal, the context is done or, when the duration is above zero,

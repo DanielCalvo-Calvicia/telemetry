@@ -12,6 +12,7 @@ from internal.tests.fakes import (
     FakeLocalSpool,
     FakeLogSink,
     FakeMetricsSink,
+    FakeRandom,
     FakeTraceSink,
 )
 from telemetry.internal.application.ports.outbound.ai_telemetry_sink_port import AITelemetrySinkPort
@@ -23,12 +24,14 @@ from telemetry.internal.application.ports.outbound.id_generator_port import IDGe
 from telemetry.internal.application.ports.outbound.local_spool_port import LocalSpoolPort
 from telemetry.internal.application.ports.outbound.log_sink_port import LogSinkPort
 from telemetry.internal.application.ports.outbound.metrics_sink_port import MetricsSinkPort
+from telemetry.internal.application.ports.outbound.random_port import RandomPort
 from telemetry.internal.application.ports.outbound.trace_sink_port import TraceSinkPort
 
 # Port, its fake and its methods. The Go half lists the same methods in PascalCase (Now, MonotonicNanoseconds, ...).
 PORT_TABLE = [
     (ClockPort, FakeClock, {"now", "monotonic_nanoseconds", "clock_info"}),
     (IDGeneratorPort, FakeIdGenerator, {"new_event_id", "new_instance_id"}),
+    (RandomPort, FakeRandom, {"random"}),
     (ConfigurationPort, FakeConfiguration, {"configuration"}),
     (LogSinkPort, FakeLogSink, {"send"}),
     (EventSinkPort, FakeEventSink, {"send"}),

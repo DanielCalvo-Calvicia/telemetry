@@ -35,7 +35,7 @@ class DefaultsTest(unittest.TestCase):
             (delivery.queue_policy, delivery.block_timeout_ms, delivery.event_classes), ("drop_newest", 0, {})
         )
 
-    def test_the_new_fields_come_after_the_timeout_in_the_order_of_the_schema(self):
+    def test_the_fields_come_in_the_order_of_the_schema(self):
         names = [field.name for field in dataclasses.fields(defaults().delivery)]
         self.assertEqual(
             names,
@@ -48,6 +48,9 @@ class DefaultsTest(unittest.TestCase):
                 "queue_policy",
                 "block_timeout_ms",
                 "event_classes",
+                "retry_max_attempts",
+                "retry_base_delay_ms",
+                "retry_max_delay_ms",
             ],
         )
 

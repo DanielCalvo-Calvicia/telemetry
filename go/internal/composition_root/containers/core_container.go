@@ -36,9 +36,11 @@ type Core struct {
 // starts before NewCore is called, and an invalid configuration starts nothing. Only Shutdown stops these workers: a
 // program must call it before it exits, and a core that is no longer used without it leaves its goroutines running.
 //
-// An invalid configuration returns a *infra_config.ValidationError with every problem together. A delivery mode
-// durable with no spool is one more problem of the same error (field delivery.mode, code config_field_invalid), after
-// the ones of the configuration, so a project sees everything it must fix at once.
+// An invalid configuration returns a *infra_config.ValidationError with every problem together. The delivery mode
+// durable is refused while the spool does not exist (T-06.5), with or without a spool adapter: it is one more problem of
+// the same error (field delivery.mode, code config_field_invalid), after the ones of the configuration, so a project
+// sees everything it must fix at once. The configuration itself (infra_config.Validate) still accepts durable, because
+// the profiles Robotics and OfflineDevice give it.
 func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Option) (*Core, error) {
 	applied_options := config.Options{}
 	for _, option := range options {
@@ -53,7 +55,7 @@ func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Opt
 		applied_options.IDGenerator = dependencies.NewUUIDGenerator()
 	}
 
-	if validation_error := validate_start(cfg, applied_options); validation_error != nil {
+	if validation_error := validate_start(cfg); validation_error != nil {
 		return nil, validation_error
 	}
 
@@ -75,15 +77,20 @@ func NewCore(ctx context.Context, cfg infra_config.Config, options ...config.Opt
 	delivery := services.NewDeliveryService(
 		applied_options.Destinations,
 		services.DeliverySettings{
-			QueueSize:       configuration.Delivery.QueueSize,
-			BatchSize:       configuration.Delivery.BatchSize,
-			FlushIntervalMS: configuration.Delivery.FlushIntervalMilliseconds,
-			TimeoutMS:       configuration.Delivery.TimeoutMilliseconds,
-			QueuePolicy:     configuration.Delivery.QueuePolicy,
-			BlockTimeoutMS:  configuration.Delivery.BlockTimeoutMilliseconds,
-			EventClasses:    configuration.Delivery.EventClasses,
+			QueueSize:        configuration.Delivery.QueueSize,
+			BatchSize:        configuration.Delivery.BatchSize,
+			FlushIntervalMS:  configuration.Delivery.FlushIntervalMilliseconds,
+			TimeoutMS:        configuration.Delivery.TimeoutMilliseconds,
+			QueuePolicy:      configuration.Delivery.QueuePolicy,
+			BlockTimeoutMS:   configuration.Delivery.BlockTimeoutMilliseconds,
+			Mode:             configuration.Delivery.Mode,
+			EventClasses:     configuration.Delivery.EventClasses,
+			RetryMaxAttempts: configuration.Delivery.RetryMaxAttempts,
+			RetryBaseDelayMS: configuration.Delivery.RetryBaseDelayMS,
+			RetryMaxDelayMS:  configuration.Delivery.RetryMaxDelayMS,
 		},
 		applied_options.Clock,
+		dependencies.NewSystemRandom(),
 		dependencies.NewMemoryQueue,
 	)
 	pipeline := services.NewEventPipelineService(
@@ -121,8 +128,8 @@ func (core *Core) Logger() inbound.LoggerPort {
 //
 // The time is the deadline of ctx; without a deadline it is 5 seconds (domain.DefaultShutdownTimeoutMilliseconds), so no
 // call waits for ever. The result says how many events were sent and how many were dropped (the events that a destination
-// failed, dropped or did not finish in time; there is no retry yet); Spooled is zero until the spool exists. It never
-// panics and never returns an error, a nil *Core included (the zero result), and a Flush after Shutdown is the zero result.
+// failed, dropped or did not finish in time; with the retry mode, after the attempts of the batch); Spooled is zero
+// until the spool exists. It never panics and never returns an error, a nil *Core included (the zero result), and a Flush after Shutdown is the zero result.
 func (core *Core) Flush(ctx context.Context) dtos.ShutdownResult {
 	if core == nil || core.delivery == nil {
 		return dtos.ShutdownResult{}
@@ -147,18 +154,18 @@ func (core *Core) Shutdown(ctx context.Context) dtos.ShutdownResult {
 
 // ----- HELPERS --------------------------------------------------------------
 
-// validate_start returns the *ValidationError of the configuration and of the options together, or nil when both are
+// validate_start returns the *ValidationError of the configuration and of the start together, or nil when both are
 // valid. The configuration problems come first.
-func validate_start(cfg infra_config.Config, options config.Options) error {
+func validate_start(cfg infra_config.Config) error {
 	var problems []infra_config.Problem
 	if validation_error, is_validation := infra_config.Validate(cfg).(*infra_config.ValidationError); is_validation {
 		problems = append(problems, validation_error.Problems...)
 	}
-	if cfg.Delivery.Mode == string(value_objects.DeliveryModeDurable) && options.Spool == nil {
+	if cfg.Delivery.Mode == string(value_objects.DeliveryModeDurable) {
 		problems = append(problems, infra_config.Problem{
 			Field:  "delivery.mode",
 			Code:   value_objects.ErrorCodeConfigFieldInvalid,
-			Reason: "the durable mode needs a spool adapter",
+			Reason: "the durable mode is not available yet: it needs the spool of T-06.5",
 		})
 	}
 	if len(problems) == 0 {

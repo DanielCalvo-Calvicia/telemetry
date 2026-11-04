@@ -1,0 +1,36 @@
+{
+  "description": "With a spool adapter given the durable mode is still refused, with one problem for delivery.mode, until T-06.5 builds the spool.",
+  "kind": "core",
+  "config": {
+    "profile": "robotics",
+    "overrides": {
+      "resource": {
+        "service_name": "sensor-hub",
+        "instance_id": "hub-01"
+      },
+      "spool": {
+        "directory": "spool-dir"
+      }
+    }
+  },
+  "clock": {
+    "wall_time": "2026-10-28T10:00:00.123456+00:00"
+  },
+  "event_ids": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "sinks": {
+    "log": [
+      {}
+    ]
+  },
+  "new_error": {
+    "problems": [
+      {
+        "field": "delivery.mode",
+        "code": "config_field_invalid"
+      }
+    ]
+  },
+  "spool": true
+}

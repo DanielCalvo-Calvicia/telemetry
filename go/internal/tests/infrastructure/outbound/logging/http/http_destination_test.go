@@ -48,6 +48,16 @@ func Test_result_from_outcome_table(t *testing.T) {
 		{"permanent with filtered", permanent, 3, 2, dtos.SendResult{Accepted: 2, Dropped: 3, Reason: "status_400"}},
 		{"zero sent only filtered", http_client.Outcome{}, 0, 4, dtos.SendResult{Accepted: 4}},
 		{"zero sent and zero filtered", http_client.Outcome{}, 0, 0, dtos.SendResult{}},
+		{"transient with a Retry-After", http_client.Outcome{Class: client_helpers.ClassTransient, Reason: "status_429", RetryAfterMilliseconds: 7000, RetryAfterOK: true}, 3, 0,
+			dtos.SendResult{Failed: 3, Reason: "status_429", RetryAfterMS: 7000}},
+		{"transient with a Retry-After of zero is a hint of zero", http_client.Outcome{Class: client_helpers.ClassTransient, Reason: "status_429", RetryAfterOK: true}, 3, 0,
+			dtos.SendResult{Failed: 3, Reason: "status_429"}},
+		{"a Retry-After that is not ok is ignored", http_client.Outcome{Class: client_helpers.ClassTransient, Reason: "status_503", RetryAfterMilliseconds: 9000}, 3, 0,
+			dtos.SendResult{Failed: 3, Reason: "status_503"}},
+		{"a permanent outcome carries no Retry-After", http_client.Outcome{Class: client_helpers.ClassPermanent, Reason: "status_400", RetryAfterMilliseconds: 9000, RetryAfterOK: true}, 3, 0,
+			dtos.SendResult{Dropped: 3, Reason: "status_400"}},
+		{"nothing sent carries no Retry-After", http_client.Outcome{Class: client_helpers.ClassTransient, RetryAfterMilliseconds: 9000, RetryAfterOK: true}, 0, 2,
+			dtos.SendResult{Accepted: 2}},
 		{"an outcome with no class is a failure", http_client.Outcome{Reason: "network_error"}, 1, 0, dtos.SendResult{Failed: 1, Reason: "network_error"}},
 	}
 	for _, test_case := range cases {
